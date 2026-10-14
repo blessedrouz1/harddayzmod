@@ -501,7 +501,8 @@ public class Drone extends Entity implements Threat {
             tickWingRecon(level);
             return;
         }
-        if (kind() == Kind.LANCET && !offered && owner != null
+        if (kind() == Kind.LANCET && !offered && owner != null && flight() > 80
+                && getY() - level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(getX()), Mth.floor(getZ())) > 20
                 && Math.sqrt(position().distanceToSqr(target.x, position().y, target.z)) < 120
                 && level.getPlayerByUUID(owner) instanceof ServerPlayer op && linked(op)) {
             offered = true; // подлетел — оператор выбирает цель сам
@@ -718,8 +719,9 @@ public class Drone extends Entity implements Threat {
 
     @Override
     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        // забрать дрон — только ударом рукой вплотную (а не очередью из пулемёта)
         if ((parked || !kind().autonomous) && pilotId() < 0 && source.getEntity() instanceof Player p && source.getDirectEntity() == p
-                && (p.isShiftKeyDown() || p.isCreative())) {
+                && p.getVehicle() == null && p.distanceTo(this) < 5 && (p.isShiftKeyDown() || p.isCreative())) {
             spawnAtLocation(level, new ItemStack(switch (kind()) {
                 case FPV -> ModItems.FPV_DRONE.get();
                 case INTERCEPTOR -> ModItems.INTERCEPTOR.get();
@@ -744,6 +746,8 @@ public class Drone extends Entity implements Threat {
         }
         Vec3 at = position();
         remove(RemovalReason.KILLED);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION, true, true, at.x, at.y, at.z, 3, 0.4, 0.4, 0.4, 0);
+        level.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, true, true, at.x, at.y, at.z, 20, 0.5, 0.5, 0.5, 0.05);
         // сбитый дрон взрывается: боевая часть — сильнее, разведчик — батарея и обломки
         Blast.detonate(level, at, Math.max(2.2f, kind().warhead * 0.6f), false, this);
     }

@@ -4,7 +4,7 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="harddayz"
-version="0.2.0"
+version="0.2.1"
 displayName="HardDayz"
 description='''
 HardDayz: ракетные комплексы, баллистика, ПВО, РЭБ и ударные дроны. Локальный мод для игры с друзьями.
