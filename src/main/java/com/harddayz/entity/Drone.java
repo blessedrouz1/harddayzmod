@@ -1,0 +1,820 @@
+package com.harddayz.entity;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
+import org.jspecify.annotations.Nullable;
+
+import com.harddayz.registry.ModEntities;
+import com.harddayz.registry.ModItems;
+import com.harddayz.weapon.Blast;
+
+import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.InterpolationHandler;
+import net.minecraft.world.entity.LinearInterpolationHandler;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Беспилотники.
+ * <ul>
+ * <li>SHAHED — ударный дрон-камикадзе: летит сам над рельефом к цели и пикирует; его слышно издалека и можно сбить;</li>
+ * <li>FPV — пилотируемый с камеры дрон-камикадзе: подрыв по ЛКМ или при ударе на скорости;</li>
+ * <li>RECON — разведывательный: камера с зумом, сбрасывает гранаты (ЛКМ).</li>
+ * </ul>
+ * Пилотируемыми дронами управляет клиент пилота (плавно, без задержки), сервер принимает позицию.
+ */
+public class Drone extends Entity implements Threat {
+    public enum Kind {
+        /** «Шахед-136» / «Герань-2»: медленный, громкий, мощный. */
+        SHAHED(8, 3600, 7.5f, 1.25, 26, true),
+        FPV(4, 1800, 4.5f, 0, 0, false),
+        RECON(6, 4800, 0f, 0, 0, false),
+        /** «Шахед-238»: реактивный — в 2 раза быстрее, летит высоко, ПВО сбивает хуже. */
+        SHAHED_238(10, 2400, 8f, 2.6, 70, true),
+        /** «Шахед-131»: малый, слабее заряд. */
+        SHAHED_131(6, 3000, 4.5f, 1.15, 22, true),
+        /** «Гербера»: ложная цель — почти без заряда, отвлекает ПВО. */
+        GERBERA(4, 3000, 0.8f, 1.0, 24, true),
+        /** Дрон-перехватчик: сам догоняет вражеский дрон и пытается его сбить (не наверняка). */
+        INTERCEPTOR(3, 0, 2.2f, 2.6, 0, true),
+        /** «Ланцет»: летит к точке сам, в конце оператор выбирает цель вручную. */
+        LANCET(5, 1800, 5f, 1.6, 40, true),
+        /** Самолётный разведчик: кружит над точкой и передаёт найденных врагов в сеть РЛС фракции. */
+        WING_RECON(6, 0, 0f, 1.0, 60, true);
+
+        public final float health;
+        /** Заряд АКБ в тиках (у «Шахедов» — запас ручного управления, дальше летит сам). */
+        public final int battery;
+        public final float warhead;
+        public final double cruise;
+        public final int altitude;
+        /** Летит сам к цели (семейство «Шахедов»). */
+        public final boolean autonomous;
+
+        Kind(float health, int battery, float warhead, double cruise, int altitude, boolean autonomous) {
+            this.health = health;
+            this.battery = battery;
+            this.warhead = warhead;
+            this.cruise = cruise;
+            this.altitude = altitude;
+            this.autonomous = autonomous;
+        }
+    }
+
+    public static final int SHAHED_RANGE = 3000;
+    public static final int SIGNAL_RANGE = 320;
+    /** Дальность ручного управления «Шахедом» с пульта оператора. */
+    public static final int SHAHED_LINK_RANGE = 700;
+    /** Ретранслятор продлевает связь на столько блоков вокруг себя. */
+    public static final int RELAY_RANGE = 900;
+
+    /** Реальная дальность связи: не дальше прорисовки сервера (иначе пилот видит пустоту). */
+    public static int linkRange(net.minecraft.server.MinecraftServer server) {
+        return SHAHED_LINK_RANGE;
+    }
+
+    /** Есть ли связь оператора с дроном: напрямую или через свой ретранслятор рядом с дроном. */
+    public boolean linked(ServerPlayer op) {
+        if (op.distanceTo(this) <= SHAHED_LINK_RANGE) {
+            return true;
+        }
+        return !level().getEntitiesOfClass(Launcher.class, getBoundingBox().inflate(RELAY_RANGE, 400, RELAY_RANGE),
+                l -> l.kind() == Launcher.Kind.RELAY && l.health() > 0 && com.harddayz.war.War.allied(op.getUUID(), l.owner())).isEmpty();
+    }
+
+    private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> PILOT = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> BATTERY = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> GRENADES = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.INT);
+    /** Помехи от РЭБ 0..1 (для экрана пилота и срыва управления). */
+    private static final EntityDataAccessor<Float> INTERFERENCE = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.FLOAT);
+    /** Двигатель включён (квадрокоптер пилот включает/глушит сам; у «Шахедов» мотор работает всегда). */
+    private static final EntityDataAccessor<Boolean> ENGINE = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.BOOLEAN);
+    private static final EntityDataAccessor<Integer> FACTION = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> PARKED = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.BOOLEAN);
+
+    public boolean engineOn() {
+        if (entityData.get(PARKED)) {
+            return entityData.get(ENGINE);
+        }
+        return kind().autonomous || entityData.get(ENGINE);
+    }
+
+    public int faction() {
+        return entityData.get(FACTION);
+    }
+
+    public float interference() {
+        return entityData.get(INTERFERENCE);
+    }
+
+    /** РЭБ рядом: помехи растут, сильные — срыв связи / курса. */
+    public void interfere(ServerLevel level, float k) {
+        float v = Math.max(interference(), k);
+        entityData.set(INTERFERENCE, v);
+        if (v > 0.55f) {
+            jam(level);
+        }
+    }
+
+    private float health = 8;
+    private @Nullable UUID owner;
+    private Vec3 target = Vec3.ZERO;
+    private boolean diving;
+    private @Nullable FlightChunks chunks;
+    /** Клиент: запущен ли звук мотора. */
+    public boolean soundStarted;
+    /** Клиент: вращение винтов. */
+    public float rotor;
+
+    public Drone(EntityType<? extends Drone> type, Level level) {
+        super(type, level);
+    }
+
+    // ------------------------------------------------------------------ создание
+
+    public static Drone launchShahed(ServerLevel level, Vec3 pos, Vec3 dir, Vec3 target, @Nullable UUID owner, Kind kind) {
+        Drone d = new Drone(ModEntities.DRONE.get(), level);
+        d.setKind(kind);
+        d.setPos(pos);
+        d.setDeltaMovement(dir.scale(0.9));
+        d.target = target;
+        d.owner = owner;
+        d.face(dir);
+        level.addFreshEntity(d);
+        return d;
+    }
+
+    public static Drone deploy(ServerLevel level, ServerPlayer pilot, Kind kind) {
+        Drone d = new Drone(ModEntities.DRONE.get(), level);
+        d.setKind(kind);
+        Vec3 at = pilot.getEyePosition().add(pilot.getLookAngle().multiply(1, 0, 1).normalize().scale(1.5));
+        d.setPos(at);
+        d.setYRot(pilot.getYRot());
+        d.owner = pilot.getUUID();
+        d.entityData.set(PILOT, pilot.getId());
+        level.addFreshEntity(d);
+        return d;
+    }
+
+    public void setKind(Kind k) {
+        entityData.set(KIND, k.ordinal());
+        entityData.set(BATTERY, k.battery);
+        entityData.set(GRENADES, k == Kind.RECON ? 3 : 0);
+        health = k.health;
+    }
+
+    // ------------------------------------------------------------------ доступ
+
+    public Kind kind() {
+        return Kind.values()[Math.floorMod(entityData.get(KIND), Kind.values().length)];
+    }
+
+    public int pilotId() {
+        return entityData.get(PILOT);
+    }
+
+    public int battery() {
+        return entityData.get(BATTERY);
+    }
+
+    public int grenades() {
+        return entityData.get(GRENADES);
+    }
+
+    @Override
+    public boolean isThreat() {
+        return true;
+    }
+
+    @Override
+    public @Nullable UUID owner() {
+        return owner;
+    }
+
+    private void face(Vec3 v) {
+        if (v.lengthSqr() < 1.0E-6) {
+            return;
+        }
+        double h = Math.sqrt(v.x * v.x + v.z * v.z);
+        setYRot((float) Math.toDegrees(Math.atan2(-v.x, v.z)));
+        setXRot((float) Math.toDegrees(-Math.atan2(v.y, h)));
+    }
+
+    @Override
+    protected InterpolationHandler createInterpolationHandler() {
+        return LinearInterpolationHandler.create(this, 2);
+    }
+
+    // ------------------------------------------------------------------ тик
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (level().isClientSide()) {
+            rotor += kind().autonomous ? 2.2f : 1.6f;
+            boolean mine = com.harddayz.client.ClientAccess.isPilotingLocally(this);
+            if (!mine) {
+                getInterpolation().interpolate();
+            }
+            com.harddayz.client.ClientAccess.droneClientTick(this);
+            return;
+        }
+        ServerLevel level = (ServerLevel) level();
+        if (tickCount % 10 == 0 && interference() > 0) {
+            entityData.set(INTERFERENCE, Math.max(0, interference() - 0.08f)); // вне зоны РЭБ помехи спадают
+        }
+        if (tickCount % 40 == 1) {
+            entityData.set(FACTION, com.harddayz.war.War.factionIndex(owner));
+        }
+        if (kind().autonomous && pilotId() >= 0) {
+            Entity op = level.getEntity(pilotId());
+            if (!(op instanceof ServerPlayer sop) || !op.isAlive() || !linked(sop)) {
+                release(); // связь потеряна — дальше летит сам
+            } else if (battery() <= 0) {
+                ((ServerPlayer) op).sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED));
+                release(); // заряд кончился — дальше по старому курсу
+            } else {
+                entityData.set(BATTERY, battery() - 1);
+                PilotView.follow((ServerPlayer) op, this);
+                if (tickCount > 6000) {
+                    detonate(level);
+                }
+                if (chunks == null) {
+                    chunks = new FlightChunks(getUUID());
+                }
+                chunks.update(level, position(), getDeltaMovement(), null);
+                return; // ведёт оператор
+            }
+        }
+        if (kind().autonomous) {
+            tickShahed(level);
+            return;
+        }
+        // пилотируемые: заряд тратится только при включённом моторе
+        if (engineOn()) {
+            entityData.set(BATTERY, Math.max(0, battery() - 1));
+            if (battery() <= 0) {
+                entityData.set(ENGINE, false); // сел аккумулятор — мотор встал, дрон падает
+            }
+        }
+        Entity pilot = pilotId() >= 0 ? level.getEntity(pilotId()) : null;
+        if (pilotId() >= 0 && (!(pilot instanceof ServerPlayer) || !pilot.isAlive() || pilot.distanceTo(this) > SIGNAL_RANGE)) {
+            release(); // потеря связи
+        } else if (pilot instanceof ServerPlayer sp) {
+            PilotView.follow(sp, this);
+        }
+        if (pilotId() < 0) {
+            // без пилота: с мотором висит на месте, без мотора — падает
+            Vec3 v = getDeltaMovement();
+            v = engineOn() ? v.scale(0.8) : v.add(0, -0.06, 0).multiply(0.9, 1, 0.9);
+            double fall = v.y;
+            setDeltaMovement(v);
+            move(MoverType.SELF, v);
+            if (onGround()) {
+                setDeltaMovement(Vec3.ZERO);
+                if (fall < -0.6) {
+                    crash(level); // рухнул с высоты
+                }
+            }
+        }
+    }
+
+    /** Удар о землю на скорости. */
+    public void crash(ServerLevel level) {
+        if (kind().warhead > 0) {
+            detonate(level);
+        } else {
+            breakApart(level);
+        }
+    }
+
+    /** Пилот включает/глушит мотор. */
+    public void toggleEngine(ServerPlayer from) {
+        if (from.getId() != pilotId() || kind().autonomous) {
+            return;
+        }
+        boolean on = !entityData.get(ENGINE) && battery() > 0;
+        entityData.set(ENGINE, on);
+        from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(on ? "message.harddayz.engine_on" : "message.harddayz.engine_off")
+                .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.YELLOW));
+        level().playSound(null, getX(), getY(), getZ(), on ? SoundEvents.BEACON_ACTIVATE : SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 0.5f, 2f);
+    }
+
+    private int hunt = -1;
+    /** Стоит на земле и ждёт пуска (ПКМ по нему). */
+    private boolean parked;
+    private int launchedAt;
+
+    public boolean parkable() {
+        return kind() == Kind.INTERCEPTOR || kind() == Kind.LANCET || kind() == Kind.WING_RECON;
+    }
+
+    /** Поставить на землю перед игроком, мотор не запущен. */
+    public static Drone park(ServerLevel level, ServerPlayer p, Kind kind) {
+        Drone d = new Drone(ModEntities.DRONE.get(), level);
+        d.setKind(kind);
+        Vec3 at = p.position().add(p.getLookAngle().multiply(1, 0, 1).normalize().scale(1.6)).add(0, 0.3, 0);
+        d.setPos(at);
+        d.setYRot(p.getYRot());
+        d.owner = p.getUUID();
+        d.parked = true;
+        d.entityData.set(PARKED, true);
+        level.addFreshEntity(d);
+        return d;
+    }
+
+    private int flight() {
+        return tickCount - launchedAt;
+    }
+
+    /** Пуск со стоянки: цель — точка целеуказателя у игрока или куда он смотрит. */
+    private void launchFromGround(ServerPlayer p) {
+        ServerLevel level = (ServerLevel) level();
+        Vec3 aim = null;
+        for (ItemStack s : p.getInventory()) {
+            if (s.is(ModItems.DESIGNATOR.get()) && com.harddayz.item.DesignatorItem.target(s) != null) {
+                aim = Vec3.atCenterOf(com.harddayz.item.DesignatorItem.target(s));
+                break;
+            }
+        }
+        if (aim == null || kind() == Kind.INTERCEPTOR) {
+            var hit = level.clip(new ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(600)), ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE, p));
+            aim = hit.getLocation();
+        }
+        parked = false;
+        entityData.set(PARKED, false);
+        launchedAt = tickCount;
+        owner = p.getUUID();
+        target = aim;
+        Vec3 flat = aim.subtract(position()).multiply(1, 0, 1);
+        Vec3 dir = (flat.lengthSqr() < 1 ? p.getLookAngle().multiply(1, 0, 1) : flat).normalize().add(0, 1.2, 0).normalize();
+        setDeltaMovement(dir.scale(0.6));
+        face(dir);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 2f, 1.1f);
+        level.sendParticles(ParticleTypes.CLOUD, true, true, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
+    }
+
+    private void tickParked(ServerLevel level) {
+        Vec3 v = getDeltaMovement().add(0, -0.06, 0).multiply(0.8, 1, 0.8);
+        move(MoverType.SELF, v);
+        setDeltaMovement(onGround() ? Vec3.ZERO : v);
+    }
+    private int idle;
+    private boolean offered;
+
+    /** Перехватчик: ищет ближайший чужой дрон и идёт на сближение с упреждением. */
+    private void tickInterceptor(ServerLevel level) {
+        if (flight() > 900) {
+            detonate(level);
+            return;
+        }
+        Entity t = hunt >= 0 ? level.getEntity(hunt) : null;
+        if (!(t instanceof Drone td) || !td.isAlive() || td.distanceTo(this) > 220) {
+            t = null;
+            hunt = -1;
+            double best = 180 * 180;
+            for (Drone d : level.getEntitiesOfClass(Drone.class, getBoundingBox().inflate(180), d -> d != this && d.kind() != Kind.INTERCEPTOR
+                    && !com.harddayz.war.War.allied(owner, d.owner()))) {
+                double ds = d.distanceToSqr(this);
+                if (ds < best) {
+                    best = ds;
+                    t = d;
+                }
+            }
+            if (t != null) {
+                hunt = t.getId();
+            }
+        }
+        Vec3 v = getDeltaMovement();
+        Vec3 desired;
+        if (t == null) {
+            if (++idle > 240) {
+                detonate(level); // цели нет — самоликвидация
+                return;
+            }
+            desired = v.lengthSqr() < 1.0E-4 ? new Vec3(0, 0.3, 1).normalize() : v.normalize();
+        } else {
+            idle = 0;
+            double dist = t.distanceTo(this);
+            Vec3 lead = t.position().add(t.getDeltaMovement().scale(dist / kind().cruise));
+            desired = lead.subtract(position()).normalize();
+            if (dist < 3.5) {
+                if (random.nextFloat() < 0.65f) {
+                    ((Drone) t).shotDown(level);
+                }
+                detonate(level);
+                return;
+            }
+        }
+        v = steer(v, desired, Math.min(kind().cruise, v.length() + 0.12), 0.16);
+        setDeltaMovement(v);
+        face(v);
+        Vec3 to = position().add(v);
+        var hit = level.clip(new ClipContext(position(), to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
+        if (flight() > 6 && hit.getType() != HitResult.Type.MISS) {
+            setPos(hit.getLocation());
+            detonate(level);
+            return;
+        }
+        setPos(to);
+    }
+
+    /** Самолётный разведчик: круги над точкой, раз в секунду — доклад в сеть РЛС. */
+    private void tickWingRecon(ServerLevel level) {
+        if (flight() > 7200) {
+            breakApart(level); // кончилось топливо
+            return;
+        }
+        Vec3 pos = position();
+        Vec3 v = getDeltaMovement();
+        Vec3 off = new Vec3(pos.x - target.x, 0, pos.z - target.z);
+        double r = off.length();
+        int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(pos.x), Mth.floor(pos.z));
+        double alt = Math.max(ground, target.y) + kind().altitude;
+        Vec3 desired;
+        if (r > 70) {
+            desired = new Vec3(-off.x, 0, -off.z).normalize();
+        } else {
+            Vec3 tangent = new Vec3(-off.z, 0, off.x).normalize();
+            desired = tangent.add(off.normalize().scale((45 - r) * 0.03));
+        }
+        desired = desired.add(0, Mth.clamp((alt - pos.y) * 0.04, -0.4, 0.4), 0).normalize();
+        v = steer(v, desired, kind().cruise, 0.06);
+        setDeltaMovement(v);
+        face(v);
+        if (chunks == null) {
+            chunks = new FlightChunks(getUUID());
+        }
+        chunks.update(level, pos, v, null);
+        setPos(pos.add(v));
+        if (tickCount % 20 == 0 && owner != null) {
+            String key = com.harddayz.war.RadarNet.key(owner);
+            long now = level.getGameTime();
+            for (Entity e : level.getEntities(this, getBoundingBox().inflate(150, 120, 150), e -> (e instanceof Player || e instanceof Vehicle
+                    || e instanceof Drone) && !com.harddayz.war.War.allied(owner, e instanceof Player p ? p.getUUID()
+                            : e instanceof Vehicle vh ? vh.owner() : ((Drone) e).owner()))) {
+                com.harddayz.war.RadarNet.report(key, e, now);
+            }
+            com.harddayz.war.RadarNet.radarAlive(key, now);
+        }
+    }
+
+    private void tickShahed(ServerLevel level) {
+        if (parked) {
+            tickParked(level);
+            return;
+        }
+        if (kind() == Kind.INTERCEPTOR) {
+            tickInterceptor(level);
+            return;
+        }
+        if (kind() == Kind.WING_RECON) {
+            tickWingRecon(level);
+            return;
+        }
+        if (kind() == Kind.LANCET && !offered && owner != null
+                && Math.sqrt(position().distanceToSqr(target.x, position().y, target.z)) < 120
+                && level.getPlayerByUUID(owner) instanceof ServerPlayer op && linked(op)) {
+            offered = true; // подлетел — оператор выбирает цель сам
+            if (takeControl(op)) {
+                op.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.lancet_control").withStyle(net.minecraft.ChatFormatting.GOLD));
+            }
+        }
+        Vec3 v = getDeltaMovement();
+        Vec3 pos = position();
+        if (flight() > 6000) {
+            detonate(level);
+            return;
+        }
+        if (flight() < 25) {
+            v = v.normalize().scale(Math.min(kind().cruise, v.length() + 0.04 * kind().cruise)).add(0, 0.02, 0);
+        } else {
+            double dx = target.x - pos.x;
+            double dz = target.z - pos.z;
+            double dh = Math.sqrt(dx * dx + dz * dz);
+            Vec3 desired;
+            double speed;
+            double turn;
+            if (!diving && dh > Math.max(45, (pos.y - target.y) * 1.6 + 20)) {
+                int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Mth.floor(pos.x + v.x * 20), Mth.floor(pos.z + v.z * 20));
+                double alt = Math.max(ground, target.y) + kind().altitude;
+                Vec3 flat = new Vec3(dx, 0, dz).normalize();
+                // лёгкое «рыскание», как у настоящего
+                flat = flat.yRot((float) Math.sin(tickCount * 0.05 + getId()) * 0.08f);
+                desired = flat.add(0, Mth.clamp((alt - pos.y) * 0.04, -0.4, 0.4), 0).normalize();
+                speed = kind().cruise;
+                turn = 0.05 / Math.max(1, kind().cruise / 1.3);
+            } else {
+                diving = true;
+                int gy = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(target.x), Mth.floor(target.z));
+                Vec3 aim = new Vec3(target.x, Math.min(target.y, gy), target.z); // на реальную землю
+                desired = aim.subtract(pos).normalize();
+                speed = Math.min(kind().cruise * 1.6, v.length() + 0.03);
+                turn = 0.06;
+            }
+            v = steer(v, desired, speed, turn);
+        }
+        setDeltaMovement(v);
+        face(v);
+        if (chunks == null) {
+            chunks = new FlightChunks(getUUID());
+        }
+        if (!chunks.update(level, pos, v, target)) {
+            return; // впереди чанк ещё грузится — ждём тик
+        }
+        Vec3 to = pos.add(v);
+        if (flight() > 4) {
+            BlockHitResult hit = level.clip(new ClipContext(pos, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
+            if (hit.getType() != HitResult.Type.MISS) {
+                setPos(hit.getLocation());
+                detonate(level);
+                return;
+            }
+            for (Entity e : level.getEntities(this, new AABB(pos, to).inflate(1), e -> (e instanceof LivingEntity || e instanceof Vehicle)
+                    && !(e instanceof Vehicle vh && (flight() < 60 || com.harddayz.war.War.allied(owner, vh.owner()))))) {
+                if (e.getBoundingBox().inflate(0.5).clip(pos, to).isPresent()) {
+                    setPos(e.position());
+                    detonate(level);
+                    return;
+                }
+            }
+        }
+        setPos(to);
+    }
+
+    private static Vec3 steer(Vec3 v, Vec3 desired, double speed, double maxTurn) {
+        Vec3 cur = v.lengthSqr() < 1.0E-6 ? desired : v.normalize();
+        double angle = Math.acos(Mth.clamp(cur.dot(desired), -1, 1));
+        Vec3 dir = angle <= maxTurn ? desired : cur.scale(1 - maxTurn / angle).add(desired.scale(maxTurn / angle)).normalize();
+        return dir.scale(speed);
+    }
+
+    // ------------------------------------------------------------------ команды пилота (с сервера)
+
+    /** Позиция от клиента пилота. */
+    public void pilotMove(ServerPlayer from, Vec3 pos, float yaw, float pitch) {
+        if (from.getId() != pilotId()) {
+            return;
+        }
+        if (pos.distanceTo(position()) > 12) {
+            return; // слишком большой скачок — не принимаем
+        }
+        if (kind().autonomous && level() instanceof ServerLevel sl) {
+            // столкновение по пути — подрыв
+            var hit = sl.clip(new ClipContext(position(), pos, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
+            if (hit.getType() != HitResult.Type.MISS) {
+                setPos(hit.getLocation());
+                detonate(sl);
+                return;
+            }
+        }
+        setDeltaMovement(pos.subtract(position()));
+        setPos(pos);
+        setYRot(yaw);
+        setXRot(pitch);
+    }
+
+    /** ЛКМ пилота: FPV — подрыв, разведчик — сброс гранаты. */
+    public void pilotFire(ServerPlayer from) {
+        if (from.getId() != pilotId() || !(level() instanceof ServerLevel level)) {
+            return;
+        }
+        if (kind() == Kind.FPV || kind().autonomous) {
+            detonate(level);
+        } else if (kind() == Kind.RECON && grenades() > 0) {
+            entityData.set(GRENADES, grenades() - 1);
+            Missile.launch(level, Missile.Kind.BOMB, position().add(0, -0.4, 0), getDeltaMovement().scale(0.5), position(), this).owner(owner);
+            level.playSound(null, getX(), getY(), getZ(), SoundEvents.DISPENSER_LAUNCH, SoundSource.HOSTILE, 1f, 1.4f);
+        }
+    }
+
+    /** ПКМ пилота разведдрона: записать точку в журнал целей из инвентаря пилота. */
+    public void pilotMark(ServerPlayer from, net.minecraft.core.BlockPos pos) {
+        if (from.getId() != pilotId() || kind() != Kind.RECON || pos.distToCenterSqr(position()) > 700 * 700) {
+            return;
+        }
+        var inv = from.getInventory();
+        for (int i = 0; i < inv.getContainerSize(); i++) {
+            ItemStack s = inv.getItem(i);
+            if (s.is(ModItems.TARGET_LOG.get())) {
+                int n = com.harddayz.item.TargetLogItem.add(s, pos);
+                from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, pos.getX(), pos.getY(),
+                        pos.getZ()).withStyle(net.minecraft.ChatFormatting.GREEN));
+                from.level().playSound(null, from.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.PLAYERS, 0.8f, 1.8f);
+                return;
+            }
+        }
+        from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log").withStyle(net.minecraft.ChatFormatting.RED));
+    }
+
+    /** Пульт оператора: взять под управление летящий «Шахед». */
+    public boolean takeControl(ServerPlayer op) {
+        if (!kind().autonomous || pilotId() >= 0) {
+            return false;
+        }
+        if (battery() <= 0) {
+            op.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED));
+            return false;
+        }
+        entityData.set(PILOT, op.getId());
+        return true;
+    }
+
+    public void release() {
+        if (pilotId() >= 0 && level().getEntity(pilotId()) instanceof ServerPlayer sp) {
+            PilotView.restore(sp);
+        }
+        entityData.set(PILOT, -1);
+    }
+
+    private boolean jammed;
+
+    /** Попал под РЭБ: «Шахед» сбивается с курса, пилотируемый теряет связь и падает. */
+    public void jam(ServerLevel level) {
+        if (jammed) {
+            return;
+        }
+        jammed = true;
+        if (kind().autonomous) {
+            if (!diving) {
+                double ang = random.nextDouble() * Math.PI * 2;
+                double off = 40 + random.nextDouble() * 60;
+                target = target.add(Math.cos(ang) * off, 0, Math.sin(ang) * off);
+            }
+        } else {
+            release();
+            entityData.set(BATTERY, 0);
+        }
+        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, true, true, getX(), getY(), getZ(), 15, 0.4, 0.4, 0.4, 0.2);
+    }
+
+    @Override
+    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+        if (parked) {
+            if (!level().isClientSide() && player instanceof ServerPlayer sp) {
+                if (!entityData.get(ENGINE)) {
+                    entityData.set(ENGINE, true); // первый ПКМ — завести мотор
+                    sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.parked_engine").withStyle(net.minecraft.ChatFormatting.GOLD));
+                    level().playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 0.6f, 2f);
+                } else {
+                    launchFromGround(sp); // второй — пуск
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (kind().autonomous) {
+            return InteractionResult.PASS;
+        }
+        if (!level().isClientSide() && battery() <= 0) {
+            player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.drone_dead")
+                    .withStyle(net.minecraft.ChatFormatting.RED));
+        }
+        if (!level().isClientSide() && pilotId() < 0 && battery() > 0) {
+            entityData.set(PILOT, player.getId());
+            owner = player.getUUID();
+        }
+        return InteractionResult.SUCCESS;
+    }
+
+    // ------------------------------------------------------------------ урон
+
+    @Override
+    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+        if ((parked || !kind().autonomous) && pilotId() < 0 && source.getEntity() instanceof Player p && source.getDirectEntity() == p
+                && (p.isShiftKeyDown() || p.isCreative())) {
+            spawnAtLocation(level, new ItemStack(switch (kind()) {
+                case FPV -> ModItems.FPV_DRONE.get();
+                case INTERCEPTOR -> ModItems.INTERCEPTOR.get();
+                case LANCET -> ModItems.LANCET.get();
+                case WING_RECON -> ModItems.WING_RECON.get();
+                default -> ModItems.RECON_DRONE.get();
+            }));
+            discard();
+            return true;
+        }
+        health -= damage;
+        if (health <= 0) {
+            shotDown(level);
+        }
+        return true;
+    }
+
+    /** Сбит: боевая часть рвётся в воздухе слабее. */
+    public void shotDown(ServerLevel level) {
+        if (isRemoved()) {
+            return;
+        }
+        Vec3 at = position();
+        remove(RemovalReason.KILLED);
+        // сбитый дрон взрывается: боевая часть — сильнее, разведчик — батарея и обломки
+        Blast.detonate(level, at, Math.max(2.2f, kind().warhead * 0.6f), false, this);
+    }
+
+    private void detonate(ServerLevel level) {
+        Blast.detonate(level, position(), kind().warhead, true, this);
+        remove(RemovalReason.KILLED);
+    }
+
+    private void breakApart(ServerLevel level) {
+        level.sendParticles(ParticleTypes.SMOKE, true, true, getX(), getY(), getZ(), 20, 0.3, 0.3, 0.3, 0.05);
+        level.sendParticles(ParticleTypes.CRIT, true, true, getX(), getY(), getZ(), 15, 0.3, 0.3, 0.3, 0.2);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.ITEM_BREAK.value(), SoundSource.HOSTILE, 1f, 0.7f);
+        remove(RemovalReason.KILLED);
+    }
+
+    @Override
+    public void remove(RemovalReason reason) {
+        if (level() instanceof ServerLevel level) {
+            if (chunks != null) {
+                chunks.release(level);
+            }
+            if (pilotId() >= 0 && level.getEntity(pilotId()) instanceof ServerPlayer sp) {
+                PilotView.restore(sp);
+            }
+        }
+        super.remove(reason);
+    }
+
+    // ------------------------------------------------------------------ служебное
+
+    @Override
+    public boolean isPickable() {
+        return !isRemoved();
+    }
+
+    @Override
+    public boolean shouldRenderAtSqrDistance(double d) {
+        return d < 400 * 400;
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        builder.define(KIND, 0);
+        builder.define(PILOT, -1);
+        builder.define(BATTERY, 0);
+        builder.define(GRENADES, 0);
+        builder.define(INTERFERENCE, 0f);
+        builder.define(ENGINE, false);
+        builder.define(FACTION, -1);
+        builder.define(PARKED, false);
+    }
+
+    @Override
+    protected void readAdditionalSaveData(ValueInput input) {
+        entityData.set(KIND, input.getIntOr("kind", 1));
+        entityData.set(BATTERY, input.getIntOr("battery", 0));
+        entityData.set(GRENADES, input.getIntOr("grenades", 0));
+        entityData.set(ENGINE, input.getBooleanOr("engine", false));
+        parked = input.getBooleanOr("parked", false);
+        entityData.set(PARKED, parked);
+        health = input.getFloatOr("health", kind().health);
+        input.getString("owner").ifPresent(s -> owner = UUID.fromString(s));
+    }
+
+    @Override
+    protected void addAdditionalSaveData(ValueOutput output) {
+        output.putInt("kind", entityData.get(KIND));
+        output.putInt("battery", battery());
+        output.putInt("grenades", grenades());
+        output.putBoolean("engine", entityData.get(ENGINE));
+        output.putBoolean("parked", parked);
+        output.putFloat("health", health);
+        if (owner != null) {
+            output.putString("owner", owner.toString());
+        }
+    }
+
+    @Override
+    public boolean shouldBeSaved() {
+        return !kind().autonomous || parked;
+    }
+}

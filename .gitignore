@@ -1,0 +1,8 @@
+build/
+.gradle/
+run/
+run-data/
+newmodels/
+sound_backup/
+*.jar
+!gradle/wrapper/gradle-wrapper.jar

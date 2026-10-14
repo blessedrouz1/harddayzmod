@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[66,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="harddayz"
+version="0.1.0"
+displayName="HardDayz"
+description='''
+HardDayz: ракетные комплексы, баллистика, ПВО, РЭБ и ударные дроны. Локальный мод для игры с друзьями.
+Звуки (OpenGameArt): Joth, TinyWorlds, NenadSimic, pauliuw, mikeask, qubodup, pyranostudios, aquinn (CC0);
+KuraiWolf (CC-BY 4.0), dklon (CC-BY 3.0), qubodup (CC-BY 3.0).
+'''
+
+[[dependencies.harddayz]]
+    modId="forge"
+    mandatory=true
+    versionRange="[66,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.harddayz]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[26.3,26.4)"
+    ordering="NONE"
+    side="BOTH"

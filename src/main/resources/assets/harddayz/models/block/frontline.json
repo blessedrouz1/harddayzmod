@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:block/cube_bottom_top",
+  "textures": {
+    "side": "harddayz:block/frontline_side",
+    "top": "harddayz:block/frontline_top",
+    "bottom": "harddayz:block/frontline_side"
+  }
+}

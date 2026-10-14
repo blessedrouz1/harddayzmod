@@ -1,0 +1,86 @@
+{
+  "explode_near": {
+    "sounds": [
+      {
+        "name": "harddayz:explode_near",
+        "stream": false
+      }
+    ]
+  },
+  "explode_big": {
+    "sounds": [
+      {
+        "name": "harddayz:explode_big",
+        "stream": false
+      }
+    ]
+  },
+  "explode_far": {
+    "sounds": [
+      {
+        "name": "harddayz:explode_far",
+        "stream": false
+      },
+      {
+        "name": "harddayz:explode_far2",
+        "stream": false
+      }
+    ]
+  },
+  "missile_launch": {
+    "sounds": [
+      {
+        "name": "harddayz:missile_launch",
+        "stream": false
+      }
+    ]
+  },
+  "rocket_launch": {
+    "sounds": [
+      {
+        "name": "harddayz:rocket_launch",
+        "stream": false
+      }
+    ]
+  },
+  "whoosh": {
+    "sounds": [
+      {
+        "name": "harddayz:whoosh",
+        "stream": false
+      }
+    ]
+  },
+  "mg_fire": {
+    "sounds": [
+      {
+        "name": "harddayz:mg_fire",
+        "stream": false
+      }
+    ]
+  },
+  "jet_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:jet_loop",
+        "stream": false
+      }
+    ]
+  },
+  "engine_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:engine_loop",
+        "stream": false
+      }
+    ]
+  },
+  "siren": {
+    "sounds": [
+      {
+        "name": "harddayz:siren",
+        "stream": true
+      }
+    ]
+  }
+}

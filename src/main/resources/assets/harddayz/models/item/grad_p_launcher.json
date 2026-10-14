@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "harddayz:item/grad_p_launcher"
+  }
+}

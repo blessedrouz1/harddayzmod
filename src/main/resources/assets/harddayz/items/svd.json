@@ -1,0 +1,47 @@
+{
+ "model": {
+  "type": "minecraft:composite",
+  "models": [
+   {
+    "type": "minecraft:model",
+    "model": "harddayz:item/svd"
+   },
+   {
+    "type": "minecraft:select",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "cases": [
+     {
+      "when": "reddot",
+      "model": {
+       "type": "minecraft:model",
+       "model": "harddayz:item/svd_reddot"
+      }
+     },
+     {
+      "when": "scope",
+      "model": {
+       "type": "minecraft:model",
+       "model": "harddayz:item/svd_scope"
+      }
+     }
+    ],
+    "fallback": {
+     "type": "minecraft:empty"
+    }
+   },
+   {
+    "type": "minecraft:condition",
+    "property": "minecraft:custom_model_data",
+    "index": 0,
+    "on_true": {
+     "type": "minecraft:model",
+     "model": "harddayz:item/svd_suppressor"
+    },
+    "on_false": {
+     "type": "minecraft:empty"
+    }
+   }
+  ]
+ }
+}
