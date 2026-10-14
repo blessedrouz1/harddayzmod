@@ -4,12 +4,14 @@ license="All Rights Reserved"
 
 [[mods]]
 modId="harddayz"
-version="0.1.0"
+version="0.2.0"
 displayName="HardDayz"
 description='''
 HardDayz: ракетные комплексы, баллистика, ПВО, РЭБ и ударные дроны. Локальный мод для игры с друзьями.
 Звуки (OpenGameArt): Joth, TinyWorlds, NenadSimic, pauliuw, mikeask, qubodup, pyranostudios, aquinn (CC0);
 KuraiWolf (CC-BY 4.0), dklon (CC-BY 3.0), qubodup (CC-BY 3.0).
+Выстрелы: Vincent Sevedge (CC-BY 3.0), kurt (CC0); перезарядка: springyspringo, joaken (CC0);
+вертолёт: wuxiascrub (CC0); тяжёлый дизель: qubodup, nayckron (CC-BY 3.0).
 '''
 
 [[dependencies.harddayz]]

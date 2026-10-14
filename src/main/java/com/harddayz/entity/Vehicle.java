@@ -39,6 +39,7 @@ public abstract class Vehicle extends Entity {
 
     // клиентская анимация колёс
     public float wheelSpin;
+    private boolean engineSound;
     public float prevWheelSpin;
     public float steer;
     public float prevSteer;
@@ -204,6 +205,10 @@ public abstract class Vehicle extends Entity {
             getInterpolation().interpolate();
         }
         if (level().isClientSide()) {
+            if (!engineSound && this instanceof Launcher l && com.harddayz.client.VehicleSound.wants(l)) {
+                engineSound = true;
+                com.harddayz.client.ClientAccess.vehicleSound(l);
+            }
             damageFx();
             animateWheels();
         } else {
@@ -215,7 +220,7 @@ public abstract class Vehicle extends Entity {
         }
     }
 
-    private void drive() {
+    protected void drive() {
         float fwd = 0;
         float turn = 0;
         boolean brake = false;

@@ -42,6 +42,9 @@ public final class WarEvents {
             War.sendLives();
         });
         net.minecraftforge.event.entity.living.LivingDeathEvent.BUS.addListener(e -> {
+            if (e.getEntity() instanceof ServerPlayer p0 && Medic.tryDown(p0, e.getSource())) {
+                return true; // упал раненым — ещё не смерть
+            }
             if (!(e.getEntity() instanceof ServerPlayer dead) || !War.active()) {
                 return false;
             }

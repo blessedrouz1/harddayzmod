@@ -40,7 +40,7 @@ import net.minecraft.world.phys.Vec3;
  * Пусковая установка на колёсном шасси. Порядок пуска: опоры вниз → наведение → пуск → пакет/стрела
  * в походное положение → опоры вверх. Пока опоры выдвинуты, ехать нельзя.
  */
-public class Launcher extends Vehicle {
+public class Launcher extends Vehicle implements Threat {
     public enum Kind {
         /** РСЗО: пакет из 20 направляющих, залп по площади. */
         GRAD(40, 160),
@@ -87,7 +87,13 @@ public class Launcher extends Vehicle {
         /** Т-72Б3: 125-мм пушка, толстая броня, медленная перезарядка. */
         T72(22, 520),
         /** Abrams: 120-мм пушка, ещё толще броня, чуть быстрее перезарядка. */
-        ABRAMS(20, 600);
+        ABRAMS(20, 600),
+        /** Ка-52: ударный — пушка 2А42 (ЛКМ) и блоки НУРС С-8 (ПКМ). */
+        KA52(40, 260),
+        /** Ми-8АМТШ: транспортно-боевой — пилот и 3 десантника, НУРС. */
+        MI8(32, 300),
+        /** Миномёт 82 мм: навесной огонь по точке, 3 мины за приказ. */
+        MORTAR(12, 40, false);
 
         public final int capacity;
         public final float health;
@@ -121,6 +127,10 @@ public class Launcher extends Vehicle {
         /** Стрелковые установки: на них садятся и стреляют сами. */
         public boolean gunner() {
             return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY || tank();
+        }
+
+        public boolean heli() {
+            return this == KA52 || this == MI8;
         }
 
         public boolean tank() {
@@ -157,6 +167,8 @@ public class Launcher extends Vehicle {
                 case PICKUP_SAM -> ModItems.SAM_MISSILE.get();
                 case BMP2, BRADLEY -> ModItems.CANNON_SHELLS.get();
                 case T72, ABRAMS -> ModItems.TANK_SHELL.get();
+                case KA52, MI8 -> ModItems.S8_ROCKET.get();
+                case MORTAR -> ModItems.MORTAR_SHELL.get();
                 case RELAY -> ModItems.DESIGNATOR.get();
             };
         }
@@ -185,6 +197,9 @@ public class Launcher extends Vehicle {
                 case BRADLEY -> ModItems.BRADLEY.get();
                 case T72 -> ModItems.T72.get();
                 case ABRAMS -> ModItems.ABRAMS.get();
+                case KA52 -> ModItems.KA52.get();
+                case MI8 -> ModItems.MI8.get();
+                case MORTAR -> ModItems.MORTAR.get();
                 case RELAY -> ModItems.RELAY.get();
             };
         }
@@ -233,6 +248,44 @@ public class Launcher extends Vehicle {
     private static final EntityDataAccessor<String> SLOTS = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.STRING);
     /** Типы дронов на направляющих (для моделей), порядковые номера через запятую. */
     private static final EntityDataAccessor<String> DRONES = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.STRING);
+    /** Топливо в баке (литры). Одно для всей техники, бак разный. */
+    private static final EntityDataAccessor<Float> FUEL = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
+
+    public boolean usesFuel() {
+        return kind().mobile && !kind().samLike() || kind() == Kind.S400 || kind() == Kind.PATRIOT || kind() == Kind.NASAMS;
+    }
+
+    /** Объём бака. */
+    public float tank() {
+        return switch (kind()) {
+            case PICKUP_MG, PICKUP_SAM -> 80;
+            case BMP2, BRADLEY -> 120;
+            case T72, ABRAMS, TOS -> 160;
+            case KA52 -> 180;
+            case MI8 -> 220;
+            case ISKANDER, S400, PATRIOT -> 140;
+            default -> 110;
+        };
+    }
+
+    /** Расход за тик работы мотора на ходу. */
+    private float burn() {
+        return switch (kind()) {
+            case PICKUP_MG, PICKUP_SAM -> 0.008f;
+            case ABRAMS -> 0.03f;
+            case T72, TOS, BMP2, BRADLEY -> 0.02f;
+            case KA52, MI8 -> 0.035f;
+            default -> 0.014f;
+        };
+    }
+
+    public float fuel() {
+        return entityData.get(FUEL);
+    }
+
+    public void refuel(float liters) {
+        entityData.set(FUEL, Math.min(tank(), fuel() + liters));
+    }
 
     public int[] droneKinds() {
         String s = entityData.get(DRONES);
@@ -304,6 +357,7 @@ public class Launcher extends Vehicle {
     public void setKind(Kind k) {
         entityData.set(KIND, k.ordinal());
         entityData.set(HEALTH, k.health);
+        entityData.set(FUEL, tank());
     }
 
     @Override
@@ -332,6 +386,9 @@ public class Launcher extends Vehicle {
 
     @Override
     protected boolean canDrive() {
+        if (usesFuel() && fuel() <= 0) {
+            return false; // бак пуст
+        }
         return kind().mobile && super.canDrive();
     }
 
@@ -342,11 +399,19 @@ public class Launcher extends Vehicle {
 
     @Override
     protected int seats() {
-        return crewed() ? 2 : 1;
+        return kind() == Kind.MI8 ? 4 : kind() == Kind.KA52 ? 2 : crewed() ? 2 : 1;
     }
 
     @Override
     protected Vec3 seat(int i) {
+        if (kind().heli()) {
+            return switch (i) {
+                case 0 -> kind() == Kind.KA52 ? new Vec3(-0.3, 0.75, 1.6) : new Vec3(-0.35, 0.6, 2.2);
+                case 1 -> kind() == Kind.KA52 ? new Vec3(0.3, 0.75, 1.6) : new Vec3(0, 0.55, 0.6);
+                case 2 -> new Vec3(-0.4, 0.55, -0.6);
+                default -> new Vec3(0.4, 0.55, -0.6);
+            };
+        }
         if (!crewed() || i == 0) {
             return crewed() ? switch (kind()) {
                 case BMP2, BRADLEY -> new Vec3(-0.5, 1.2, 1.9);
@@ -372,6 +437,7 @@ public class Launcher extends Vehicle {
             case BMP2 -> 0.36;
             case BRADLEY -> 0.33;
             case T72 -> 0.32;
+            case KA52, MI8 -> 0.25;
             case ABRAMS -> 0.34;
             default -> 0.38;
         };
@@ -476,6 +542,24 @@ public class Launcher extends Vehicle {
             }
             return InteractionResult.SUCCESS;
         }
+        if (stack.is(ModItems.JERRYCAN.get()) && usesFuel()) {
+            if (!level().isClientSide()) {
+                if (fuel() >= tank() - 0.5f) {
+                    player.sendOverlayMessage(Component.translatable("message.harddayz.tank_full").withStyle(ChatFormatting.YELLOW));
+                } else {
+                    refuel(40);
+                    if (!player.isCreative()) {
+                        stack.shrink(1);
+                        if (!player.getInventory().add(new ItemStack(ModItems.EMPTY_JERRYCAN.get()))) {
+                            spawnAtLocation((ServerLevel) level(), new ItemStack(ModItems.EMPTY_JERRYCAN.get()));
+                        }
+                    }
+                    level().playSound(null, blockPosition(), SoundEvents.BUCKET_EMPTY, SoundSource.PLAYERS, 1f, 0.8f);
+                    player.sendOverlayMessage(Component.translatable("message.harddayz.refueled", (int) fuel(), (int) tank()).withStyle(ChatFormatting.GREEN));
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
         if (stack.is(ModItems.OPERATOR_TERMINAL.get()) && kind().dronePad()) {
             if (!level().isClientSide() && player instanceof ServerPlayer sp) {
                 launchControlled(sp);
@@ -489,6 +573,12 @@ public class Launcher extends Vehicle {
             return InteractionResult.SUCCESS;
         }
         if (kind().gunner() && !player.isSecondaryUseActive() && getPassengers().size() < seats()) {
+            if (!level().isClientSide()) {
+                player.startRiding(this);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (kind().heli() && !player.isSecondaryUseActive() && getPassengers().size() < seats()) {
             if (!level().isClientSide()) {
                 player.startRiding(this);
             }
@@ -531,6 +621,15 @@ public class Launcher extends Vehicle {
         Vec3 tv = Vec3.atCenterOf(t);
         double dist = Math.sqrt(tv.distanceToSqr(getX(), tv.y, getZ()));
         switch (kind()) {
+            case MORTAR -> {
+                Double elev = mortarElevation(tv);
+                if (elev == null) {
+                    player.sendOverlayMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, MORTAR_RANGE).withStyle(ChatFormatting.RED));
+                    return;
+                }
+                entityData.set(WANT_ELEV, elev.floatValue());
+                entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
+            }
             case GRAD, GRAD_P, TOS -> {
                 Double elev = gradElevation(tv);
                 if (elev == null) {
@@ -622,6 +721,8 @@ public class Launcher extends Vehicle {
             case PICKUP_MG, PICKUP_SAM -> local(0, 2.4, -1.1);
             case BMP2, BRADLEY -> local(0, 2.2, -0.25);
             case T72 -> local(0, 1.5, 0.9);
+            case KA52, MI8 -> local(0, 0.8, 2.5);
+            case MORTAR -> local(0, 0.5, 0);
             case ABRAMS -> local(0, 1.6, 0.9);
             case RELAY -> local(0, 2.0, 0);
         };
@@ -645,6 +746,14 @@ public class Launcher extends Vehicle {
         }
         if (flash() > 0) {
             entityData.set(FLASH, flash() - 1);
+        }
+        // мотор работает — топливо уходит (на месте втрое меньше)
+        if (usesFuel() && getControllingPassenger() != null && fuel() > 0) {
+            boolean moving = !stationary() || (kind().heli() && !onGround());
+            entityData.set(FUEL, Math.max(0, fuel() - burn() * (moving ? 1 : 0.33f)));
+            if (fuel() <= 0 && getControllingPassenger() instanceof ServerPlayer d) {
+                d.sendOverlayMessage(Component.translatable("message.harddayz.no_fuel").withStyle(ChatFormatting.RED));
+            }
         }
         if (kind().dronePad()) {
             String ds = String.join(",", drones.stream().map(k -> String.valueOf(k.ordinal())).toList());
@@ -697,6 +806,7 @@ public class Launcher extends Vehicle {
                     case SHAHED, RAMP -> fireShahed(level);
                     case S400 -> fireS400Ground(level);
                     case HIMARS -> fireHimars(level);
+                    case MORTAR -> fireMortar(level);
                     default -> {
                     }
                 }
@@ -799,6 +909,144 @@ public class Launcher extends Vehicle {
         level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, true, true, g.x, g.y, g.z, 30, 1.2, 0.4, 1.2, 0.05);
         level.playSound(null, g.x, g.y, g.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 5f, 1.1f);
     }
+
+    public static final double MORTAR_SPEED = 2.4;
+    public static final int MORTAR_RANGE = 115;
+
+    /** Миномёт: крутая (навесная) траектория — верхнее решение. */
+    private @Nullable Double mortarElevation(Vec3 t) {
+        double v = MORTAR_SPEED;
+        double g = Missile.Kind.GRAD.gravity;
+        Vec3 from = muzzleBase();
+        double x = Math.sqrt((t.x - from.x) * (t.x - from.x) + (t.z - from.z) * (t.z - from.z));
+        double y = t.y - from.y;
+        double disc = v * v * v * v - g * (g * x * x + 2 * y * v * v);
+        if (disc < 0 || x < 8) {
+            return null;
+        }
+        return Math.min(85, Math.toDegrees(Math.atan((v * v + Math.sqrt(disc)) / (g * x))));
+    }
+
+    private void fireMortar(ServerLevel level) {
+        if (timer++ % 30 != 0) {
+            return;
+        }
+        if (ammo() <= 0 || target == null || shot >= 3) {
+            stow();
+            return;
+        }
+        shot++;
+        float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 0.8f;
+        Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 0.6f);
+        Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
+        Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED), Vec3.atCenterOf(target), this).owner(owner).powerMul(0.7f).look(7);
+        entityData.set(AMMO, ammo() - 1);
+        entityData.set(FLASH, 4);
+        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
+    }
+
+    // ------------------------------------------------------------------ вертолёт
+
+    @Override
+    public boolean isThreat() {
+        return kind().heli() && !onGround();
+    }
+
+    @Override
+    protected void drive() {
+        if (!kind().heli()) {
+            super.drive();
+            return;
+        }
+        net.minecraft.world.entity.LivingEntity pilot = getControllingPassenger();
+        float[] in = pilot != null && level().isClientSide() ? com.harddayz.client.ClientAccess.driveInput() : new float[] {0, 0, 0, 0};
+        Vec3 v = getDeltaMovement();
+        if (pilot != null && health() > 0 && fuel() > 0) {
+            double max = kind() == Kind.KA52 ? 1.05 : 0.85;
+            double y = Math.toRadians(getYRot());
+            Vec3 fwd = new Vec3(-Math.sin(y), 0, Math.cos(y));
+            Vec3 want = fwd.scale(in[0] * max);
+            double hx = v.x + (want.x - v.x) * 0.04;
+            double hz = v.z + (want.z - v.z) * 0.04;
+            double vy = in[2] > 0 ? Math.min(0.45, v.y + 0.04) : in[3] > 0 ? Math.max(-0.45, v.y - 0.04) : v.y * 0.85;
+            if (onGround() && in[2] <= 0) {
+                hx *= 0.5;
+                hz *= 0.5;
+            }
+            setYRot(getYRot() - in[1] * 2.6f);
+            v = new Vec3(hx, vy, hz);
+        } else {
+            v = new Vec3(v.x * 0.97, Math.max(-1.2, v.y - 0.05), v.z * 0.97); // без пилота — падает
+        }
+        double fall = v.y;
+        setDeltaMovement(v);
+        move(net.minecraft.world.entity.MoverType.SELF, v);
+        if ((onGround() && fall < -0.7) || (horizontalCollision && v.horizontalDistance() > 0.6)) {
+            com.harddayz.network.Net.toServer(new com.harddayz.network.Net.HeliFire(getId(), 9)); // удар — урон
+        }
+        heliTilt = (float) (-getDeltaMovement().horizontalDistance() * 14);
+    }
+
+    /** Наклон корпуса в полёте (клиент, для рендера). */
+    public float heliTilt;
+    private int heliCooldown;
+    private int rocketCooldown;
+
+    /** Оружие вертолёта: 0 — пушка, 1 — НУРС, 9 — удар о землю/стену. */
+    public void heliFire(ServerPlayer p, int weapon) {
+        if (!(level() instanceof ServerLevel level) || getControllingPassenger() != p) {
+            return;
+        }
+        if (weapon == 9) {
+            if (tickCount - lastCrash > 20) {
+                lastCrash = tickCount;
+                hurtServer(level, damageSources().fall(), 25);
+            }
+            return;
+        }
+        Vec3 look = p.getLookAngle();
+        if (weapon == 0 && kind() == Kind.KA52 && tickCount >= heliCooldown) {
+            heliCooldown = tickCount + 3;
+            Vec3 muzzle = local(0.45, 0.45, 3.0);
+            Vec3 dir = Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * 0.5f, p.getYRot() + (float) random.nextGaussian() * 0.5f);
+            Vec3 end = muzzle.add(dir.scale(260));
+            var block = level.clip(new net.minecraft.world.level.ClipContext(muzzle, end, net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                    net.minecraft.world.level.ClipContext.Fluid.NONE, this));
+            Vec3 stop = block.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? end : block.getLocation();
+            var hit = rayEntity(level, this, muzzle, stop, e -> e != p && e != this);
+            if (hit != null) {
+                stop = hit.getLocation();
+                hit.getEntity().hurtServer(level, damageSources().playerAttack(p), 9f);
+            }
+            if (hit != null || block.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
+                Blast.detonate(level, stop, 1.2f, true, this);
+            }
+            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 5f, 0.6f);
+            var fx = new com.harddayz.network.Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hit == null);
+            for (ServerPlayer pl : level.players()) {
+                if (pl.distanceToSqr(this) < 250 * 250) {
+                    com.harddayz.network.Net.toPlayer(pl, fx);
+                }
+            }
+        } else if (weapon == 1 && tickCount >= rocketCooldown) {
+            if (ammo() <= 0) {
+                p.sendOverlayMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED));
+                rocketCooldown = tickCount + 20;
+                return;
+            }
+            rocketCooldown = tickCount + 5;
+            boolean left = shot++ % 2 == 0;
+            Vec3 muzzle = local(left ? -1.6 : 1.6, 0.6, 1.0);
+            Vec3 dir = Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * 1.2f, p.getYRot() + (float) random.nextGaussian() * 1.2f);
+            Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(3.6).add(getDeltaMovement()), muzzle.add(dir.scale(400)), this).owner(owner)
+                    .powerMul(0.75f).look(8);
+            entityData.set(AMMO, ammo() - 1);
+            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get(), SoundSource.HOSTILE, 4f, 1.2f);
+        }
+    }
+
+    private int lastCrash;
 
     private void fireIskander(ServerLevel level) {
         timer++;
@@ -1052,6 +1300,7 @@ public class Launcher extends Vehicle {
         builder.define(WANT_ERECT, 0f);
         builder.define(FLASH, 0);
         builder.define(DRONES, "");
+        builder.define(FUEL, 0f);
         builder.define(SLOTS, ";;;;");
         builder.define(SLOT, 0);
     }
@@ -1064,6 +1313,7 @@ public class Launcher extends Vehicle {
         input.getString("owner").ifPresent(s -> owner = UUID.fromString(s));
         entityData.set(SLOTS, input.getStringOr("slots", ";;;;"));
         entityData.set(SLOT, input.getIntOr("slot", 0));
+        entityData.set(FUEL, input.getFloatOr("fuel", tank()));
         drones.clear();
         for (String k : input.getStringOr("drones", "").split(",")) {
             if (!k.isEmpty()) {
@@ -1081,6 +1331,7 @@ public class Launcher extends Vehicle {
             output.putString("owner", owner.toString());
         }
         output.putString("drones", String.join(",", drones.stream().map(Enum::name).toList()));
+        output.putFloat("fuel", fuel());
         output.putString("slots", entityData.get(SLOTS));
         output.putInt("slot", selectedSlot());
     }
@@ -1175,8 +1426,7 @@ public class Launcher extends Vehicle {
             Blast.detonate(level, stop, kind().tank() ? 3.2f : kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // фугасный — рушит укрытия
         }
         if (kind().tank()) {
-            level.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 6f, 0.6f);
-            level.playSound(null, getX(), getY(), getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 3f, 1.6f);
+            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.TANK_FIRE.get(), SoundSource.PLAYERS, 8f, 0.9f);
             level.sendParticles(ParticleTypes.EXPLOSION, true, true, muzzle.x, muzzle.y, muzzle.z, 3, 0.3, 0.3, 0.3, 0);
             level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.8, 0.4, 0.8, 0.03);
         } else {

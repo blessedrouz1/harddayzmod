@@ -179,6 +179,7 @@ public class Missile extends Entity implements Threat {
         } else {
             getInterpolation().interpolate();
             trail(v);
+            whistle(v);
         }
     }
 
@@ -450,6 +451,21 @@ public class Missile extends Entity implements Threat {
     }
 
     // ------------------------------------------------------------------ след на клиенте
+
+    private boolean whistled;
+
+    /** Свист снаряда на излёте — слышно, что сейчас прилетит. */
+    private void whistle(Vec3 v) {
+        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB && look() != 7 || v.y > -0.4) {
+            return;
+        }
+        var me = com.harddayz.client.ClientAccess.localPlayerPos();
+        if (me != null && me.distanceTo(position()) < 140) {
+            whistled = true;
+            level().playLocalSound(getX(), getY(), getZ(), com.harddayz.registry.ModSounds.SHELL_WHISTLE.get(), SoundSource.HOSTILE,
+                    kind() == Kind.BALLISTIC ? 6f : 3f, kind() == Kind.BALLISTIC ? 0.7f : 1f, false);
+        }
+    }
 
     private void trail(Vec3 v) {
         Level level = level();

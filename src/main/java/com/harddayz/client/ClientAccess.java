@@ -16,6 +16,15 @@ public final class ClientAccess {
 
     public static java.util.List<String> lives = java.util.List.of();
 
+    public static void vehicleSound(com.harddayz.entity.Launcher l) {
+        Minecraft.getInstance().getSoundManager().play(new VehicleSound(l));
+    }
+
+    public static net.minecraft.world.phys.Vec3 localPlayerPos() {
+        var p = Minecraft.getInstance().player;
+        return p == null ? null : p.position();
+    }
+
     public static void lives(java.util.List<String> rows) {
         lives = rows;
     }
@@ -32,12 +41,12 @@ public final class ClientAccess {
     public static float[] driveInput() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.gui.screen() != null) {
-            return new float[] {0, 0, 0};
+            return new float[] {0, 0, 0, 0};
         }
         var in = mc.player.input.keyPresses;
         float fwd = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
         float turn = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);
-        return new float[] {fwd, turn, in.jump() ? 1 : 0};
+        return new float[] {fwd, turn, in.jump() ? 1 : 0, in.sprint() ? 1 : 0};
     }
 
     public static boolean isPilotingLocally(Drone d) {

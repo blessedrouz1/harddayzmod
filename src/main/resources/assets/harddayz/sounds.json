@@ -82,5 +82,103 @@
         "stream": true
       }
     ]
+  },
+  "gun_ak": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_ak"
+      }
+    ]
+  },
+  "gun_m4": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_m4"
+      }
+    ]
+  },
+  "gun_pkm": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_pkm"
+      }
+    ]
+  },
+  "gun_svd": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_svd"
+      }
+    ]
+  },
+  "gun_pm": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_pm"
+      }
+    ]
+  },
+  "gun_glock": {
+    "sounds": [
+      {
+        "name": "harddayz:gun_glock"
+      }
+    ]
+  },
+  "reload_rifle": {
+    "sounds": [
+      {
+        "name": "harddayz:reload_rifle"
+      }
+    ]
+  },
+  "reload_pistol": {
+    "sounds": [
+      {
+        "name": "harddayz:reload_pistol"
+      }
+    ]
+  },
+  "heli_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:heli_loop"
+      }
+    ]
+  },
+  "diesel_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:diesel_loop"
+      }
+    ]
+  },
+  "turbine_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:turbine_loop"
+      }
+    ]
+  },
+  "shell_whistle": {
+    "sounds": [
+      {
+        "name": "harddayz:shell_whistle"
+      }
+    ]
+  },
+  "tank_fire": {
+    "sounds": [
+      {
+        "name": "harddayz:tank_fire"
+      }
+    ]
+  },
+  "mortar_fire": {
+    "sounds": [
+      {
+        "name": "harddayz:mortar_fire"
+      }
+    ]
   }
 }

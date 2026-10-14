@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/barbed_wire"
+  },
+  "facing=east": {
+   "model": "harddayz:block/barbed_wire"
+  },
+  "facing=south": {
+   "model": "harddayz:block/barbed_wire"
+  },
+  "facing=west": {
+   "model": "harddayz:block/barbed_wire"
+  }
+ }
+}

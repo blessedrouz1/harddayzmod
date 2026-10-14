@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/dragon_teeth"
+  },
+  "facing=east": {
+   "model": "harddayz:block/dragon_teeth",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "harddayz:block/dragon_teeth",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "harddayz:block/dragon_teeth",
+   "y": 270
+  }
+ }
+}

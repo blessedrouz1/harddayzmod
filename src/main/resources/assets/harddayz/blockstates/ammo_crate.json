@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/ammo_crate"
+  },
+  "facing=east": {
+   "model": "harddayz:block/ammo_crate",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "harddayz:block/ammo_crate",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "harddayz:block/ammo_crate",
+   "y": 270
+  }
+ }
+}

@@ -33,4 +33,18 @@ public final class ModSounds {
 
     private ModSounds() {
     }
+    public static final RegistryObject<SoundEvent> GUN_AK = reg("gun_ak");
+    public static final RegistryObject<SoundEvent> GUN_M4 = reg("gun_m4");
+    public static final RegistryObject<SoundEvent> GUN_PKM = reg("gun_pkm");
+    public static final RegistryObject<SoundEvent> GUN_SVD = reg("gun_svd");
+    public static final RegistryObject<SoundEvent> GUN_PM = reg("gun_pm");
+    public static final RegistryObject<SoundEvent> GUN_GLOCK = reg("gun_glock");
+    public static final RegistryObject<SoundEvent> RELOAD_RIFLE = reg("reload_rifle");
+    public static final RegistryObject<SoundEvent> RELOAD_PISTOL = reg("reload_pistol");
+    public static final RegistryObject<SoundEvent> HELI_LOOP = reg("heli_loop");
+    public static final RegistryObject<SoundEvent> DIESEL_LOOP = reg("diesel_loop");
+    public static final RegistryObject<SoundEvent> TURBINE_LOOP = reg("turbine_loop");
+    public static final RegistryObject<SoundEvent> SHELL_WHISTLE = reg("shell_whistle");
+    public static final RegistryObject<SoundEvent> TANK_FIRE = reg("tank_fire");
+    public static final RegistryObject<SoundEvent> MORTAR_FIRE = reg("mortar_fire");
 }

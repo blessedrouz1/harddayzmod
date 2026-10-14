@@ -62,13 +62,13 @@ public final class ModItems {
     public static final RegistryObject<Item> SNIPER_AMMO = item("sniper_ammo", AmmoItem::new, p -> p.stacksTo(32));
     public static final RegistryObject<Item> RPG_ROUND = item("rpg_round", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> AK74 = item("ak74", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(6f, 2, 2.2f, 0.6f, 30, 45,
-            () -> ModItems.RIFLE_AMMO.get(), 160, 1.15f, true, 0.75f, 1.4f, false)), p -> p.stacksTo(1));
+            () -> ModItems.RIFLE_AMMO.get(), 160, 1.15f, true, 0.75f, 1.4f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_AK.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> M4 = item("m4", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(5.5f, 2, 1.8f, 0.45f, 30, 40,
-            () -> ModItems.RIFLE_AMMO.get(), 170, 1.3f, true, 0.7f, 1.0f, false)), p -> p.stacksTo(1));
+            () -> ModItems.RIFLE_AMMO.get(), 170, 1.3f, true, 0.7f, 1.0f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_M4.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> PKM = item("pkm", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(6f, 2, 3.2f, 1.5f, 100, 100,
-            () -> ModItems.RIFLE_AMMO.get(), 180, 0.95f, true, 0.8f, 0.9f, false)), p -> p.stacksTo(1));
+            () -> ModItems.RIFLE_AMMO.get(), 180, 0.95f, true, 0.8f, 0.9f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_PKM.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> SVD = item("svd", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(17f, 9, 1.6f, 0.05f, 10, 55,
-            () -> ModItems.SNIPER_AMMO.get(), 320, 0.8f, false, 0.25f, 3.5f, false)), p -> p.stacksTo(1));
+            () -> ModItems.SNIPER_AMMO.get(), 320, 0.8f, false, 0.25f, 3.5f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_SVD.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> RPG7 = item("rpg7", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(0f, 20, 1.2f, 0.4f, 1, 60,
             () -> ModItems.RPG_ROUND.get(), 300, 1f, false, 0.7f, 4f, true)), p -> p.stacksTo(1));
     public static final RegistryObject<Item> RED_DOT = item("red_dot", p -> new com.harddayz.item.AttachmentItem(p, "sight", "reddot"),
@@ -84,19 +84,36 @@ public final class ModItems {
     public static final RegistryObject<Item> RANGEFINDER = item("rangefinder", com.harddayz.item.RangefinderItem::new, p -> p.stacksTo(1));
     public static final RegistryObject<Item> PISTOL_AMMO = item("pistol_ammo", AmmoItem::new, p -> p.stacksTo(64));
     public static final RegistryObject<Item> PM = item("pm", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(5f, 4, 2.4f, 1.0f, 8, 30,
-            () -> ModItems.PISTOL_AMMO.get(), 80, 1.4f, false, 0.85f, 2.2f, false)), p -> p.stacksTo(1));
+            () -> ModItems.PISTOL_AMMO.get(), 80, 1.4f, false, 0.85f, 2.2f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_PM.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> GLOCK = item("glock", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(5.5f, 3, 2.0f, 0.8f, 17, 30,
-            () -> ModItems.PISTOL_AMMO.get(), 90, 1.5f, false, 0.85f, 1.8f, false)), p -> p.stacksTo(1));
+            () -> ModItems.PISTOL_AMMO.get(), 90, 1.5f, false, 0.85f, 1.8f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_GLOCK.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> COMBAT_KNIFE = item("combat_knife", Item::new,
             p -> p.tool(net.minecraft.world.item.ToolMaterial.IRON, net.minecraft.tags.BlockTags.SWORD_EFFICIENT, 4.5f, -1.4f, 0f));
     public static final RegistryObject<Item> MACHETE = item("machete", Item::new,
             p -> p.tool(net.minecraft.world.item.ToolMaterial.IRON, net.minecraft.tags.BlockTags.SWORD_EFFICIENT, 6f, -2.4f, 0f));
+    public static final RegistryObject<Item> FIELD_SHOVEL = item("field_shovel", com.harddayz.item.FieldShovelItem::new, p -> p.stacksTo(1)
+            .durability(400));
+    public static final RegistryObject<Item> BANDAGE = item("bandage", p -> new com.harddayz.item.MedItem(p, com.harddayz.item.MedItem.Kind.BANDAGE),
+            p -> p.stacksTo(16));
+    public static final RegistryObject<Item> TOURNIQUET = item("tourniquet", p -> new com.harddayz.item.MedItem(p, com.harddayz.item.MedItem.Kind.TOURNIQUET),
+            p -> p.stacksTo(8));
+    public static final RegistryObject<Item> MEDKIT = item("medkit", p -> new com.harddayz.item.MedItem(p, com.harddayz.item.MedItem.Kind.MEDKIT),
+            p -> p.stacksTo(4));
+    public static final RegistryObject<Item> PAINKILLER = item("painkiller", p -> new com.harddayz.item.MedItem(p, com.harddayz.item.MedItem.Kind.PAINKILLER),
+            p -> p.stacksTo(8));
     public static final RegistryObject<Item> FRAG_GRENADE = item("frag_grenade", p -> new com.harddayz.item.GrenadeItem(p, false), p -> p.stacksTo(8));
     public static final RegistryObject<Item> SMOKE_GRENADE = item("smoke_grenade", p -> new com.harddayz.item.GrenadeItem(p, true), p -> p.stacksTo(8));
     public static final RegistryObject<Item> RELAY = item("relay", p -> new LauncherItem(p, Launcher.Kind.RELAY), p -> p.stacksTo(2));
     public static final RegistryObject<Item> T72 = item("t72", p -> new LauncherItem(p, Launcher.Kind.T72), p -> p.stacksTo(1));
     public static final RegistryObject<Item> ABRAMS = item("abrams", p -> new LauncherItem(p, Launcher.Kind.ABRAMS), p -> p.stacksTo(1));
     public static final RegistryObject<Item> TANK_SHELL = item("tank_shell", AmmoItem::new, p -> p.stacksTo(22));
+    public static final RegistryObject<Item> KA52 = item("ka52", p -> new LauncherItem(p, Launcher.Kind.KA52), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> MI8 = item("mi8", p -> new LauncherItem(p, Launcher.Kind.MI8), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> S8_ROCKET = item("s8_rocket", AmmoItem::new, p -> p.stacksTo(40));
+    public static final RegistryObject<Item> MORTAR = item("mortar", p -> new LauncherItem(p, Launcher.Kind.MORTAR), p -> p.stacksTo(2));
+    public static final RegistryObject<Item> MORTAR_SHELL = item("mortar_shell", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> JERRYCAN = item("jerrycan", AmmoItem::new, p -> p.stacksTo(4));
+    public static final RegistryObject<Item> EMPTY_JERRYCAN = item("empty_jerrycan", Item::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> SAM_POST = item("sam_post", p -> new LauncherItem(p, Launcher.Kind.SAM_POST), p -> p.stacksTo(4));
     public static final RegistryObject<Item> EW_STATION = item("ew_station", p -> new LauncherItem(p, Launcher.Kind.EW),
             p -> p.stacksTo(1).rarity(Rarity.UNCOMMON));
@@ -146,7 +163,7 @@ public final class ModItems {
             .title(Component.translatable("itemGroup.harddayz"))
             .icon(() -> new ItemStack(ISKANDER.get()))
             .displayItems((params, out) -> ITEMS.getEntries().forEach(e -> {
-                if (!weapon(e.get())) {
+                if (!weapon(e.get()) && !eng(e.get())) {
                     out.accept(e.get());
                 }
             }))
@@ -163,6 +180,23 @@ public final class ModItems {
                 }
             }))
             .build());
+
+    /** Третья вкладка: инженерка и медицина. */
+    public static final RegistryObject<CreativeModeTab> ENG_TAB = TABS.register("engineering", () -> CreativeModeTab.builder()
+            .title(Component.translatable("itemGroup.harddayz.engineering"))
+            .icon(() -> new ItemStack(FIELD_SHOVEL.get()))
+            .withTabsBefore(WEAPONS_TAB.getKey())
+            .displayItems((params, out) -> ITEMS.getEntries().forEach(e -> {
+                if (eng(e.get())) {
+                    out.accept(e.get());
+                }
+            }))
+            .build());
+
+    static boolean eng(Item i) {
+        return i instanceof com.harddayz.item.MedItem || i instanceof com.harddayz.item.FieldShovelItem
+                || i instanceof net.minecraft.world.item.BlockItem b && b.getBlock() instanceof com.harddayz.war.EngBlock;
+    }
 
     private static boolean weapon(Item i) {
         return i instanceof com.harddayz.item.GunItem || i instanceof com.harddayz.item.GrenadeItem || i instanceof com.harddayz.item.JavelinItem

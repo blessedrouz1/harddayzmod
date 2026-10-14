@@ -105,6 +105,12 @@ public final class Net {
         public static final StreamCodec<ByteBuf, Lives> CODEC = ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(8)).map(Lives::new, Lives::rows);
     }
 
+    /** Клиент пилота → сервер: оружие вертолёта / удар. */
+    public record HeliFire(int entity, int weapon) {
+        public static final StreamCodec<ByteBuf, HeliFire> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, HeliFire::entity, ByteBufCodecs.VAR_INT,
+                HeliFire::weapon, HeliFire::new);
+    }
+
     public record GunnerFire(int entity) {
         public static final StreamCodec<ByteBuf, GunnerFire> CODEC = ByteBufCodecs.VAR_INT.map(GunnerFire::new, GunnerFire::entity);
     }
@@ -239,11 +245,21 @@ public final class Net {
                 .codec(Lives.CODEC.cast())
                 .consumerMainThread((p, ctx) -> com.harddayz.client.ClientAccess.lives(p.rows()))
                 .add();
+        CHANNEL.messageBuilder(HeliFire.class, NetworkDirection.PLAY_TO_SERVER)
+                .codec(HeliFire.CODEC.cast())
+                .consumerMainThread((p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l) {
+                        l.heliFire(sp, p.weapon());
+                    }
+                })
+                .add();
         CHANNEL.messageBuilder(GunShot.class, NetworkDirection.PLAY_TO_SERVER)
                 .codec(GunShot.CODEC.cast())
                 .consumerMainThread((p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
-                    if (sp != null && sp.getVehicle() == null && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
+                    if (sp != null && sp.getVehicle() == null && !com.harddayz.war.Medic.isDowned(sp)
+                            && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
                         g.shoot(sp, sp.getMainHandItem(), p.aiming());
                     }
                 })

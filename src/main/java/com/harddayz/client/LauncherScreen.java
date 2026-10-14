@@ -48,7 +48,7 @@ public class LauncherScreen extends Screen {
 
     private boolean aimable() {
         Launcher.Kind k = launcher.kind();
-        return (!k.samLike() || k == Launcher.Kind.S400) && k != Launcher.Kind.EW && k != Launcher.Kind.RADAR && k != Launcher.Kind.RELAY && !k.gunner();
+        return (!k.samLike() || k == Launcher.Kind.S400) && k != Launcher.Kind.EW && k != Launcher.Kind.RADAR && k != Launcher.Kind.RELAY && !k.gunner() && !k.heli();
     }
 
     @Override

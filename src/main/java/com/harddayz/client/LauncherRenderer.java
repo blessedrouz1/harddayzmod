@@ -44,6 +44,8 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         float hp = 1;
         boolean inside;
         int[] drones = new int[0];
+        float rotor;
+        float tilt;
     }
 
     /** Модели друга (geo.json): кости с теми же именами, что и в HdModels. */
@@ -87,6 +89,9 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
                 b.z += s.flash * 0.35f;
             });
             each("radar", b -> b.yRot += s.time * 0.15f);
+            each("rotor", b -> b.yRot += s.rotor);
+            each("rotor2", b -> b.yRot -= s.rotor);
+            each("trotor", b -> b.xRot += s.rotor * 1.6f);
             for (int i = 0; i < 40; i++) {
                 boolean shown = i < s.ammo && !otherDrone(s, i) && s.kind != Launcher.Kind.HIMARS;
                 each("tip" + i, b -> b.visible = shown);
@@ -318,6 +323,9 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         geo.put(Launcher.Kind.BMP2, new GeoLauncherModel("bmp2", hull, true));
         geo.put(Launcher.Kind.BRADLEY, new GeoLauncherModel("bradley", hull, true));
         geo.put(Launcher.Kind.T72, new GeoLauncherModel("t72", hull, true));
+        geo.put(Launcher.Kind.KA52, new GeoLauncherModel("ka52", cab, true));
+        geo.put(Launcher.Kind.MI8, new GeoLauncherModel("mi8", cab, true));
+        geo.put(Launcher.Kind.MORTAR, new GeoLauncherModel("mortar", null, true));
         geo.put(Launcher.Kind.ABRAMS, new GeoLauncherModel("abrams", hull, true));
         geo.put(Launcher.Kind.EW, new GeoLauncherModel("ew", cab, true));
         geo.put(Launcher.Kind.RADAR, new GeoLauncherModel("radar", cab, true));
@@ -358,6 +366,8 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         s.faction = e.faction();
         s.hp = e.health() / Math.max(1f, e.kind().health);
         s.drones = e.droneKinds();
+        s.rotor = e.kind().heli() ? (e.getPassengers().isEmpty() && e.onGround() ? 0 : (e.tickCount + pt) * 1.4f) : 0;
+        s.tilt = e.heliTilt;
         var mc = net.minecraft.client.Minecraft.getInstance();
         s.inside = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
     }
@@ -372,6 +382,9 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         if (g != null) {
             pose.pushPose();
             pose.rotate(Axis.YP.rotationDegrees(180 - s.bodyYaw));
+            if (s.tilt != 0) {
+                pose.rotate(Axis.XP.rotationDegrees(-s.tilt)); // в полёте нос опущен
+            }
             int tint = -1;
             collector.submitModel(g, s, pose, RenderTypes.entityTranslucent(g.texture(s)), s.lightCoords, OverlayTexture.NO_OVERLAY, tint, null,
                     s.outlineColor);

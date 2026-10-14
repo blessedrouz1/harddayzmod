@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/sandbag_wall"
+  },
+  "facing=east": {
+   "model": "harddayz:block/sandbag_wall",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "harddayz:block/sandbag_wall",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "harddayz:block/sandbag_wall",
+   "y": 270
+  }
+ }
+}

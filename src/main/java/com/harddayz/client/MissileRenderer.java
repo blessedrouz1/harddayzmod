@@ -55,6 +55,8 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
             case 4 -> "m_sam";
             case 5 -> "m_javelin";
             case 6 -> "m_rpg";
+            case 7 -> "m_mortar";
+            case 8 -> "m_s8";
             default -> switch (s.kind) {
                 case GRAD -> "m_grad";
                 case SAM -> "m_sam";

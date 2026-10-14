@@ -27,6 +27,8 @@ public final class HardDayz {
         ModEntities.ENTITIES.register(bus);
         ModParticles.TYPES.register(bus);
         com.harddayz.registry.ModSounds.SOUNDS.register(bus);
+        com.harddayz.registry.ModEffects.EFFECTS.register(bus);
+        com.harddayz.war.Medic.init();
         context.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
         com.harddayz.network.Net.init();
         com.harddayz.war.WarEvents.init();

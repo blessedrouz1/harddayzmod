@@ -43,6 +43,13 @@ public class GunItem extends Item {
     }
 
     public final Spec spec;
+    private Supplier<net.minecraft.sounds.SoundEvent> shot = () -> com.harddayz.registry.ModSounds.MG_FIRE.get();
+
+    /** Свой звук выстрела. */
+    public GunItem sound(Supplier<net.minecraft.sounds.SoundEvent> s) {
+        shot = s;
+        return this;
+    }
 
     public GunItem(Properties properties, Spec spec) {
         super(properties);
@@ -161,8 +168,8 @@ public class GunItem extends Item {
             e.hurtServer(level, level.damageSources().playerAttack(p), dmg);
         }
         boolean quiet = "suppressor".equals(part(stack, "muzzle"));
-        level.playSound(null, p.getX(), p.getY(), p.getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, quiet ? 0.6f : 3f,
-                spec.pitch() * (quiet ? 1.5f : 1f) + p.getRandom().nextFloat() * 0.06f);
+        level.playSound(null, p.getX(), p.getY(), p.getZ(), shot.get(), SoundSource.PLAYERS, quiet ? 0.5f : 4f,
+                (quiet ? 1.6f : 1f) + (p.getRandom().nextFloat() - 0.5f) * 0.08f);
         Vec3 muzzle = eye.add(dir.scale(0.8)).add(0, -0.15, 0);
         var fx = new Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hitBlock);
         for (ServerPlayer pl : level.players()) {
@@ -233,7 +240,8 @@ public class GunItem extends Item {
         putInt(stack, "mag", got);
         put(stack, "next", now + spec.reload());
         p.sendOverlayMessage(Component.translatable("message.harddayz.reloading").withStyle(ChatFormatting.YELLOW));
-        p.level().playSound(null, p.blockPosition(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.PLAYERS, 0.8f, 1.6f);
+        p.level().playSound(null, p.blockPosition(), spec.mag() <= 17 ? com.harddayz.registry.ModSounds.RELOAD_PISTOL.get()
+                : com.harddayz.registry.ModSounds.RELOAD_RIFLE.get(), SoundSource.PLAYERS, 1f, 1f);
     }
 
     @Override

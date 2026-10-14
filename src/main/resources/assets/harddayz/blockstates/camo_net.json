@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/camo_net"
+  },
+  "facing=east": {
+   "model": "harddayz:block/camo_net"
+  },
+  "facing=south": {
+   "model": "harddayz:block/camo_net"
+  },
+  "facing=west": {
+   "model": "harddayz:block/camo_net"
+  }
+ }
+}

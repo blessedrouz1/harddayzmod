@@ -51,6 +51,7 @@ public final class ClientSetup {
         TickEvent.ClientTickEvent.Post.BUS.addListener(ClientGuns::onTick);
         InputEvent.InteractionKeyMappingTriggered.Attack.BUS.addListener(ClientGuns::onAttack);
         InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(ClientGuns::onUse);
+        InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(ClientGunner::onUse);
         InputEvent.InteractionKeyMappingTriggered.Attack.BUS.addListener(DronePilot::onAttack);
         InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(DronePilot::onUse);
         InputEvent.MouseScrollingEvent.BUS.addListener(DronePilot::onScroll);
@@ -140,6 +141,13 @@ public final class ClientSetup {
         g.fill(x - 1, y - 1, x + w + 1, y + 6, 0xC0000000);
         g.fill(x, y, x + (int) (w * k), y + 5, col);
         String txt = (int) v.health() + " / " + (int) v.maxHealth();
+        if (v instanceof Launcher fl && fl.usesFuel()) {
+            float f = fl.fuel() / fl.tank();
+            g.fill(x - 1, y + 19, x + w + 1, y + 24, 0xC0000000);
+            g.fill(x, y + 20, x + (int) (w * f), y + 23, f > 0.25f ? 0xFFD8A040 : 0xFFE04030);
+            String ft = "⛽ " + (int) fl.fuel() + " / " + (int) fl.tank() + " л";
+            g.text(mc.font, ft, g.guiWidth() / 2 - mc.font.width(ft) / 2, y + 26, f > 0.25f ? 0xFFE8D8A0 : 0xFFFF6050, true);
+        }
         g.text(mc.font, txt, g.guiWidth() / 2 - mc.font.width(txt) / 2, y + 8, 0xFFE8E8E8, true);
     }
 
