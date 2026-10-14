@@ -289,6 +289,23 @@ public final class War {
         }
     }
 
+    /** Разослать жизни команд (режим «жизни»). */
+    public static void sendLives() {
+        if (server == null) {
+            return;
+        }
+        List<String> rows = new ArrayList<>();
+        if (active() && livesMode()) {
+            for (Faction f : data.factions) {
+                rows.add(f.id + ";" + f.title().getString() + ";" + f.lives);
+            }
+        }
+        var msg = new com.harddayz.network.Net.Lives(rows);
+        for (var p : server.getPlayerList().getPlayers()) {
+            com.harddayz.network.Net.toPlayer(p, msg);
+        }
+    }
+
     public static void end() {
         if (server != null) {
             Scoreboard sb = server.getScoreboard();

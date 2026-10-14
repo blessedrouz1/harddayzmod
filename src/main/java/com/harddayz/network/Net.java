@@ -89,6 +89,22 @@ public final class Net {
         public static final StreamCodec<ByteBuf, GunShot> CODEC = ByteBufCodecs.BOOL.map(GunShot::new, GunShot::aiming);
     }
 
+    /** Клиент → сервер: подствольник (G). */
+    public record UnderFire() {
+        public static final StreamCodec<ByteBuf, UnderFire> CODEC = StreamCodec.unit(new UnderFire());
+    }
+
+    /** Клиент → сервер: точка дальномера в журнал целей. */
+    public record LogMark(int x, int y, int z) {
+        public static final StreamCodec<ByteBuf, LogMark> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, LogMark::x, ByteBufCodecs.VAR_INT,
+                LogMark::y, ByteBufCodecs.VAR_INT, LogMark::z, LogMark::new);
+    }
+
+    /** Сервер → клиент: жизни команд в режиме «жизни» (строки «id;имя;жизни»), пусто — режим выключен. */
+    public record Lives(java.util.List<String> rows) {
+        public static final StreamCodec<ByteBuf, Lives> CODEC = ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(8)).map(Lives::new, Lives::rows);
+    }
+
     public record GunnerFire(int entity) {
         public static final StreamCodec<ByteBuf, GunnerFire> CODEC = ByteBufCodecs.VAR_INT.map(GunnerFire::new, GunnerFire::entity);
     }
@@ -187,6 +203,41 @@ public final class Net {
         CHANNEL.messageBuilder(Tracer.class, NetworkDirection.PLAY_TO_CLIENT)
                 .codec(Tracer.CODEC.cast())
                 .consumerMainThread((p, ctx) -> com.harddayz.client.ClientGunner.tracer(p))
+                .add();
+        CHANNEL.messageBuilder(UnderFire.class, NetworkDirection.PLAY_TO_SERVER)
+                .codec(UnderFire.CODEC.cast())
+                .consumerMainThread((p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
+                        g.fireUnder(sp, sp.getMainHandItem());
+                    }
+                })
+                .add();
+        CHANNEL.messageBuilder(LogMark.class, NetworkDirection.PLAY_TO_SERVER)
+                .codec(LogMark.CODEC.cast())
+                .consumerMainThread((p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    BlockPos pos = new BlockPos(p.x(), p.y(), p.z());
+                    if (sp == null || !sp.getMainHandItem().is(com.harddayz.registry.ModItems.RANGEFINDER.get())
+                            || pos.distToCenterSqr(sp.position()) > 900 * 900) {
+                        return;
+                    }
+                    for (int i = 0; i < sp.getInventory().getContainerSize(); i++) {
+                        var s = sp.getInventory().getItem(i);
+                        if (s.is(com.harddayz.registry.ModItems.TARGET_LOG.get())) {
+                            int n = com.harddayz.item.TargetLogItem.add(s, pos);
+                            sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, p.x(), p.y(), p.z())
+                                    .withStyle(net.minecraft.ChatFormatting.GREEN));
+                            return;
+                        }
+                    }
+                    sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log")
+                            .withStyle(net.minecraft.ChatFormatting.RED));
+                })
+                .add();
+        CHANNEL.messageBuilder(Lives.class, NetworkDirection.PLAY_TO_CLIENT)
+                .codec(Lives.CODEC.cast())
+                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientAccess.lives(p.rows()))
                 .add();
         CHANNEL.messageBuilder(GunShot.class, NetworkDirection.PLAY_TO_SERVER)
                 .codec(GunShot.CODEC.cast())

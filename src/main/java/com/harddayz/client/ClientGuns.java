@@ -20,6 +20,12 @@ public final class ClientGuns {
     private ClientGuns() {
     }
 
+    static boolean rangefinder() {
+        Minecraft mc = Minecraft.getInstance();
+        return mc.player != null && !DronePilot.active() && mc.player.getVehicle() == null
+                && mc.player.getMainHandItem().is(com.harddayz.registry.ModItems.RANGEFINDER.get());
+    }
+
     static GunItem gun() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || DronePilot.active() || mc.player.getVehicle() != null) {
@@ -34,6 +40,16 @@ public final class ClientGuns {
     }
 
     static boolean onAttack(InputEvent.InteractionKeyMappingTriggered.Attack event) {
+        if (rangefinder()) {
+            Minecraft mc = Minecraft.getInstance();
+            var hit = rangeHit();
+            if (hit != null) {
+                Net.toServer(new Net.LogMark(hit.getX(), hit.getY(), hit.getZ()));
+                mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_BIT.value(), 0.8f, 1.8f);
+            }
+            event.setSwingHand(false);
+            return true;
+        }
         if (gun() == null) {
             return false;
         }
@@ -42,7 +58,7 @@ public final class ClientGuns {
     }
 
     static boolean onUse(InputEvent.InteractionKeyMappingTriggered.UseItem event) {
-        if (gun() == null) {
+        if (gun() == null && !rangefinder()) {
             return false;
         }
         event.setSwingHand(false);
@@ -53,6 +69,10 @@ public final class ClientGuns {
         Minecraft mc = Minecraft.getInstance();
         GunItem g = gun();
         aimK += ((aiming() ? 1 : 0) - aimK) * 0.35f;
+        boolean th = g != null && aimK > 0.6f && "thermal".equals(GunItem.part(mc.player.getMainHandItem(), "sight"));
+        if (th || !HOT.isEmpty()) {
+            thermal(th);
+        }
         if (cooldown > 0) {
             cooldown--;
         }
@@ -98,7 +118,44 @@ public final class ClientGuns {
         wasDown = down;
     }
 
+    /** Точка под прицелом дальномера (до 800 блоков). */
+    static net.minecraft.core.BlockPos rangeHit() {
+        Minecraft mc = Minecraft.getInstance();
+        var eye = mc.player.getEyePosition();
+        var hit = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, eye.add(mc.player.getLookAngle().scale(800)),
+                net.minecraft.world.level.ClipContext.Block.OUTLINE, net.minecraft.world.level.ClipContext.Fluid.ANY, mc.player));
+        return hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? null : hit.getBlockPos();
+    }
+
+    private static final java.util.Set<net.minecraft.world.entity.Entity> HOT = new java.util.HashSet<>();
+
+    /** Тепловизор: тёплые цели в прямой видимости подсвечиваются (сквозь стены — нет). */
+    private static void thermal(boolean on) {
+        Minecraft mc = Minecraft.getInstance();
+        for (var e : HOT) {
+            e.setGlowingTag(false);
+        }
+        HOT.clear();
+        if (!on || mc.level == null) {
+            return;
+        }
+        var eye = mc.player.getEyePosition();
+        for (var e : mc.level.getEntities(mc.player, mc.player.getBoundingBox().inflate(160), e -> e instanceof net.minecraft.world.entity.LivingEntity
+                || e instanceof com.harddayz.entity.Vehicle || e instanceof com.harddayz.entity.Drone)) {
+            var c = mc.level.clip(new net.minecraft.world.level.ClipContext(eye, e.getBoundingBox().getCenter(),
+                    net.minecraft.world.level.ClipContext.Block.VISUAL, net.minecraft.world.level.ClipContext.Fluid.NONE, mc.player));
+            if (c.getType() == net.minecraft.world.phys.HitResult.Type.MISS) {
+                e.setGlowingTag(true);
+                HOT.add(e);
+            }
+        }
+    }
+
     static void onFov(ViewportEvent.ComputeFov event) {
+        if (rangefinder() && Minecraft.getInstance().options.keyUse.isDown()) {
+            event.setFOV(event.getFOV() * 0.15f);
+            return;
+        }
         GunItem g = gun();
         if (g != null && aimK > 0.01f) {
             float z = g.zoom(Minecraft.getInstance().player.getMainHandItem());
@@ -127,6 +184,21 @@ public final class ClientGuns {
 
     /** Мушка и целик при прицеливании. */
     static void renderSight(GuiGraphicsExtractor g, DeltaTracker dt) {
+        Minecraft m0 = Minecraft.getInstance();
+        if (rangefinder() && m0.options.keyUse.isDown()) {
+            int cx = g.guiWidth() / 2;
+            int cy = g.guiHeight() / 2;
+            g.fill(0, 0, g.guiWidth(), g.guiHeight(), 0x30000000);
+            g.outline(cx - 40, cy - 25, 80, 50, 0xFFFF4040);
+            g.fill(cx - 6, cy, cx + 7, cy + 1, 0xFFFF4040);
+            g.fill(cx, cy - 6, cx + 1, cy + 7, 0xFFFF4040);
+            var hit = rangeHit();
+            String t = hit == null ? "---" : (int) Math.sqrt(hit.distToCenterSqr(m0.player.getEyePosition())) + " м   " + hit.getX() + " " + hit.getY()
+                    + " " + hit.getZ();
+            g.centeredText(m0.font, t, cx, cy + 32, 0xFFFF6060);
+            g.centeredText(m0.font, net.minecraft.network.chat.Component.translatable("hud.harddayz.rangefinder"), cx, cy + 44, 0xC0FFFFFF);
+            return;
+        }
         GunItem gun = gun();
         if (gun == null || aimK < 0.6f) {
             return;
@@ -146,6 +218,15 @@ public final class ClientGuns {
             g.fill(cx + s + 4, cy, cx + 60, cy + 1, 0xFF40FF40);
             String st = lockOn == null ? "НЕТ ЦЕЛИ" : lockTicks >= 40 ? "ЗАХВАТ — ЛКМ ПУСК" : "ЗАХВАТ...";
             g.centeredText(m.font, st, cx, cy + 40, col);
+            return;
+        }
+        if ("thermal".equals(GunItem.part(Minecraft.getInstance().player.getMainHandItem(), "sight"))) {
+            int w = g.guiWidth();
+            int h = g.guiHeight();
+            g.fill(0, 0, w, h, 0x40102030);
+            g.fill(w / 2 - 12, h / 2, w / 2 + 13, h / 2 + 1, 0xFFFFFFFF);
+            g.fill(w / 2, h / 2 - 12, w / 2 + 1, h / 2 + 13, 0xFFFFFFFF);
+            g.text(Minecraft.getInstance().font, "WHT", 20, 20, 0xFFFFFFFF, true);
             return;
         }
         boolean scope = gun.zoom(Minecraft.getInstance().player.getMainHandItem()) < 0.4f;

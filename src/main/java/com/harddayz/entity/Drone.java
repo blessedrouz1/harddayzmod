@@ -179,7 +179,7 @@ public class Drone extends Entity implements Threat {
         d.setPos(at);
         d.setYRot(pilot.getYRot());
         d.owner = pilot.getUUID();
-        d.entityData.set(PILOT, pilot.getId());
+        // ставится на землю без пилота: подключиться — ПКМ по дрону или пультом оператора
         level.addFreshEntity(d);
         return d;
     }
@@ -636,6 +636,16 @@ public class Drone extends Entity implements Threat {
         from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log").withStyle(net.minecraft.ChatFormatting.RED));
     }
 
+    /** Подключиться к своему квадрокоптеру (ПКМ по нему или пульт). */
+    public boolean connect(ServerPlayer p) {
+        if (kind().autonomous || pilotId() >= 0 || battery() <= 0 || (owner != null && !com.harddayz.war.War.allied(p.getUUID(), owner))) {
+            return false;
+        }
+        entityData.set(PILOT, p.getId());
+        owner = p.getUUID();
+        return true;
+    }
+
     /** Пульт оператора: взять под управление летящий «Шахед». */
     public boolean takeControl(ServerPlayer op) {
         if (!kind().autonomous || pilotId() >= 0) {
@@ -698,9 +708,8 @@ public class Drone extends Entity implements Threat {
             player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.drone_dead")
                     .withStyle(net.minecraft.ChatFormatting.RED));
         }
-        if (!level().isClientSide() && pilotId() < 0 && battery() > 0) {
-            entityData.set(PILOT, player.getId());
-            owner = player.getUUID();
+        if (!level().isClientSide() && player instanceof ServerPlayer sp) {
+            connect(sp);
         }
         return InteractionResult.SUCCESS;
     }

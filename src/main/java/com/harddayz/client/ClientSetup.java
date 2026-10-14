@@ -25,6 +25,7 @@ public final class ClientSetup {
     /** V: пульт машины, на которой едешь / выйти из управления дроном. */
     public static final KeyMapping CONTROL = new KeyMapping("key.harddayz.control", InputConstants.KEY_V, CATEGORY);
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
+    public static final KeyMapping UNDER = new KeyMapping("key.harddayz.under", InputConstants.KEY_G, CATEGORY);
 
     private ClientSetup() {
     }
@@ -36,6 +37,7 @@ public final class ClientSetup {
         RegisterKeyMappingsEvent.BUS.addListener(e -> {
             e.register(CONTROL);
             e.register(ENGINE);
+            e.register(UNDER);
         });
         AddGuiOverlayLayersEvent.BUS.addListener(ClientSetup::onGuiLayers);
         TickEvent.ClientTickEvent.Post.BUS.addListener(ClientSetup::onTick);
@@ -111,6 +113,7 @@ public final class ClientSetup {
         event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "gunner"), ClientGunner::renderHud);
         event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "alert"), ClientSetup::renderAlert);
         event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "gun_sight"), ClientGuns::renderSight);
+        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "lives"), ClientSetup::renderLives);
     }
 
     /** Полоса прочности техники, на которую смотришь или в которой едешь. */
@@ -138,6 +141,27 @@ public final class ClientSetup {
         g.fill(x, y, x + (int) (w * k), y + 5, col);
         String txt = (int) v.health() + " / " + (int) v.maxHealth();
         g.text(mc.font, txt, g.guiWidth() / 2 - mc.font.width(txt) / 2, y + 8, 0xFFE8E8E8, true);
+    }
+
+    /** Режим «жизни»: запас каждой команды вверху экрана. */
+    private static void renderLives(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker dt) {
+        Minecraft mc = Minecraft.getInstance();
+        if (ClientAccess.lives.isEmpty() || DronePilot.active()) {
+            return;
+        }
+        int x = g.guiWidth() / 2 - ClientAccess.lives.size() * 45;
+        for (String r : ClientAccess.lives) {
+            String[] p = r.split(";", -1);
+            int col = switch (p[0]) {
+                case "blue" -> 0xFF6080FF;
+                case "red" -> 0xFFFF5050;
+                case "green" -> 0xFF50E050;
+                default -> 0xFFFFE050;
+            };
+            g.fill(x, 2, x + 86, 15, 0x90000000);
+            g.text(mc.font, p[1] + ": " + p[2] + " ❤", x + 4, 5, col, true);
+            x += 90;
+        }
     }
 
     private static String alertText = "";
@@ -170,6 +194,11 @@ public final class ClientSetup {
             alertTicks--;
         }
         Minecraft mc = Minecraft.getInstance();
+        while (UNDER.consumeClick()) {
+            if (mc.player != null && mc.player.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem) {
+                com.harddayz.network.Net.toServer(new com.harddayz.network.Net.UnderFire());
+            }
+        }
         while (ENGINE.consumeClick()) {
             DronePilot.toggleEngine();
         }

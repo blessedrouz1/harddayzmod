@@ -47,6 +47,8 @@ public class AttachmentItem extends Item {
                 case "reddot" -> com.harddayz.registry.ModItems.RED_DOT.get();
                 case "scope" -> com.harddayz.registry.ModItems.SCOPE.get();
                 case "suppressor" -> com.harddayz.registry.ModItems.SUPPRESSOR.get();
+                case "thermal" -> com.harddayz.registry.ModItems.THERMAL_SIGHT.get();
+                case "gl" -> com.harddayz.registry.ModItems.UNDERBARREL.get();
                 default -> null;
             };
             if (back != null) {

@@ -24,6 +24,13 @@
        "type": "minecraft:model",
        "model": "harddayz:item/m4_scope"
       }
+     },
+     {
+      "when": "thermal",
+      "model": {
+       "type": "minecraft:model",
+       "model": "harddayz:item/m4_thermal"
+      }
      }
     ],
     "fallback": {
@@ -37,6 +44,18 @@
     "on_true": {
      "type": "minecraft:model",
      "model": "harddayz:item/m4_suppressor"
+    },
+    "on_false": {
+     "type": "minecraft:empty"
+    }
+   },
+   {
+    "type": "minecraft:condition",
+    "property": "minecraft:custom_model_data",
+    "index": 1,
+    "on_true": {
+     "type": "minecraft:model",
+     "model": "harddayz:item/m4_gl"
     },
     "on_false": {
      "type": "minecraft:empty"

@@ -217,6 +217,7 @@ public final class Frontline {
             BARS.clear();
             War.sendSummary(winner);
             War.end();
+            War.sendLives();
         }
     }
 

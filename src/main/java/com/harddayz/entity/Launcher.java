@@ -83,7 +83,11 @@ public class Launcher extends Vehicle {
         /** Bradley: 25-мм пушка — чаще и точнее, но слабее снаряд; толще броня. */
         BRADLEY(150, 320),
         /** Ретранслятор: продлевает связь с «Шахедами» и «Ланцетами» своей фракции на 900 блоков вокруг. */
-        RELAY(0, 80, false);
+        RELAY(0, 80, false),
+        /** Т-72Б3: 125-мм пушка, толстая броня, медленная перезарядка. */
+        T72(22, 520),
+        /** Abrams: 120-мм пушка, ещё толще броня, чуть быстрее перезарядка. */
+        ABRAMS(20, 600);
 
         public final int capacity;
         public final float health;
@@ -116,7 +120,11 @@ public class Launcher extends Vehicle {
 
         /** Стрелковые установки: на них садятся и стреляют сами. */
         public boolean gunner() {
-            return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY;
+            return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY || tank();
+        }
+
+        public boolean tank() {
+            return this == T72 || this == ABRAMS;
         }
 
         /** Стрельба только после захвата цели (ПЗРК). */
@@ -125,7 +133,7 @@ public class Launcher extends Vehicle {
         }
 
         public boolean cannon() {
-            return this == BMP2 || this == BRADLEY;
+            return this == BMP2 || this == BRADLEY || tank();
         }
 
         public Item ammo() {
@@ -148,6 +156,7 @@ public class Launcher extends Vehicle {
                 case PICKUP_MG -> ModItems.MG_BELT.get();
                 case PICKUP_SAM -> ModItems.SAM_MISSILE.get();
                 case BMP2, BRADLEY -> ModItems.CANNON_SHELLS.get();
+                case T72, ABRAMS -> ModItems.TANK_SHELL.get();
                 case RELAY -> ModItems.DESIGNATOR.get();
             };
         }
@@ -174,6 +183,8 @@ public class Launcher extends Vehicle {
                 case PICKUP_SAM -> ModItems.PICKUP_SAM.get();
                 case BMP2 -> ModItems.BMP2.get();
                 case BRADLEY -> ModItems.BRADLEY.get();
+                case T72 -> ModItems.T72.get();
+                case ABRAMS -> ModItems.ABRAMS.get();
                 case RELAY -> ModItems.RELAY.get();
             };
         }
@@ -314,6 +325,7 @@ public class Launcher extends Vehicle {
             case SAM_MANUAL -> new Vec3(0, 0.35, -1.0);
             case PICKUP_MG, PICKUP_SAM -> new Vec3(0, 1.0, -1.7);
             case BMP2, BRADLEY -> new Vec3(0, 1.75, -1.0);
+            case T72, ABRAMS -> new Vec3(0, 1.9, 0.6);
             default -> new Vec3(0, 1, 0);
         };
     }
@@ -338,6 +350,7 @@ public class Launcher extends Vehicle {
         if (!crewed() || i == 0) {
             return crewed() ? switch (kind()) {
                 case BMP2, BRADLEY -> new Vec3(-0.5, 1.2, 1.9);
+                case T72, ABRAMS -> new Vec3(0, 1.0, 2.6);
                 default -> new Vec3(-0.45, 0.55, 0.55);
             } : seat();
         }
@@ -358,6 +371,8 @@ public class Launcher extends Vehicle {
             case PICKUP_MG, PICKUP_SAM -> 0.6;
             case BMP2 -> 0.36;
             case BRADLEY -> 0.33;
+            case T72 -> 0.32;
+            case ABRAMS -> 0.34;
             default -> 0.38;
         };
     }
@@ -367,6 +382,7 @@ public class Launcher extends Vehicle {
         return switch (kind()) {
             case PICKUP_MG, PICKUP_SAM -> 0.012;
             case BMP2, BRADLEY -> 0.006;
+            case T72, ABRAMS -> 0.0045;
             case ISKANDER, PATRIOT, S400 -> 0.004;
             default -> 0.005;
         };
@@ -605,6 +621,8 @@ public class Launcher extends Vehicle {
             case PATRIOT, NASAMS -> local(0, 2.35, -0.55);
             case PICKUP_MG, PICKUP_SAM -> local(0, 2.4, -1.1);
             case BMP2, BRADLEY -> local(0, 2.2, -0.25);
+            case T72 -> local(0, 1.5, 0.9);
+            case ABRAMS -> local(0, 1.6, 0.9);
             case RELAY -> local(0, 2.0, 0);
         };
     }
@@ -1132,10 +1150,10 @@ public class Launcher extends Vehicle {
         }
         // пулемёт / автопушка: мгновенный выстрел с небольшим разбросом
         boolean cannon = kind().cannon();
-        gunCooldown = kind() == Kind.BMP2 ? 6 : kind() == Kind.BRADLEY ? 4 : 2;
+        gunCooldown = kind() == Kind.T72 ? 90 : kind() == Kind.ABRAMS ? 75 : kind() == Kind.BMP2 ? 6 : kind() == Kind.BRADLEY ? 4 : 2;
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 2);
-        float spread = cannon ? 0.35f : 0.4f;
+        float spread = kind().tank() ? 0.12f : cannon ? 0.35f : 0.4f;
         Vec3 dir = net.minecraft.world.phys.Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * spread,
                 p.getYRot() + (float) random.nextGaussian() * spread);
         Vec3 end = muzzle.add(dir.scale(cannon ? 300 : 260));
@@ -1149,15 +1167,22 @@ public class Launcher extends Vehicle {
             Entity e = hit.getEntity();
             float dmg = e instanceof Drone ? 3.5f : e instanceof Vehicle ? 2.5f : 5f;
             if (cannon) {
-                dmg = kind() == Kind.BMP2 ? 9f : 7f;
+                dmg = kind().tank() ? 70f : kind() == Kind.BMP2 ? 9f : 7f;
             }
             e.hurtServer(level, damageSources().playerAttack(p), dmg);
         }
         if (cannon && (hit != null || hitBlock)) {
-            Blast.detonate(level, stop, kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // осколочно-фугасный — рушит укрытия
+            Blast.detonate(level, stop, kind().tank() ? 3.2f : kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // фугасный — рушит укрытия
         }
-        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 4f,
-                0.95f + random.nextFloat() * 0.1f);
+        if (kind().tank()) {
+            level.playSound(null, getX(), getY(), getZ(), SoundEvents.GENERIC_EXPLODE.value(), SoundSource.PLAYERS, 6f, 0.6f);
+            level.playSound(null, getX(), getY(), getZ(), SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.PLAYERS, 3f, 1.6f);
+            level.sendParticles(ParticleTypes.EXPLOSION, true, true, muzzle.x, muzzle.y, muzzle.z, 3, 0.3, 0.3, 0.3, 0);
+            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.8, 0.4, 0.8, 0.03);
+        } else {
+            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 4f,
+                    (kind().cannon() ? 0.6f : 0.95f) + random.nextFloat() * 0.1f);
+        }
         var fx = new com.harddayz.network.Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hitBlock);
         for (ServerPlayer pl : level.players()) {
             if (pl.distanceToSqr(this) < 250 * 250) {

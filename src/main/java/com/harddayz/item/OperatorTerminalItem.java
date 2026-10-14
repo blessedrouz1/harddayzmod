@@ -29,6 +29,20 @@ public class OperatorTerminalItem extends Item {
     @Override
     public InteractionResult use(Level level, Player player, InteractionHand hand) {
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
+            // сначала — свой квадрокоптер поблизости (FPV / разведчик)
+            Drone quad = null;
+            double qd = Double.MAX_VALUE;
+            for (Drone d : sl.getEntitiesOfClass(Drone.class, new AABB(sp.position(), sp.position()).inflate(Drone.SIGNAL_RANGE))) {
+                if (!d.kind().autonomous && d.pilotId() < 0 && d.battery() > 0 && War.allied(sp.getUUID(), d.owner()) && d.distanceToSqr(sp) < qd) {
+                    qd = d.distanceToSqr(sp);
+                    quad = d;
+                }
+            }
+            if (quad != null && quad.connect(sp)) {
+                sp.sendOverlayMessage(Component.translatable("message.harddayz.drone_linked", (int) Math.sqrt(qd)).withStyle(ChatFormatting.GREEN));
+                level.playSound(null, sp.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), sp.getSoundSource(), 0.8f, 1.6f);
+                return InteractionResult.SUCCESS;
+            }
             Drone best = null;
             double bestD = Double.MAX_VALUE;
             for (Drone d : sl.getEntitiesOfClass(Drone.class, new AABB(sp.position(), sp.position()).inflate(Drone.linkRange(sl.getServer())))) {

@@ -26,7 +26,9 @@ public final class GunRender implements IClientItemExtensions {
 
     @Override
     public HumanoidModel.ArmPose getArmPose(LivingEntity entity, InteractionHand hand, ItemStack stack) {
-        return HumanoidModel.ArmPose.CROSSBOW_HOLD; // винтовку держат двумя руками у плеча
+        // винтовку держат двумя руками у плеча, пистолет — на вытянутой руке
+        return stack.getItem() instanceof GunItem g && g.spec.mag() <= 17 && !g.spec.rocket() && g.spec.zoom() > 0.8f
+                ? HumanoidModel.ArmPose.BOW_AND_ARROW : HumanoidModel.ArmPose.CROSSBOW_HOLD;
     }
 
     @Override
@@ -62,6 +64,7 @@ public final class GunRender implements IClientItemExtensions {
         return switch (GunItem.part(s, "sight")) {
             case "reddot" -> -0.205f;
             case "scope" -> -0.235f;
+            case "thermal" -> -0.255f;
             default -> -0.165f;
         };
     }

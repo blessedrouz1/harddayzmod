@@ -42,6 +42,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         int flash;
         int faction = -1;
         float hp = 1;
+        boolean inside;
         int[] drones = new int[0];
     }
 
@@ -316,6 +317,8 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         geo.put(Launcher.Kind.PICKUP_SAM, new GeoLauncherModel("pickup_sam", cab, true));
         geo.put(Launcher.Kind.BMP2, new GeoLauncherModel("bmp2", hull, true));
         geo.put(Launcher.Kind.BRADLEY, new GeoLauncherModel("bradley", hull, true));
+        geo.put(Launcher.Kind.T72, new GeoLauncherModel("t72", hull, true));
+        geo.put(Launcher.Kind.ABRAMS, new GeoLauncherModel("abrams", hull, true));
         geo.put(Launcher.Kind.EW, new GeoLauncherModel("ew", cab, true));
         geo.put(Launcher.Kind.RADAR, new GeoLauncherModel("radar", cab, true));
         geo.put(Launcher.Kind.RELAY, new GeoLauncherModel("relay", base, true));
@@ -355,11 +358,17 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         s.faction = e.faction();
         s.hp = e.health() / Math.max(1f, e.kind().health);
         s.drones = e.droneKinds();
+        var mc = net.minecraft.client.Minecraft.getInstance();
+        s.inside = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
     }
 
     @Override
     public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
         GeoLauncherModel g = geo.get(s.kind);
+        if (s.inside) {
+            super.submit(s, pose, collector, camera); // сидим внутри от первого лица — кабина не закрывает обзор
+            return;
+        }
         if (g != null) {
             pose.pushPose();
             pose.rotate(Axis.YP.rotationDegrees(180 - s.bodyYaw));

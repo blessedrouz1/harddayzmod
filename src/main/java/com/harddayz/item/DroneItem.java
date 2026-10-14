@@ -62,6 +62,7 @@ public class DroneItem extends Item {
                 return InteractionResult.SUCCESS;
             }
             Drone.deploy(sl, sp, kind);
+            sp.sendOverlayMessage(Component.translatable("message.harddayz.drone_placed").withStyle(ChatFormatting.GOLD));
             player.getItemInHand(hand).consume(1, player);
         }
         return InteractionResult.SUCCESS;

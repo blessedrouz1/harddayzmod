@@ -37,7 +37,10 @@ public final class WarEvents {
         });
         RegisterCommandsEvent.BUS.addListener(WarEvents::commands);
         TickEvent.ServerTickEvent.Post.BUS.addListener(WarEvents::tick);
-        PlayerEvent.PlayerLoggedInEvent.BUS.addListener(e -> War.syncTeams());
+        PlayerEvent.PlayerLoggedInEvent.BUS.addListener(e -> {
+            War.syncTeams();
+            War.sendLives();
+        });
         net.minecraftforge.event.entity.living.LivingDeathEvent.BUS.addListener(e -> {
             if (!(e.getEntity() instanceof ServerPlayer dead) || !War.active()) {
                 return false;
@@ -49,6 +52,7 @@ public final class WarEvents {
                     df.lives = Math.max(0, df.lives - 1);
                     War.broadcast(Component.translatable("message.harddayz.lives_left", df.title(), df.lives)
                             .withStyle(df.lives <= 5 ? ChatFormatting.RED : ChatFormatting.YELLOW));
+                    War.sendLives();
                     if (df.lives <= 0) {
                         df.defeated = true;
                         War.broadcast(Component.translatable("message.harddayz.lives_out", df.title()).withStyle(ChatFormatting.DARK_RED,
@@ -154,6 +158,7 @@ public final class WarEvents {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer p = c.getSource().getPlayerOrException();
         War.create(p, count, budget, lives);
+        War.sendLives();
         if (lives > 0) {
             War.broadcast(Component.translatable("message.harddayz.lives_mode", lives).withStyle(ChatFormatting.GOLD));
         }
@@ -234,6 +239,7 @@ public final class WarEvents {
         }
         War.sendSummary(null);
         War.end();
+        War.sendLives();
         War.broadcast(Component.translatable("message.harddayz.war_ended", p.getDisplayName()).withStyle(ChatFormatting.GOLD));
         return 1;
     }

@@ -82,7 +82,8 @@ public class GunItem extends Item {
         // для моделей: строка 0 — прицел, флаг 0 — глушитель
         String sight = t.getStringOr("sight", "");
         boolean supp = "suppressor".equals(t.getStringOr("muzzle", ""));
-        s.set(DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(java.util.List.of(), java.util.List.of(supp),
+        boolean gl = "gl".equals(t.getStringOr("under", ""));
+        s.set(DataComponents.CUSTOM_MODEL_DATA, new net.minecraft.world.item.component.CustomModelData(java.util.List.of(), java.util.List.of(supp, gl),
                 java.util.List.of(sight), java.util.List.of()));
     }
 
@@ -90,6 +91,7 @@ public class GunItem extends Item {
     public float zoom(ItemStack s) {
         return switch (part(s, "sight")) {
             case "scope" -> Math.min(spec.zoom(), 0.28f);
+            case "thermal" -> Math.min(spec.zoom(), 0.4f);
             case "reddot" -> Math.min(spec.zoom(), 0.72f);
             default -> spec.zoom();
         };
@@ -98,6 +100,7 @@ public class GunItem extends Item {
     private float aimSpread(ItemStack s) {
         return switch (part(s, "sight")) {
             case "scope" -> spec.aimSpread() * 0.35f;
+            case "thermal" -> spec.aimSpread() * 0.5f;
             case "reddot" -> spec.aimSpread() * 0.75f;
             default -> spec.aimSpread();
         };
@@ -173,6 +176,35 @@ public class GunItem extends Item {
     protected void consumeRound(ItemStack stack, long now) {
         putInt(stack, "mag", mag(stack) - 1);
         put(stack, "next", now + spec.cooldown());
+    }
+
+    /** Подствольный гранатомёт (клавиша G): выстрел ВОГом по навесной. */
+    public void fireUnder(ServerPlayer p, ItemStack stack) {
+        if (!"gl".equals(part(stack, "under"))) {
+            return;
+        }
+        ServerLevel level = p.level();
+        long now = level.getGameTime();
+        if (now < tag(stack).getLongOr("gl_next", 0)) {
+            return;
+        }
+        var inv = p.getInventory();
+        boolean ok = p.isCreative();
+        for (int i = 0; i < inv.getContainerSize() && !ok; i++) {
+            if (inv.getItem(i).is(com.harddayz.registry.ModItems.VOG_ROUND.get())) {
+                inv.getItem(i).shrink(1);
+                ok = true;
+            }
+        }
+        if (!ok) {
+            p.sendOverlayMessage(Component.translatable("message.harddayz.no_vog").withStyle(ChatFormatting.RED));
+            return;
+        }
+        put(stack, "gl_next", now + 40);
+        Vec3 dir = p.getLookAngle();
+        Missile.launch(level, Missile.Kind.BOMB, p.getEyePosition().add(dir.scale(1.2)).add(0, -0.2, 0), dir.scale(1.6), p.getEyePosition()
+                .add(dir.scale(200)), p).owner(p.getUUID()).powerMul(0.8f);
+        level.playSound(null, p.blockPosition(), SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 2f, 0.5f);
     }
 
     private void reload(ServerPlayer p, ItemStack stack, long now) {
