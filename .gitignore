@@ -6,3 +6,5 @@ newmodels/
 sound_backup/
 *.jar
 !gradle/wrapper/gradle-wrapper.jar
+КОМАНДЫ.txt
+release.ps1
