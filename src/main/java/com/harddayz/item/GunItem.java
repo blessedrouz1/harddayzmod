@@ -172,35 +172,6 @@ public class GunItem extends Item {
         put(stack, "next", now + spec.cooldown());
     }
 
-    /** Подствольный гранатомёт (клавиша G): выстрел ВОГом по навесной. */
-    public void fireUnder(ServerPlayer p, ItemStack stack) {
-        if (!canFire(p) || !"gl".equals(part(stack, "under"))) {
-            return;
-        }
-        ServerLevel level = p.serverLevel();
-        long now = level.getGameTime();
-        if (now < com.harddayz.Compat.getLong(tag(stack), "gl_next", 0)) {
-            return;
-        }
-        var inv = p.getInventory();
-        boolean ok = p.isCreative();
-        for (int i = 0; i < inv.getContainerSize() && !ok; i++) {
-            if (inv.getItem(i).is(com.harddayz.registry.ModItems.VOG_ROUND.get())) {
-                inv.getItem(i).shrink(1);
-                ok = true;
-            }
-        }
-        if (!ok) {
-            p.displayClientMessage(Component.translatable("message.harddayz.no_vog").withStyle(ChatFormatting.RED), true);
-            return;
-        }
-        put(stack, "gl_next", now + 40);
-        Vec3 dir = p.getLookAngle();
-        Missile.launch(level, Missile.Kind.BOMB, p.getEyePosition().add(dir.scale(1.2)).add(0, -0.2, 0), dir.scale(1.6), p.getEyePosition()
-                .add(dir.scale(200)), p).owner(p.getUUID()).powerMul(0.8f);
-        level.playSound(null, p.blockPosition(), SoundEvents.CROSSBOW_SHOOT, SoundSource.PLAYERS, 2f, 0.5f);
-    }
-
     protected static boolean canFire(ServerPlayer p) {
         return p.isAlive() && !p.isSpectator() && p.getVehicle() == null && !com.harddayz.war.Medic.isDowned(p);
     }

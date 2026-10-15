@@ -79,6 +79,11 @@ public class Drone extends Entity implements Threat {
         CRUISE(7, 0, 12f, 3.2, 25, true);
 
         public final float health;
+        /** Реактивные/крылатые: быстрые цели для ПВО. */
+        public boolean jet() {
+            return this == SHAHED_238 || this == GERAN5 || this == BANDEROL || this == CRUISE;
+        }
+
         /** Заряд АКБ в тиках (у «Шахедов» — запас ручного управления, дальше летит сам). */
         public final int battery;
         public final float warhead;
@@ -146,8 +151,11 @@ public class Drone extends Entity implements Threat {
 
     /** РЭБ рядом: помехи растут, сильные — срыв связи / курса. */
     /** РЭБ: помехи нарастают постепенно — сначала сильный «снег» и рывки, потом связь рвётся. */
+    private int lastJammed = -100;
+
     public void interfere(ServerLevel level, float k) {
-        float v = Math.min(1f, Math.max(interference(), k * 0.5f) + k * 0.03f);
+        lastJammed = tickCount;
+        float v = Math.min(1f, Math.max(interference(), k * 0.5f) + k * 0.06f);
         entityData.set(INTERFERENCE, v);
         if (v >= 0.95f) {
             jam(level);
@@ -292,7 +300,7 @@ public class Drone extends Entity implements Threat {
             return;
         }
         ServerLevel level = (ServerLevel) level();
-        if (tickCount % 10 == 0 && interference() > 0) {
+        if (tickCount % 10 == 0 && interference() > 0 && tickCount - lastJammed > 15) {
             entityData.set(INTERFERENCE, Math.max(0, interference() - 0.08f)); // вне зоны РЭБ помехи спадают
         }
         if (tickCount % 40 == 1) {

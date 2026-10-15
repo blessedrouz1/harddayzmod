@@ -99,9 +99,6 @@ public final class Net {
     public record GunShot(boolean aiming) {
     }
 
-    /** Клиент → сервер: подствольник (G). */
-    public record UnderFire() {
-    }
 
     /** Клиент → сервер: точка дальномера в журнал целей. */
     public record LogMark(int x, int y, int z) {
@@ -111,9 +108,6 @@ public final class Net {
     public record Lives(java.util.List<String> rows) {
     }
 
-    /** Клиент пилота → сервер: оружие вертолёта / удар. */
-    public record HeliFire(int entity, int weapon) {
-    }
 
     public record GunnerFire(int entity) {
     }
@@ -186,12 +180,6 @@ public final class Net {
                     toPlayer(sp, shopState(sp, false));
                 });
         reg(Tracer.class, NetworkDirection.PLAY_TO_CLIENT, Net::encTracer, Net::decTracer, (p, ctx) -> com.harddayz.client.ClientGunner.tracer(p));
-        reg(UnderFire.class, NetworkDirection.PLAY_TO_SERVER, Net::encUnderFire, Net::decUnderFire, (p, ctx) -> {
-                    ServerPlayer sp = ctx.getSender();
-                    if (sp != null && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
-                        g.fireUnder(sp, sp.getMainHandItem());
-                    }
-                });
         reg(LogMark.class, NetworkDirection.PLAY_TO_SERVER, Net::encLogMark, Net::decLogMark, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     BlockPos pos = new BlockPos(p.x(), p.y(), p.z());
@@ -212,12 +200,6 @@ public final class Net {
                             .withStyle(net.minecraft.ChatFormatting.RED), true);
                 });
         reg(Lives.class, NetworkDirection.PLAY_TO_CLIENT, Net::encLives, Net::decLives, (p, ctx) -> com.harddayz.client.ClientAccess.lives(p.rows()));
-        reg(HeliFire.class, NetworkDirection.PLAY_TO_SERVER, Net::encHeliFire, Net::decHeliFire, (p, ctx) -> {
-                    ServerPlayer sp = ctx.getSender();
-                    if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l) {
-                        l.heliFire(sp, p.weapon());
-                    }
-                });
         reg(GunShot.class, NetworkDirection.PLAY_TO_SERVER, Net::encGunShot, Net::decGunShot, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.getVehicle() == null && !com.harddayz.war.Medic.isDowned(sp)
@@ -403,13 +385,6 @@ public final class Net {
         return new GunShot(b.readBoolean());
     }
 
-    private static void encUnderFire(UnderFire m, FriendlyByteBuf b) {
-    }
-
-    private static UnderFire decUnderFire(FriendlyByteBuf b) {
-        return new UnderFire();
-    }
-
     private static void encLogMark(LogMark m, FriendlyByteBuf b) {
         b.writeVarInt(m.x());
         b.writeVarInt(m.y());
@@ -426,15 +401,6 @@ public final class Net {
 
     private static Lives decLives(FriendlyByteBuf b) {
         return new Lives(readList(b, 4096));
-    }
-
-    private static void encHeliFire(HeliFire m, FriendlyByteBuf b) {
-        b.writeVarInt(m.entity());
-        b.writeVarInt(m.weapon());
-    }
-
-    private static HeliFire decHeliFire(FriendlyByteBuf b) {
-        return new HeliFire(b.readVarInt(), b.readVarInt());
     }
 
     private static void encGunnerFire(GunnerFire m, FriendlyByteBuf b) {

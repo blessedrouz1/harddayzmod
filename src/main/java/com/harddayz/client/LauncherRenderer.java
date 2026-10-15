@@ -325,11 +325,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         geo.put(Launcher.Kind.PICKUP_SAM, new GeoLauncherModel("pickup_sam", cab, true));
         geo.put(Launcher.Kind.BMP2, new GeoLauncherModel("bmp2", hull, true));
         geo.put(Launcher.Kind.BRADLEY, new GeoLauncherModel("bradley", hull, true));
-        geo.put(Launcher.Kind.T72, new GeoLauncherModel("t72", hull, true));
-        geo.put(Launcher.Kind.KA52, new GeoLauncherModel("ka52", cab, true));
-        geo.put(Launcher.Kind.MI8, new GeoLauncherModel("mi8", cab, true));
         geo.put(Launcher.Kind.MORTAR, new GeoLauncherModel("mortar", null, true));
-        geo.put(Launcher.Kind.ABRAMS, new GeoLauncherModel("abrams", hull, true));
         geo.put(Launcher.Kind.EW, new GeoLauncherModel("ew", cab, true));
         geo.put(Launcher.Kind.RADAR, new GeoLauncherModel("radar", cab, true));
         geo.put(Launcher.Kind.RELAY, new GeoLauncherModel("relay", base, true));
@@ -367,7 +363,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         s.hp = e.health() / Math.max(1f, e.kind().health);
         s.drones = e.droneKinds();
         s.rotor = e.kind().heli() ? (e.getPassengers().isEmpty() && e.onGround() ? 0 : (e.tickCount + pt) * 1.4f) : 0;
-        s.tilt = e.heliTilt;
+        s.tilt = 0;
         var mc = net.minecraft.client.Minecraft.getInstance();
         s.inside = mc.player != null && mc.player.getVehicle() == e && mc.options.getCameraType().isFirstPerson();
     }
@@ -388,6 +384,9 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
 
     private void draw(State s, PoseStack pose, MultiBufferSource buffers) {
         GeoLauncherModel g = geo.get(s.kind);
+        if (s.kind.removed() || g == null && models.get(s.kind) == null) {
+            return; // удалённая техника (исчезнет при первом тике сервера)
+        }
         if (s.inside) { // сидим внутри от первого лица — кабина не закрывает обзор
             return;
         }

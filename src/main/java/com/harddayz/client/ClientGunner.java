@@ -28,25 +28,13 @@ public final class ClientGunner {
         return mc.player != null && mc.player.getVehicle() instanceof Launcher l && l.kind().gunner() && l.gunnerPassenger() == mc.player ? l : null;
     }
 
-    static @Nullable Launcher heli() {
-        Minecraft mc = Minecraft.getInstance();
-        return mc.player != null && mc.player.getVehicle() instanceof Launcher l && l.kind().heli() && l.getControllingPassenger() == mc.player ? l : null;
-    }
 
     static boolean onUse(InputEvent.InteractionKeyMappingTriggered event) {
-        if (heli() == null) {
-            return false;
-        }
-        event.setSwingHand(false);
-        return true;
+        return false;
     }
 
     /** ЛКМ на установке — не бить рукой. */
     static boolean onAttack(InputEvent.InteractionKeyMappingTriggered event) {
-        if (heli() != null) {
-            event.setSwingHand(false);
-            return true;
-        }
         if (seat() == null) {
             return false;
         }
@@ -56,15 +44,6 @@ public final class ClientGunner {
 
     static void onTick() {
         Minecraft mc = Minecraft.getInstance();
-        Launcher h = heli();
-        if (h != null && mc.screen == null) {
-            if (mc.options.keyAttack.isDown()) {
-                Net.toServer(new Net.HeliFire(h.getId(), 0));
-            }
-            if (mc.options.keyUse.isDown()) {
-                Net.toServer(new Net.HeliFire(h.getId(), 1));
-            }
-        }
         Launcher l = seat();
         if (l == null || mc.screen != null) {
             lock = null;

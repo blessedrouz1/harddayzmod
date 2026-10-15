@@ -39,7 +39,7 @@ import net.minecraft.world.phys.Vec3;
  * Пусковая установка на колёсном шасси. Порядок пуска: опоры вниз → наведение → пуск → пакет/стрела
  * в походное положение → опоры вверх. Пока опоры выдвинуты, ехать нельзя.
  */
-public class Launcher extends Vehicle implements Threat {
+public class Launcher extends Vehicle {
     public enum Kind {
         /** РСЗО: пакет из 20 направляющих, залп по площади. */
         GRAD(40, 160),
@@ -136,6 +136,11 @@ public class Launcher extends Vehicle implements Threat {
             return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY || tank();
         }
 
+        /** Убраны из мода (танки и вертолёты): значения оставлены только ради старых сохранений, такие машины исчезают. */
+        public boolean removed() {
+            return this == T72 || this == ABRAMS || this == KA52 || this == MI8;
+        }
+
         public boolean heli() {
             return this == KA52 || this == MI8;
         }
@@ -177,8 +182,7 @@ public class Launcher extends Vehicle implements Threat {
                 case PICKUP_MG -> ModItems.MG_BELT.get();
                 case PICKUP_SAM -> ModItems.SAM_MISSILE.get();
                 case BMP2, BRADLEY -> ModItems.CANNON_SHELLS.get();
-                case T72, ABRAMS -> ModItems.TANK_SHELL.get();
-                case KA52, MI8 -> ModItems.S8_ROCKET.get();
+                case T72, ABRAMS, KA52, MI8 -> net.minecraft.world.item.Items.AIR; // удалены
                 case MORTAR -> ModItems.MORTAR_SHELL.get();
                 case RELAY -> ModItems.DESIGNATOR.get();
             };
@@ -210,10 +214,7 @@ public class Launcher extends Vehicle implements Threat {
                 case PICKUP_SAM -> ModItems.PICKUP_SAM.get();
                 case BMP2 -> ModItems.BMP2.get();
                 case BRADLEY -> ModItems.BRADLEY.get();
-                case T72 -> ModItems.T72.get();
-                case ABRAMS -> ModItems.ABRAMS.get();
-                case KA52 -> ModItems.KA52.get();
-                case MI8 -> ModItems.MI8.get();
+                case T72, ABRAMS, KA52, MI8 -> net.minecraft.world.item.Items.AIR; // удалены
                 case MORTAR -> ModItems.MORTAR.get();
                 case RELAY -> ModItems.RELAY.get();
             };
@@ -826,6 +827,10 @@ public class Launcher extends Vehicle implements Threat {
         if (!(level() instanceof ServerLevel level)) {
             return;
         }
+        if (kind().removed()) {
+            discard(); // танки и вертолёты убраны из мода
+            return;
+        }
         // заряженная пусковая держит свой участок мира загруженным
         if ((ammo() > 0 || kind() == Kind.RELAY) && tickCount % 20 == 0) {
             com.harddayz.Compat.ticket(level, chunkPosition(), 2);
@@ -835,7 +840,7 @@ public class Launcher extends Vehicle implements Threat {
         }
         // мотор работает — топливо уходит (на месте втрое меньше)
         if (usesFuel() && getControllingPassenger() != null && fuel() > 0) {
-            boolean moving = !stationary() || (kind().heli() && !onGround());
+            boolean moving = !stationary();
             entityData.set(FUEL, Math.max(0, fuel() - burn() * (moving ? 1 : 0.33f)));
             if (fuel() <= 0 && getControllingPassenger() instanceof ServerPlayer d) {
                 d.displayClientMessage(Component.translatable("message.harddayz.no_fuel").withStyle(ChatFormatting.RED), true);
@@ -968,8 +973,8 @@ public class Launcher extends Vehicle implements Threat {
             default -> tube % 10;
         };
         // настоящий разброс РСЗО: каждая ракета чуть по-своему по направлению, углу и скорости
-        float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 2.6f;
-        Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 1.1f);
+        float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 1.7f;
+        Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 0.8f);
         double y = Math.toRadians(yaw);
         Vec3 right = new Vec3(-Math.cos(y), 0, -Math.sin(y));
         Vec3 up = forward(yaw, elevation.value + 90);
@@ -1063,108 +1068,6 @@ public class Launcher extends Vehicle implements Threat {
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
     }
-
-    // ------------------------------------------------------------------ вертолёт
-
-    @Override
-    public boolean isThreat() {
-        return kind().heli() && !onGround();
-    }
-
-    @Override
-    protected void drive() {
-        if (!kind().heli()) {
-            super.drive();
-            return;
-        }
-        net.minecraft.world.entity.LivingEntity pilot = getControllingPassenger();
-        float[] in = pilot != null && level().isClientSide() ? com.harddayz.client.ClientAccess.driveInput() : new float[] {0, 0, 0, 0};
-        Vec3 v = getDeltaMovement();
-        if (pilot != null && health() > 0 && fuel() > 0) {
-            double max = kind() == Kind.KA52 ? 1.05 : 0.85;
-            double y = Math.toRadians(getYRot());
-            Vec3 fwd = new Vec3(-Math.sin(y), 0, Math.cos(y));
-            Vec3 want = fwd.scale(in[0] * max);
-            double hx = v.x + (want.x - v.x) * 0.04;
-            double hz = v.z + (want.z - v.z) * 0.04;
-            double vy = in[2] > 0 ? Math.min(0.45, v.y + 0.04) : in[3] > 0 ? Math.max(-0.45, v.y - 0.04) : v.y * 0.85;
-            if (onGround() && in[2] <= 0) {
-                hx *= 0.5;
-                hz *= 0.5;
-            }
-            setYRot(getYRot() - in[1] * 2.6f);
-            v = new Vec3(hx, vy, hz);
-        } else {
-            v = new Vec3(v.x * 0.97, Math.max(-1.2, v.y - 0.05), v.z * 0.97); // без пилота — падает
-        }
-        double fall = v.y;
-        setDeltaMovement(v);
-        move(net.minecraft.world.entity.MoverType.SELF, v);
-        if ((onGround() && fall < -0.7) || (horizontalCollision && v.horizontalDistance() > 0.6)) {
-            com.harddayz.network.Net.toServer(new com.harddayz.network.Net.HeliFire(getId(), 9)); // удар — урон
-        }
-        heliTilt = (float) (-getDeltaMovement().horizontalDistance() * 14);
-    }
-
-    /** Наклон корпуса в полёте (клиент, для рендера). */
-    public float heliTilt;
-    private int heliCooldown;
-    private int rocketCooldown;
-
-    /** Оружие вертолёта: 0 — пушка, 1 — НУРС, 9 — удар о землю/стену. */
-    public void heliFire(ServerPlayer p, int weapon) {
-        if (!(level() instanceof ServerLevel level) || getControllingPassenger() != p) {
-            return;
-        }
-        if (weapon == 9) {
-            if (tickCount - lastCrash > 20) {
-                lastCrash = tickCount;
-                hurt(damageSources().fall(), 25);
-            }
-            return;
-        }
-        Vec3 look = p.getLookAngle();
-        if (weapon == 0 && kind() == Kind.KA52 && tickCount >= heliCooldown) {
-            heliCooldown = tickCount + 3;
-            Vec3 muzzle = local(0.45, 0.45, 3.0);
-            Vec3 dir = Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * 0.5f, p.getYRot() + (float) random.nextGaussian() * 0.5f);
-            Vec3 end = muzzle.add(dir.scale(260));
-            var block = level.clip(new net.minecraft.world.level.ClipContext(muzzle, end, net.minecraft.world.level.ClipContext.Block.COLLIDER,
-                    net.minecraft.world.level.ClipContext.Fluid.NONE, this));
-            Vec3 stop = block.getType() == net.minecraft.world.phys.HitResult.Type.MISS ? end : block.getLocation();
-            var hit = rayEntity(level, this, muzzle, stop, e -> e != p && e != this);
-            if (hit != null) {
-                stop = hit.getLocation();
-                hit.getEntity().hurt(damageSources().playerAttack(p), 9f);
-            }
-            if (hit != null || block.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
-                Blast.detonate(level, stop, 1.2f, true, this);
-            }
-            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 5f, 0.6f);
-            var fx = new com.harddayz.network.Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hit == null);
-            for (ServerPlayer pl : level.players()) {
-                if (pl.distanceToSqr(this) < 250 * 250) {
-                    com.harddayz.network.Net.toPlayer(pl, fx);
-                }
-            }
-        } else if (weapon == 1 && tickCount >= rocketCooldown) {
-            if (ammo() <= 0) {
-                p.displayClientMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
-                rocketCooldown = tickCount + 20;
-                return;
-            }
-            rocketCooldown = tickCount + 5;
-            boolean left = shot++ % 2 == 0;
-            Vec3 muzzle = local(left ? -1.6 : 1.6, 0.6, 1.0);
-            Vec3 dir = Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * 1.2f, p.getYRot() + (float) random.nextGaussian() * 1.2f);
-            Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(3.6).add(getDeltaMovement()), muzzle.add(dir.scale(400)), this).owner(owner)
-                    .powerMul(0.75f).look(8);
-            entityData.set(AMMO, ammo() - 1);
-            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get(), SoundSource.HOSTILE, 4f, 1.2f);
-        }
-    }
-
-    private int lastCrash;
 
     /** «Калибр»: две крылатые ракеты за приказ, с интервалом. */
     private void fireKalibr(ServerLevel level) {
@@ -1284,8 +1187,8 @@ public class Launcher extends Vehicle implements Threat {
 
     private int samRange() {
         return switch (kind()) {
-            case S400 -> 480;
-            case PATRIOT -> 520;
+            case S400 -> 600;
+            case PATRIOT -> 450;
             case NASAMS -> 340;
             default -> 260;
         };
@@ -1329,21 +1232,24 @@ public class Launcher extends Vehicle implements Threat {
         }
         if (e instanceof Drone dr) {
             return d * switch (dr.kind()) {
-                case GERAN5, BANDEROL, SHAHED_238 -> 0.4;
-                case SHAHED, SHAHED_131, GERBERA, LANCET -> 0.6;
+                case CRUISE, GERAN5, BANDEROL, SHAHED_238 -> 0.4;
+                case SHAHED, SHAHED_131, GERBERA, LANCET, KUB, MOLNIYA -> 0.6;
                 case WING_RECON -> 0.8;
                 default -> 1.2;
             };
         }
-        return d * 0.8; // вертолёты
+        return d;
     }
 
     private boolean canEngage(Entity e) {
         if (!(e instanceof Threat th) || !th.isThreat() || !e.isAlive() || com.harddayz.war.War.allied(owner, th.owner())) {
             return false;
         }
-        if (kind() == Kind.PATRIOT && !(e instanceof Missile)) {
-            return false; // ПРО не тратит ракеты на дроны
+        if (e instanceof Missile m && m.kind() != Missile.Kind.BALLISTIC) {
+            return false; // неуправляемые ракеты РСЗО, мины и гранаты ПВО не сбивает (не тратит на них ракеты)
+        }
+        if (kind() == Kind.PATRIOT && !(e instanceof Missile) && !(e instanceof Drone dr && dr.kind().jet())) {
+            return false; // ПРО: баллистика, крылатые и реактивные дроны; мелочь не трогает
         }
         double d = e.distanceTo(this);
         if (d < 18 || e.getY() < getY() + 6) {
@@ -1356,6 +1262,17 @@ public class Launcher extends Vehicle implements Threat {
         double speed = kind() == Kind.S400 || kind() == Kind.PATRIOT ? 4.5 : 4.0;
         Vec3 meet = Missile.intercept(muzzleBase(), speed, e.position(), e.getDeltaMovement());
         return d <= samRange() * 1.4 && meet.distanceTo(position()) <= samRange() * 0.95;
+    }
+
+    /** Прибавка к шансу поражения: ПРО и С-400 лучше по баллистике и крылатым, NASAMS — по дронам. */
+    private float samBonus(Entity t) {
+        boolean hard = t instanceof Missile || t instanceof Drone d && d.kind().jet();
+        return switch (kind()) {
+            case PATRIOT -> hard ? 0.55f : 0f;
+            case S400 -> hard ? 0.3f : 0.05f;
+            case NASAMS -> hard ? 0.1f : 0.08f;
+            default -> 0f;
+        };
     }
 
     private void tickSam(ServerLevel level) {
@@ -1406,13 +1323,13 @@ public class Launcher extends Vehicle implements Threat {
                     : kind() == Kind.SAM_POST ? base.add(dir.scale(1.6)).add(right.scale(left ? -0.35 : 0.35))
                     : base.add(dir.scale(2.4)).add(right.scale(left ? -1.1 : 1.1));
             Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(speed), p, this).hunt(t)
-                    .owner(owner).bonus(kind() == Kind.PATRIOT && t instanceof Missile ? 0.6f : kind() == Kind.NASAMS ? 0.05f : 0f)
+                    .owner(owner).bonus(samBonus(t))
                     .look(kind() == Kind.S400 ? 2 : kind() == Kind.PATRIOT ? 3 : kind() == Kind.NASAMS ? 4 : 0);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 4);
             int n = fired.merge(t.getId(), 1, Integer::sum);
             // ракета долетит примерно за столько тиков; до этого по цели не стреляем (кроме залпа по баллистике)
-            long eta = (long) (t.distanceTo(this) / (speed * 2.0)) + 30;
+            long eta = (long) (t.distanceTo(this) / 4.0) + 20; // ракета разгоняется до ~4.5 блока/тик
             if (n % salvo == 0) {
                 inFlight.put(t.getId(), now + eta);
                 claims().put(t.getId(), now + eta);

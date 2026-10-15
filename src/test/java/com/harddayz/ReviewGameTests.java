@@ -151,21 +151,16 @@ public class ReviewGameTests {
     @GameTest(template = "empty")
     public static void incapacitatedGunfire(GameTestHelper h) {
         var p = player(h);
-        var stack = new ItemStack(ModItems.AK74.get());
+        var stack = new ItemStack(ModItems.JAVELIN.get());
         var gun = (GunItem) stack.getItem();
-        GunItem.setPart(stack, "under", "gl");
-        stack.getOrCreateTag().putInt("mag", 10);
-        var rounds = new ItemStack(ModItems.VOG_ROUND.get(), 5);
-        p.getInventory().setItem(1, rounds);
+        stack.getOrCreateTag().putInt("mag", 1);
         p.setGameMode(GameType.SPECTATOR);
-        gun.shoot(p, stack, false);
-        gun.fireUnder(p, stack);
-        h.assertTrue(GunItem.mag(stack) == 10 && rounds.getCount() == 5, "Spectator fired");
+        gun.shoot(p, stack, true);
+        h.assertTrue(GunItem.mag(stack) == 1, "Spectator fired");
         p.setGameMode(GameType.SURVIVAL);
         Medic.tryDown(p, p.damageSources().generic());
-        gun.shoot(p, stack, false);
-        gun.fireUnder(p, stack);
-        h.assertTrue(GunItem.mag(stack) == 10 && rounds.getCount() == 5 && !stack.getOrCreateTag().contains("gl_next"), "Downed player fired");
+        gun.shoot(p, stack, true);
+        h.assertTrue(GunItem.mag(stack) == 1, "Downed player fired");
         Medic.tryDown(p, p.damageSources().genericKill());
         h.succeed();
     }

@@ -379,5 +379,6 @@
   "screen.harddayz.tochka": "Tochka-U",
   "screen.harddayz.smerch": "Smerch MLRS",
   "screen.harddayz.uragan": "Uragan MLRS",
-  "screen.harddayz.kalibr": "Kalibr launcher"
+  "screen.harddayz.kalibr": "Kalibr launcher",
+  "itemGroup.harddayz.ammo": "HardDayz: missiles & ammo"
 }

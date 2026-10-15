@@ -28,7 +28,6 @@ public final class ClientSetup {
     /** V: пульт машины, на которой едешь / выйти из управления дроном. */
     public static final KeyMapping CONTROL = new KeyMapping("key.harddayz.control", InputConstants.KEY_V, CATEGORY);
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
-    public static final KeyMapping UNDER = new KeyMapping("key.harddayz.under", InputConstants.KEY_G, CATEGORY);
 
     /**
      * Embeddium Extras по умолчанию прячет сущности дальше 64 блоков — техника и ракеты пропадают.
@@ -102,10 +101,8 @@ public final class ClientSetup {
         modBus.addListener((RegisterKeyMappingsEvent e) -> {
             e.register(CONTROL);
             e.register(ENGINE);
-            e.register(UNDER);
         });
         modBus.addListener(ClientSetup::onGuiLayers);
-        modBus.addListener((FMLClientSetupEvent e) -> e.enqueueWork(ItemModels::register));
         IEventBus bus = MinecraftForge.EVENT_BUS;
         bus.addListener((TickEvent.ClientTickEvent e) -> {
             if (e.phase == TickEvent.Phase.START) {
@@ -301,11 +298,6 @@ public final class ClientSetup {
             alertTicks--;
         }
         Minecraft mc = Minecraft.getInstance();
-        while (UNDER.consumeClick()) {
-            if (mc.player != null && mc.player.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem) {
-                com.harddayz.network.Net.toServer(new com.harddayz.network.Net.UnderFire());
-            }
-        }
         while (ENGINE.consumeClick()) {
             DronePilot.toggleEngine();
         }
