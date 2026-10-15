@@ -52,6 +52,5 @@ public final class ModSounds {
     public static final RegistryObject<SoundEvent> DIESEL_LOOP = reg("diesel_loop");
     public static final RegistryObject<SoundEvent> TURBINE_LOOP = reg("turbine_loop");
     public static final RegistryObject<SoundEvent> SHELL_WHISTLE = reg("shell_whistle");
-    public static final RegistryObject<SoundEvent> TANK_FIRE = reg("tank_fire");
     public static final RegistryObject<SoundEvent> MORTAR_FIRE = reg("mortar_fire");
 }

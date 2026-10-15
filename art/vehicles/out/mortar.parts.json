@@ -1,0 +1,12 @@
+{
+ "base#0": "plate",
+ "base#1": "screw",
+ "turret#0": "socket",
+ "turret#1": "ball",
+ "rack#0": "tube",
+ "rack#1": "tube_b",
+ "rack#2": "breech",
+ "rack#3": "muzzle_ring",
+ "rack#4": "band",
+ "rack#5": "sight"
+}

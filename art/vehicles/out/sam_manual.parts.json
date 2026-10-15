@@ -1,0 +1,12 @@
+{
+ "base#0": "pad",
+ "base#1": "case",
+ "turret#0": "column",
+ "turret#1": "gimbal",
+ "rack#0": "frame",
+ "rack#1": "cross_a",
+ "rack#2": "cross_b",
+ "rack#3": "seeker",
+ "rack#4": "grip",
+ "rack#5": "battery"
+}

@@ -1,0 +1,288 @@
+{
+ "name": "lancet",
+ "note": "Lancet loitering munition: slim fuselage, X wings and X tail, nose camera, pusher prop. Scale 1 m = 16 px.",
+ "paint": "sand",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.2,
+ "seed": 83,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "wing",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "prop",
+   "pivot": [
+    0,
+    0,
+    16.5
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "fuselage",
+   "from": [
+    -2,
+    -1,
+    -13
+   ],
+   "to": [
+    2,
+    1,
+    14
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "body"
+  },
+  {
+   "name": "fuselage_b",
+   "from": [
+    -1,
+    -2,
+    -12.5
+   ],
+   "to": [
+    1,
+    2,
+    13.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "body"
+  },
+  {
+   "name": "nose",
+   "from": [
+    -1.5,
+    -1.5,
+    -16
+   ],
+   "to": [
+    1.5,
+    1.5,
+    -13
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 0,
+     "w": 3,
+     "h": 3,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "band",
+   "from": [
+    -2.5,
+    -2.5,
+    -8
+   ],
+   "to": [
+    2.5,
+    2.5,
+    -6
+   ],
+   "mat": "red",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "tail_cap",
+   "from": [
+    -1.5,
+    -1.5,
+    14
+   ],
+   "to": [
+    1.5,
+    1.5,
+    16
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "wing00",
+   "from": [
+    -11,
+    -0.5,
+    -4.0
+   ],
+   "to": [
+    11,
+    0.5,
+    2.0
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "rotation": [
+    0,
+    0,
+    45
+   ],
+   "pivot": [
+    0,
+    0,
+    -1.0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "wing01",
+   "from": [
+    -11,
+    -0.5,
+    -3.5
+   ],
+   "to": [
+    11,
+    0.5,
+    2.5
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "rotation": [
+    0,
+    0,
+    -45
+   ],
+   "pivot": [
+    0,
+    0,
+    -0.5
+   ],
+   "panels": 0
+  },
+  {
+   "name": "wing10",
+   "from": [
+    -7,
+    -0.5,
+    9.0
+   ],
+   "to": [
+    7,
+    0.5,
+    12.0
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "rotation": [
+    0,
+    0,
+    45
+   ],
+   "pivot": [
+    0,
+    0,
+    10.5
+   ],
+   "panels": 0
+  },
+  {
+   "name": "wing11",
+   "from": [
+    -7,
+    -0.5,
+    9.5
+   ],
+   "to": [
+    7,
+    0.5,
+    12.5
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "rotation": [
+    0,
+    0,
+    -45
+   ],
+   "pivot": [
+    0,
+    0,
+    11.0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "prop_hub",
+   "from": [
+    -1,
+    -1,
+    16
+   ],
+   "to": [
+    1,
+    1,
+    18
+   ],
+   "mat": "metal",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_a",
+   "from": [
+    -5,
+    -0.5,
+    18
+   ],
+   "to": [
+    5,
+    0.5,
+    19
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_b",
+   "from": [
+    -0.5,
+    -5,
+    19
+   ],
+   "to": [
+    0.5,
+    5,
+    20
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  }
+ ]
+}

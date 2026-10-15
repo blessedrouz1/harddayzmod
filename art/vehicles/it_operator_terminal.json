@@ -1,0 +1,182 @@
+{
+ "name": "it_operator_terminal",
+ "note": "inventory icon model: operator_terminal",
+ "paint": "olive",
+ "paint2": [
+  "#0E0F13",
+  "#181A20",
+  "#262932",
+  "#3A3E4A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -8,
+    -1,
+    -5
+   ],
+   "to": [
+    8,
+    2,
+    5
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "screen",
+   "from": [
+    -3,
+    2,
+    -4
+   ],
+   "to": [
+    3,
+    3,
+    2
+   ],
+   "mat": "glass",
+   "panels": 0
+  },
+  {
+   "name": "grip_l",
+   "from": [
+    -9,
+    -2,
+    -3
+   ],
+   "to": [
+    -7,
+    1,
+    4
+   ],
+   "mat": "rubber",
+   "panels": 0
+  },
+  {
+   "name": "grip_r",
+   "from": [
+    7,
+    -2,
+    -3
+   ],
+   "to": [
+    9,
+    1,
+    4
+   ],
+   "mat": "rubber",
+   "panels": 0
+  },
+  {
+   "name": "stick_l",
+   "from": [
+    -6,
+    2,
+    2
+   ],
+   "to": [
+    -4,
+    5,
+    4
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "stick_r",
+   "from": [
+    4,
+    2,
+    2
+   ],
+   "to": [
+    6,
+    5,
+    4
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "btn_a",
+   "from": [
+    1,
+    2,
+    3
+   ],
+   "to": [
+    2,
+    3,
+    4
+   ],
+   "mat": "red",
+   "panels": 0
+  },
+  {
+   "name": "btn_b",
+   "from": [
+    3,
+    2,
+    0
+   ],
+   "to": [
+    4,
+    3,
+    1
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "ant_l",
+   "from": [
+    -7,
+    2,
+    -5
+   ],
+   "to": [
+    -6,
+    10,
+    -4
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "ant_r",
+   "from": [
+    6,
+    2,
+    -5
+   ],
+   "to": [
+    7,
+    10,
+    -4
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

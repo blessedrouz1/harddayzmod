@@ -37,7 +37,7 @@
    "name": "rack",
    "pivot": [
     0,
-    37.6,
+    41.6,
     58
    ],
    "parent": "turret"
@@ -105,6 +105,24 @@
     14,
     62
    ]
+  },
+  {
+   "name": "ram0",
+   "pivot": [
+    0,
+    30,
+    20
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "ram0_rod",
+   "pivot": [
+    0,
+    30,
+    20
+   ],
+   "parent": "ram0"
   }
  ],
  "parts": [
@@ -561,12 +579,12 @@
   {
    "name": "rear_arch0_top",
    "from": [
-    12.5,
+    12,
     23,
     17
    ],
    "to": [
-    22.5,
+    22,
     24,
     60
    ],
@@ -1725,289 +1743,6 @@
    "bone": "turret"
   },
   {
-   "name": "tpk0",
-   "from": [
-    -12,
-    28,
-    -24
-   ],
-   "to": [
-    -1,
-    39,
-    60
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "chamfer": {
-    "legs": [
-     3,
-     4
-    ],
-    "edges": [
-     "left",
-     "right"
-    ]
-   },
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "tpk_cap0",
-   "from": [
-    -11,
-    29,
-    -25
-   ],
-   "to": [
-    -2,
-    37,
-    -24
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 7,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ]
-  },
-  {
-   "name": "tpk1",
-   "from": [
-    1,
-    28,
-    -24
-   ],
-   "to": [
-    12,
-    39,
-    60
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "chamfer": {
-    "legs": [
-     3,
-     4
-    ],
-    "edges": [
-     "left",
-     "right"
-    ]
-   },
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "tpk_cap1",
-   "from": [
-    2,
-    29,
-    -25
-   ],
-   "to": [
-    11,
-    37,
-    -24
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 7,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ]
-  },
-  {
-   "name": "tpk2",
-   "from": [
-    -12,
-    41,
-    -24
-   ],
-   "to": [
-    -1,
-    52,
-    60
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "chamfer": {
-    "legs": [
-     3,
-     4
-    ],
-    "edges": [
-     "left",
-     "right"
-    ]
-   },
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "tpk_cap2",
-   "from": [
-    -11,
-    42,
-    -25
-   ],
-   "to": [
-    -2,
-    50,
-    -24
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 7,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ]
-  },
-  {
-   "name": "tpk3",
-   "from": [
-    1,
-    41,
-    -24
-   ],
-   "to": [
-    12,
-    52,
-    60
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "chamfer": {
-    "legs": [
-     3,
-     4
-    ],
-    "edges": [
-     "left",
-     "right"
-    ]
-   },
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "tpk_cap3",
-   "from": [
-    2,
-    42,
-    -25
-   ],
-   "to": [
-    11,
-    50,
-    -24
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 7,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ]
-  },
-  {
-   "name": "tpk_belt0",
-   "from": [
-    -13,
-    27,
-    -16
-   ],
-   "to": [
-    13,
-    53,
-    -13
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "tpk_belt1",
-   "from": [
-    -13,
-    27,
-    12
-   ],
-   "to": [
-    13,
-    53,
-    15
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "tpk_belt2",
-   "from": [
-    -13,
-    27,
-    44
-   ],
-   "to": [
-    13,
-    53,
-    47
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "erector_hinge",
-   "from": [
-    -10,
-    24,
-    58
-   ],
-   "to": [
-    10,
-    30,
-    64
-   ],
-   "mat": "metal",
-   "bone": "rack"
-  },
-  {
    "name": "tarp",
    "from": [
     -15,
@@ -2325,12 +2060,12 @@
   {
    "name": "ladder",
    "from": [
-    19.5,
+    19,
     24,
     -50
    ],
    "to": [
-    20.5,
+    20,
     39,
     -46
    ],
@@ -2339,87 +2074,27 @@
   {
    "name": "extinguisher",
    "from": [
-    -21.5,
+    -21,
     27,
     -40
    ],
    "to": [
-    -19.5,
+    -19,
     34,
     -38
    ],
    "mat": "paint2"
   },
   {
-   "name": "tpk_tray",
-   "from": [
-    12.5,
-    30,
-    -20
-   ],
-   "to": [
-    14.5,
-    32,
-    56
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "mirror": true,
-   "panels": 0
-  },
-  {
-   "name": "erector_box",
-   "from": [
-    14.5,
-    33,
-    50
-   ],
-   "to": [
-    18.5,
-    41,
-    58
-   ],
-   "mat": "paint",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "east",
-     "x": 1,
-     "y": 1,
-     "w": 6,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ],
-   "bone": "rack",
-   "mirror": true
-  },
-  {
-   "name": "erector_ram",
-   "from": [
-    -9,
-    26,
-    2
-   ],
-   "to": [
-    -6,
-    32,
-    10
-   ],
-   "mat": "metal",
-   "bone": "turret",
-   "mirror": true
-  },
-  {
    "name": "turret_box",
    "from": [
     14.5,
-    23.5,
+    23.0,
     2
    ],
    "to": [
     18.5,
-    29.5,
+    29.0,
     12
    ],
    "mat": "paint",
@@ -2476,6 +2151,508 @@
     -46
    ],
    "mat": "paint2"
+  },
+  {
+   "name": "tpk0",
+   "from": [
+    -12,
+    32,
+    -24
+   ],
+   "to": [
+    -1,
+    43,
+    60
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tpk_cap0",
+   "from": [
+    -11,
+    33,
+    -25
+   ],
+   "to": [
+    -2,
+    41,
+    -24
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 7,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "tpk1",
+   "from": [
+    1,
+    32,
+    -24
+   ],
+   "to": [
+    12,
+    43,
+    60
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tpk_cap1",
+   "from": [
+    2,
+    33,
+    -25
+   ],
+   "to": [
+    11,
+    41,
+    -24
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 7,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "tpk2",
+   "from": [
+    -12,
+    45,
+    -24
+   ],
+   "to": [
+    -1,
+    56,
+    60
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tpk_cap2",
+   "from": [
+    -11,
+    46,
+    -25
+   ],
+   "to": [
+    -2,
+    54,
+    -24
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 7,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "tpk3",
+   "from": [
+    1,
+    45,
+    -24
+   ],
+   "to": [
+    12,
+    56,
+    60
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tpk_cap3",
+   "from": [
+    2,
+    46,
+    -25
+   ],
+   "to": [
+    11,
+    54,
+    -24
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 7,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "tpk_belt0",
+   "from": [
+    -13,
+    31,
+    -16
+   ],
+   "to": [
+    13,
+    57,
+    -13
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "tpk_belt1",
+   "from": [
+    -13,
+    31,
+    12
+   ],
+   "to": [
+    13,
+    57,
+    15
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "tpk_belt2",
+   "from": [
+    -13,
+    31,
+    44
+   ],
+   "to": [
+    13,
+    57,
+    47
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "erector_hinge",
+   "from": [
+    -10,
+    28,
+    58
+   ],
+   "to": [
+    10,
+    34,
+    64
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "tpk_tray",
+   "from": [
+    12.5,
+    34,
+    -20
+   ],
+   "to": [
+    14.5,
+    36,
+    56
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "erector_box",
+   "from": [
+    14.5,
+    36,
+    50
+   ],
+   "to": [
+    18.5,
+    44,
+    58
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ],
+   "bone": "rack",
+   "mirror": true
+  },
+  {
+   "name": "ram0_barrel",
+   "from": [
+    5.5,
+    27,
+    -18
+   ],
+   "to": [
+    11.5,
+    33,
+    20
+   ],
+   "mat": "metal",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 2,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 6,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 10,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 14,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 18,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 22,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 26,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 30,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 34,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_collar",
+   "from": [
+    4.5,
+    26,
+    -20
+   ],
+   "to": [
+    12.5,
+    34,
+    -18
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_rodbar",
+   "from": [
+    6.5,
+    28,
+    -21
+   ],
+   "to": [
+    10.5,
+    32,
+    18
+   ],
+   "mat": "grey",
+   "panels": 0,
+   "bone": "ram0_rod",
+   "mirror": true
+  },
+  {
+   "name": "ram0_foot",
+   "from": [
+    4.5,
+    26,
+    20
+   ],
+   "to": [
+    12.5,
+    34,
+    23
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_eye",
+   "from": [
+    4.5,
+    26,
+    -24
+   ],
+   "to": [
+    12.5,
+    31,
+    -21
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_pedestal",
+   "from": [
+    5.5,
+    23,
+    20
+   ],
+   "to": [
+    11.5,
+    26,
+    23
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0
   }
- ]
+ ],
+ "rams": true
 }

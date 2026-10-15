@@ -2,19 +2,23 @@ package com.harddayz.client;
 
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.fml.ModList;
+import com.harddayz.client.model.GeoGpu;
 
-/**
- * Тип отрисовки моделей техники. С Oculus (Iris) полупрозрачные сущности рисуются отдельным проходом и могут
- * не появиться вовсе, поэтому с ним рисуем «вырезкой» (стёкла станут непрозрачными, зато модель видна всегда).
- */
+/** Standard entity materials, also recognized by Oculus shader packs. */
 public final class HdRender {
-    private static final boolean OCULUS = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
 
     private HdRender() {
     }
 
     public static RenderType body(ResourceLocation tex) {
-        return OCULUS ? RenderType.entityCutoutNoCull(tex) : RenderType.entityTranslucent(tex);
+        return GeoGpu.pass(RenderType.entityTranslucent(tex), GeoGpu.Pass.TRANSLUCENT);
+    }
+
+    public static RenderType eyes(ResourceLocation tex) {
+        return GeoGpu.pass(RenderType.eyes(tex), GeoGpu.Pass.EYES);
+    }
+
+    public static RenderType cutout(ResourceLocation tex) {
+        return GeoGpu.pass(RenderType.entityCutout(tex), GeoGpu.Pass.CUTOUT);
     }
 }

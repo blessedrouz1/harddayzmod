@@ -28,15 +28,16 @@ public class HqBlockEntity extends RandomizableContainerBlockEntity {
         for (int i = 0; i < items.size() && !rest.isEmpty(); i++) {
             ItemStack slot = items.get(i);
             if (!slot.isEmpty() && ItemStack.isSameItemSameTags(slot, rest)) {
-                int n = Math.min(rest.getCount(), slot.getMaxStackSize() - slot.getCount());
+                int space = Math.max(0, Math.min(getMaxStackSize(), slot.getMaxStackSize()) - slot.getCount());
+                int n = Math.min(rest.getCount(), space);
                 slot.grow(n);
                 rest.shrink(n);
             }
         }
         for (int i = 0; i < items.size() && !rest.isEmpty(); i++) {
             if (items.get(i).isEmpty()) {
-                items.set(i, rest.copy());
-                rest = ItemStack.EMPTY;
+                int n = Math.min(rest.getCount(), Math.min(getMaxStackSize(), rest.getMaxStackSize()));
+                items.set(i, rest.split(n));
             }
         }
         setChanged();

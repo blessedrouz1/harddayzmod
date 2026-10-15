@@ -1,0 +1,13 @@
+{
+ "body#0": "pod",
+ "body#1": "nose",
+ "body#2": "tail_cap",
+ "wing#0": "kw_trail_right",
+ "wing#1": "kw_trail_left",
+ "wing#2": "kw_lead_right",
+ "wing#3": "kw_lead_left",
+ "wing#4": "wing_center",
+ "prop#0": "prop_hub",
+ "prop#1": "prop_blade_a",
+ "prop#2": "prop_blade_b"
+}

@@ -1,0 +1,213 @@
+{
+ "name": "kub",
+ "note": "KUB loitering munition: flying delta wing with a warhead pod and pusher prop. Scale 1 m = 16 px.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.2,
+ "seed": 84,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "wing",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "prop",
+   "pivot": [
+    0,
+    0,
+    10.5
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "pod",
+   "from": [
+    -3,
+    -3,
+    -8
+   ],
+   "to": [
+    3,
+    3,
+    8
+   ],
+   "mat": "paint",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "nose",
+   "from": [
+    -2,
+    -2,
+    -12
+   ],
+   "to": [
+    2,
+    2,
+    -8
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 0,
+     "w": 4,
+     "h": 4,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "tail_cap",
+   "from": [
+    -2,
+    -2,
+    8
+   ],
+   "to": [
+    2,
+    2,
+    10
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "kw_trail",
+   "from": [
+    6,
+    -0.5,
+    5
+   ],
+   "to": [
+    12,
+    0.5,
+    8
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "panels": 0,
+   "mirror": true
+  },
+  {
+   "name": "kw_lead",
+   "from": [
+    6,
+    -0.25,
+    -4
+   ],
+   "to": [
+    18,
+    0.75,
+    1
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "panels": 0,
+   "mirror": true,
+   "rotation": [
+    0,
+    -59.03624346792648,
+    0
+   ],
+   "pivot": [
+    6,
+    0,
+    -4
+   ]
+  },
+  {
+   "name": "wing_center",
+   "from": [
+    -6,
+    -0.5,
+    -4
+   ],
+   "to": [
+    6,
+    0.5,
+    7
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "panels": 0
+  },
+  {
+   "name": "prop_hub",
+   "from": [
+    -1,
+    -1,
+    10
+   ],
+   "to": [
+    1,
+    1,
+    12
+   ],
+   "mat": "metal",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_a",
+   "from": [
+    -4,
+    -0.5,
+    12
+   ],
+   "to": [
+    4,
+    0.5,
+    13
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_b",
+   "from": [
+    -0.5,
+    -4,
+    13
+   ],
+   "to": [
+    0.5,
+    4,
+    14
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  }
+ ]
+}

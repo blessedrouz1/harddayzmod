@@ -20,6 +20,11 @@ public class ShopScreen extends HdScreen {
     private int scroll;
     private int refresh;
 
+    private List<Integer> catalog() {
+        return java.util.stream.IntStream.range(0, Supply.CATALOG.size())
+                .filter(i -> Supply.CATALOG.get(i).available()).boxed().toList();
+    }
+
     public ShopScreen(Net.ShopState state) {
         super(Component.translatable("screen.harddayz.shop"));
         this.state = state;
@@ -51,8 +56,9 @@ public class ShopScreen extends HdScreen {
         clearWidgets();
         int l = left();
         int t = top();
-        for (int i = 0; i < VISIBLE && scroll + i < Supply.CATALOG.size(); i++) {
-            int idx = scroll + i;
+        List<Integer> catalog = catalog();
+        for (int i = 0; i < VISIBLE && scroll + i < catalog.size(); i++) {
+            int idx = catalog.get(scroll + i);
             addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.buy"), b -> Net.toServer(new Net.ShopBuy(idx)))
                     .bounds(l + 168, t + 34 + i * ROW, 52, 18).build());
         }
@@ -61,7 +67,7 @@ public class ShopScreen extends HdScreen {
             rebuild();
         }).bounds(l + 8, t + H - 26, 24, 20).build());
         addRenderableWidget(Button.builder(Component.literal("▼"), b -> {
-            scroll = Math.min(Math.max(0, Supply.CATALOG.size() - VISIBLE), scroll + VISIBLE);
+            scroll = Math.min(Math.max(0, catalog.size() - VISIBLE), scroll + VISIBLE);
             rebuild();
         }).bounds(l + 36, t + H - 26, 24, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).bounds(l + 130, t + H - 26, 100, 20).build());
@@ -69,7 +75,7 @@ public class ShopScreen extends HdScreen {
 
     @Override
     public boolean mouseScrolled(double mx, double my, double dy) {
-        int ns = Math.max(0, Math.min(Math.max(0, Supply.CATALOG.size() - VISIBLE), scroll - (int) Math.signum(dy)));
+        int ns = Math.max(0, Math.min(Math.max(0, catalog().size() - VISIBLE), scroll - (int) Math.signum(dy)));
         if (ns != scroll) {
             scroll = ns;
             rebuild();
@@ -104,8 +110,9 @@ public class ShopScreen extends HdScreen {
                 g.text(font, Component.translatable("screen.harddayz.shop_not_commander"), l + 8, t + 20, 0xFF90A090, false);
             }
         }
-        for (int i = 0; i < VISIBLE && scroll + i < Supply.CATALOG.size(); i++) {
-            Supply.Entry e = Supply.CATALOG.get(scroll + i);
+        List<Integer> catalog = catalog();
+        for (int i = 0; i < VISIBLE && scroll + i < catalog.size(); i++) {
+            Supply.Entry e = Supply.CATALOG.get(catalog.get(scroll + i));
             int y = t + 34 + i * ROW;
             var stack = e.stack();
             g.item(stack, l + 8, y + 1);

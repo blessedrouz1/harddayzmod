@@ -1,0 +1,242 @@
+{
+ "name": "mortar",
+ "note": "82 mm mortar on a base plate with ball socket. Scale 1 m = 16 px. Identifiers: square base plate with ribs, ball socket, tube with muzzle ring and bands, elevating screw, side sight.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.3,
+ "seed": 72,
+ "bones": [
+  {
+   "name": "base",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    8,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    8,
+    0
+   ],
+   "parent": "turret"
+  }
+ ],
+ "parts": [
+  {
+   "name": "plate",
+   "from": [
+    -8,
+    0,
+    -8
+   ],
+   "to": [
+    8,
+    2,
+    8
+   ],
+   "mat": "metal",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 2,
+     "y": 2,
+     "w": 12,
+     "h": 1,
+     "mat": "bolts"
+    },
+    {
+     "face": "up",
+     "x": 7,
+     "y": 0,
+     "w": 2,
+     "h": 16,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 0,
+     "y": 7,
+     "w": 16,
+     "h": 2,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "socket",
+   "from": [
+    -2,
+    2,
+    -2
+   ],
+   "to": [
+    2,
+    7,
+    2
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ball",
+   "from": [
+    -3,
+    4,
+    -3
+   ],
+   "to": [
+    3,
+    8,
+    3
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "screw",
+   "from": [
+    -1,
+    2,
+    -9
+   ],
+   "to": [
+    1,
+    6,
+    -7
+   ],
+   "mat": "metal",
+   "bone": "base"
+  },
+  {
+   "name": "tube",
+   "from": [
+    -2,
+    7,
+    -22
+   ],
+   "to": [
+    2,
+    9,
+    4
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "rack"
+  },
+  {
+   "name": "tube_b",
+   "from": [
+    -1,
+    6,
+    -21.5
+   ],
+   "to": [
+    1,
+    10,
+    3.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "rack"
+  },
+  {
+   "name": "breech",
+   "from": [
+    -3,
+    5,
+    4
+   ],
+   "to": [
+    3,
+    11,
+    8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "muzzle_ring",
+   "from": [
+    -3,
+    5,
+    -23
+   ],
+   "to": [
+    3,
+    11,
+    -21
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band",
+   "from": [
+    -3,
+    5,
+    -10
+   ],
+   "to": [
+    3,
+    11,
+    -8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "sight",
+   "from": [
+    2,
+    9,
+    -6
+   ],
+   "to": [
+    5,
+    12,
+    0
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  }
+ ]
+}

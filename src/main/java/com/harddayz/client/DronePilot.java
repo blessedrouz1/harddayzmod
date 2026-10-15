@@ -29,6 +29,8 @@ public final class DronePilot {
     private static float roll;
     private static float zoom = 1f;
     private static int ignoreUntil;
+    private static net.minecraft.client.multiplayer.ClientLevel sessionLevel;
+    private static net.minecraft.client.player.LocalPlayer sessionPlayer;
 
     private DronePilot() {
     }
@@ -55,6 +57,7 @@ public final class DronePilot {
 
     static void start(Drone d) {
         Minecraft mc = Minecraft.getInstance();
+        checkSession(mc);
         if (mc.player == null || drone != null || mc.player.tickCount < ignoreUntil) {
             return;
         }
@@ -106,9 +109,38 @@ public final class DronePilot {
 
     private static float prevRoll;
 
+    /** A new world/player has a new tick counter and must not inherit the old camera lock. */
+    private static void checkSession(Minecraft mc) {
+        if (sessionLevel == mc.level && sessionPlayer == mc.player) return;
+        if (sessionPlayer != null) {
+            if (savedInput != null) sessionPlayer.input = savedInput;
+            sessionPlayer.setNoGravity(false);
+            if (nightVision) sessionPlayer.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+        }
+        if (savedCamera != null) mc.options.setCameraType(savedCamera);
+        if (drone != null) {
+            mc.setCameraEntity(mc.player);
+            mc.gameRenderer.setRenderHand(true);
+        }
+        drone = null;
+        savedInput = null;
+        savedCamera = null;
+        body = null;
+        freeze = 0;
+        nightVision = false;
+        ignoreUntil = 0;
+        stepReady = false;
+        vel = Vec3.ZERO;
+        prevRoll = roll = 0;
+        zoom = 1;
+        sessionLevel = mc.level;
+        sessionPlayer = mc.player;
+    }
+
     static void onTick() {
         prevRoll = roll;
         Minecraft mc = Minecraft.getInstance();
+        checkSession(mc);
         Drone d = drone;
         if (mc.player != null && body != null && (d != null || freeze > 0)) {
             mc.player.setDeltaMovement(Vec3.ZERO);
@@ -342,6 +374,7 @@ public final class DronePilot {
                 g.text(mc.font, Component.translatable("hud.harddayz.jamming", (int) (d.interference() * 100)), w / 2 - 40, 30, 0xFFFF6040, true);
             }
         }
+        renderVignette(g, w, h);
         // рамка и прицел
         int cx = w / 2;
         int cy = h / 2;
@@ -389,6 +422,21 @@ public final class DronePilot {
                 markFlash--;
                 g.outline(cx - 16, cy - 16, 33, 33, 0xFF40FF40);
             }
+        }
+    }
+
+    /** Rectangular camera vignette starts at the screen edges for every drone. */
+    static void renderVignette(Gfx g, int w, int h) {
+        int depth = Math.min(28, Math.min(w, h) / 8);
+        for (int i = 0; i < depth; i++) {
+            float fade = 1 - (float) i / depth;
+            int color = Math.round(255 * fade * fade) << 24;
+            int left = i, top = i;
+            int right = w - i, bottom = h - i;
+            g.fill(left, top, right, top + 1, color);
+            g.fill(left, bottom - 1, right, bottom, color);
+            g.fill(left, top + 1, left + 1, bottom - 1, color);
+            g.fill(right - 1, top + 1, right, bottom - 1, color);
         }
     }
 }

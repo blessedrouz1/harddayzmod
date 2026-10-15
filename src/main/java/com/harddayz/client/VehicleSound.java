@@ -7,13 +7,13 @@ import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
 import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 
-/** Мотор техники: дизель (грузовики, БМП, Т-72), турбина (Abrams), винты (вертолёты). Громче и выше на ходу. */
+/** Мотор техники: дизель (грузовики, БМП), винты (вертолёты). Громче и выше на ходу. */
 public class VehicleSound extends AbstractTickableSoundInstance {
     private final Launcher v;
     private final float basePitch;
 
     public VehicleSound(Launcher v) {
-        super(v.kind() == Launcher.Kind.ABRAMS ? ModSounds.TURBINE_LOOP.get() : v.kind().heli() ? ModSounds.HELI_LOOP.get() : ModSounds.DIESEL_LOOP.get(),
+        super(v.kind().heli() ? ModSounds.HELI_LOOP.get() : ModSounds.DIESEL_LOOP.get(),
                 SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
         this.v = v;
         this.looping = true;
@@ -22,8 +22,7 @@ public class VehicleSound extends AbstractTickableSoundInstance {
         this.basePitch = switch (v.kind()) {
             case PICKUP_MG, PICKUP_SAM -> 1.45f;
             case BMP2, BRADLEY -> 1.0f;
-            case T72, TOS -> 0.85f;
-            case ABRAMS -> 1.0f;
+            case TOS -> 0.85f;
             case KA52 -> 1.05f;
             case MI8 -> 0.9f;
             default -> 1.15f;
@@ -59,7 +58,7 @@ public class VehicleSound extends AbstractTickableSoundInstance {
         pitch = basePitch * (0.85f + (float) Math.min(0.4, sp * 0.8));
         // лязг гусениц
         if (on && sp > 0.05 && v.tickCount % Math.max(3, (int) (8 - sp * 12)) == 0
-                && (v.kind().tank() || v.kind() == Launcher.Kind.BMP2 || v.kind() == Launcher.Kind.BRADLEY || v.kind() == Launcher.Kind.TOS)) {
+                && (v.kind() == Launcher.Kind.BMP2 || v.kind() == Launcher.Kind.BRADLEY || v.kind() == Launcher.Kind.TOS)) {
             v.level().playLocalSound(x, y, z, net.minecraft.sounds.SoundEvents.CHAIN_STEP, SoundSource.NEUTRAL, 0.8f, 0.5f + v.level().random.nextFloat() * 0.2f,
                     false);
         }

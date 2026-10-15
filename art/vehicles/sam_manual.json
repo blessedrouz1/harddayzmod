@@ -1,0 +1,313 @@
+{
+ "name": "sam_manual",
+ "note": "Man-portable SAM station: pad, gimbal column, frame carrying four missiles in a 2 x 2 cluster. Scale 1 m = 16 px.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.3,
+ "seed": 76,
+ "bones": [
+  {
+   "name": "base",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    8,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    20,
+    0
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "tip0",
+   "pivot": [
+    0,
+    20,
+    0
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip1",
+   "pivot": [
+    0,
+    20,
+    0
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip2",
+   "pivot": [
+    0,
+    20,
+    0
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip3",
+   "pivot": [
+    0,
+    20,
+    0
+   ],
+   "parent": "rack"
+  }
+ ],
+ "parts": [
+  {
+   "name": "pad",
+   "from": [
+    -8,
+    0,
+    -8
+   ],
+   "to": [
+    8,
+    2,
+    8
+   ],
+   "mat": "metal",
+   "bone": "base",
+   "panels": 0
+  },
+  {
+   "name": "case",
+   "from": [
+    -8,
+    2,
+    -8
+   ],
+   "to": [
+    8,
+    8,
+    8
+   ],
+   "mat": "paint",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 3,
+     "y": 2,
+     "w": 10,
+     "h": 4,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "column",
+   "from": [
+    -3,
+    8,
+    -3
+   ],
+   "to": [
+    3,
+    17,
+    3
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "gimbal",
+   "from": [
+    -5,
+    17,
+    -3
+   ],
+   "to": [
+    5,
+    19,
+    5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "frame",
+   "from": [
+    -8,
+    19,
+    -8
+   ],
+   "to": [
+    8,
+    21,
+    12
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "cross_a",
+   "from": [
+    -8,
+    21,
+    -6
+   ],
+   "to": [
+    8,
+    22,
+    -4
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "cross_b",
+   "from": [
+    -8,
+    21,
+    4
+   ],
+   "to": [
+    8,
+    22,
+    6
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "seeker",
+   "from": [
+    -2,
+    19,
+    -12
+   ],
+   "to": [
+    2,
+    21,
+    -8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 0,
+     "w": 4,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "grip",
+   "from": [
+    -1,
+    15,
+    6
+   ],
+   "to": [
+    1,
+    19,
+    10
+   ],
+   "mat": "rubber",
+   "bone": "rack"
+  },
+  {
+   "name": "battery",
+   "from": [
+    4,
+    21,
+    6
+   ],
+   "to": [
+    8,
+    25,
+    12
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 2,
+     "mat": "amber"
+    }
+   ]
+  }
+ ],
+ "canvas": [
+  "#3F4A2D",
+  "#566240",
+  "#6E7C51",
+  "#8A9868"
+ ],
+ "missile": [
+  {
+   "bone": "tip0",
+   "L": 24,
+   "D": 5,
+   "zn": -14,
+   "cx": -3.5,
+   "cy": 24.5,
+   "palette": "javelin"
+  },
+  {
+   "bone": "tip1",
+   "L": 24,
+   "D": 5,
+   "zn": -14,
+   "cx": 3.5,
+   "cy": 24.5,
+   "palette": "javelin"
+  },
+  {
+   "bone": "tip2",
+   "L": 24,
+   "D": 5,
+   "zn": -14,
+   "cx": -3.5,
+   "cy": 27.5,
+   "palette": "javelin"
+  },
+  {
+   "bone": "tip3",
+   "L": 24,
+   "D": 5,
+   "zn": -14,
+   "cx": 3.5,
+   "cy": 27.5,
+   "palette": "javelin"
+  }
+ ]
+}

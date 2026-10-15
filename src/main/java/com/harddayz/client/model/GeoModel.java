@@ -62,6 +62,7 @@ public final class GeoModel {
             }
         }
         root = new ModelPart(List.of(), top);
+        GeoGpu.register(root, List.of(), top);
     }
 
     private ModelPart build(Bone b, Map<String, Bone> bones, float[] parentPivot) {
@@ -95,10 +96,13 @@ public final class GeoModel {
             if (rotated) {
                 float[] cp = vec(c, "pivot");
                 cp[0] = -cp[0];
-                ModelPart part = new ModelPart(List.of(cube(min[0] - cp[0], min[1] - cp[1], min[2] - cp[2], s[0], s[1], s[2], g, uv)), Map.of());
+                ModelPart.Cube fixedCube = cube(min[0] - cp[0], min[1] - cp[1], min[2] - cp[2], s[0], s[1], s[2], g, uv);
+                ModelPart part = new ModelPart(List.of(fixedCube), Map.of());
                 part.setPos(cp[0] - b.pivot[0], cp[1] - b.pivot[1], cp[2] - b.pivot[2]);
                 part.setRotation(r[0], r[1], r[2]);
                 part.setInitialPose(part.storePose());
+                // The fixed cube's own geometry is folded into its animated parent.
+                GeoGpu.register(part, List.of(fixedCube), Map.of());
                 children.put(b.name + "#" + i, part);
             } else {
                 cubes.add(cube(min[0] - b.pivot[0], min[1] - b.pivot[1], min[2] - b.pivot[2], s[0], s[1], s[2], g, uv));
@@ -114,6 +118,7 @@ public final class GeoModel {
         part.setPos(b.pivot[0] - parentPivot[0], b.pivot[1] - parentPivot[1], b.pivot[2] - parentPivot[2]);
         part.setRotation(b.rot[0], b.rot[1], b.rot[2]);
         part.setInitialPose(part.storePose());
+        GeoGpu.register(part, cubes, children);
         parts.put(b.name, part);
         if (box[0] != Float.MAX_VALUE) {
             boxes.put(b.name, box);
@@ -340,7 +345,9 @@ public final class GeoModel {
             }
             ModelPart p = new ModelPart(cubes, Map.of());
             p.setInitialPose(p.storePose());
+            GeoGpu.register(p, cubes, Map.of());
             marks[f] = new ModelPart(List.of(), Map.of("mark", p));
+            GeoGpu.register(marks[f], List.of(), Map.of("mark", p));
         }
     }
 

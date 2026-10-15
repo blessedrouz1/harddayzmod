@@ -1,0 +1,152 @@
+{
+ "name": "it_mine_at",
+ "note": "inventory icon model: mine_at",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -7,
+    -5,
+    -2
+   ],
+   "to": [
+    7,
+    5,
+    3
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_b",
+   "from": [
+    -5,
+    -7,
+    -1.5
+   ],
+   "to": [
+    5,
+    7,
+    2.5
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_c",
+   "from": [
+    -6,
+    -6,
+    -1
+   ],
+   "to": [
+    6,
+    6,
+    2
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "plate",
+   "from": [
+    -5,
+    -5,
+    3
+   ],
+   "to": [
+    5,
+    5,
+    4
+   ],
+   "mat": "red",
+   "panels": 0
+  },
+  {
+   "name": "fuse",
+   "from": [
+    -2,
+    -2,
+    4
+   ],
+   "to": [
+    2,
+    2,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "handle",
+   "from": [
+    -6,
+    -1,
+    4
+   ],
+   "to": [
+    -3,
+    1,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "handle2",
+   "from": [
+    3,
+    -1,
+    4
+   ],
+   "to": [
+    6,
+    1,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "band",
+   "from": [
+    -7.5,
+    -7.5,
+    0
+   ],
+   "to": [
+    7.5,
+    7.5,
+    1
+   ],
+   "mat": "paint2",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

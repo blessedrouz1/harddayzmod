@@ -33,6 +33,23 @@ minecraft {
         }
 
         client {
+            if (project.hasProperty('droneFxSmokeTest')) {
+                workingDirectory project.file('build/drone-fx-smoke-run')
+                property 'harddayz.droneFxSmokeTest', 'true'
+                mods { "${mod_id}" { source sourceSets.test } }
+            }
+            if (project.hasProperty('modelSmokeTest')) {
+                workingDirectory project.file('build/model-smoke-run')
+                property 'harddayz.modelSmokeTest', 'true'
+                mods { "${mod_id}" { source sourceSets.test } }
+            }
+            if (project.hasProperty('gpuSmokeTest')) {
+                workingDirectory project.file('build/gpu-smoke-run')
+                property 'harddayz.gpuSmokeTest', 'true'
+                mods {
+                    "${mod_id}" { source sourceSets.test }
+                }
+            }
         }
 
         server {
@@ -64,11 +81,16 @@ mixin {
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
 repositories {
+    maven { url = 'https://api.modrinth.com/maven' }
 }
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+    if (project.hasProperty('oculus')) {
+        runtimeOnly fg.deobf('maven.modrinth:oculus:iQ1SwGc3')
+        runtimeOnly fg.deobf('maven.modrinth:embeddium:UTbfe5d1')
+    }
 }
 
 tasks.named('processResources', ProcessResources).configure {

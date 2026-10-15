@@ -93,6 +93,7 @@ public final class ClientSetup {
     }
 
     public static void init(IEventBus modBus) {
+        modBus.addListener(com.harddayz.client.model.GeoGpu::registerShaders);
         allowFarRendering();
         allowEntityCulling();
         modBus.addListener(ClientSetup::onRenderers);
@@ -104,6 +105,7 @@ public final class ClientSetup {
         });
         modBus.addListener(ClientSetup::onGuiLayers);
         IEventBus bus = MinecraftForge.EVENT_BUS;
+        bus.addListener((net.minecraftforge.event.GameShuttingDownEvent e) -> com.harddayz.client.model.GeoGpu.invalidate());
         bus.addListener((TickEvent.ClientTickEvent e) -> {
             if (e.phase == TickEvent.Phase.START) {
                 DronePilot.onTick();
@@ -119,6 +121,7 @@ public final class ClientSetup {
             DronePilot.onCamera(e);
         });
         bus.addListener(ClientBlasts::onFogColor);
+        bus.addListener(TargetHighlight::onRender);
         bus.addListener((ViewportEvent.ComputeFov e) -> {
             DronePilot.onFov(e);
             ClientGuns.onFov(e);
@@ -186,6 +189,8 @@ public final class ClientSetup {
 
     private static void onParticles(RegisterParticleProvidersEvent event) {
         event.registerSpriteSet(ModParticles.SMOKE.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.SMOKE));
+        event.registerSpriteSet(ModParticles.JET_SMOKE.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.JET_SMOKE));
+        event.registerSpriteSet(ModParticles.JET_FIRE.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.JET_FIRE));
         event.registerSpriteSet(ModParticles.SMOKE_HUGE.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.SMOKE_HUGE));
         event.registerSpriteSet(ModParticles.SMOKE_WHITE.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.SMOKE_WHITE));
         event.registerSpriteSet(ModParticles.DUST.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.DUST));

@@ -1,0 +1,126 @@
+{
+ "name": "it_supply_tablet",
+ "note": "inventory icon model: supply_tablet",
+ "paint": "olive",
+ "paint2": [
+  "#0E0F13",
+  "#181A20",
+  "#262932",
+  "#3A3E4A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -6,
+    -1,
+    -8
+   ],
+   "to": [
+    6,
+    1,
+    8
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "screen",
+   "from": [
+    -5,
+    1,
+    -7
+   ],
+   "to": [
+    5,
+    2,
+    7
+   ],
+   "mat": "dark",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 1,
+     "mat": "green"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 4,
+     "w": 6,
+     "h": 1,
+     "mat": "green"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 7,
+     "w": 7,
+     "h": 1,
+     "mat": "green"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 10,
+     "w": 5,
+     "h": 1,
+     "mat": "amber"
+    }
+   ]
+  },
+  {
+   "name": "badge",
+   "from": [
+    3,
+    1,
+    5
+   ],
+   "to": [
+    5,
+    2,
+    7
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "stand",
+   "from": [
+    -3,
+    -2,
+    -5
+   ],
+   "to": [
+    3,
+    -1,
+    5
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

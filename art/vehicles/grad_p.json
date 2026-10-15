@@ -1,0 +1,397 @@
+{
+ "name": "grad_p",
+ "note": "Grad-P Partisan 122 mm single-tube launcher on a tripod. Scale 1 m = 16 px. Identifiers: three splayed legs, tube with muzzle ring and bands, top sight, rear breech.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.3,
+ "seed": 71,
+ "bones": [
+  {
+   "name": "legs",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    17,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "tip0",
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "parent": "rack"
+  }
+ ],
+ "parts": [
+  {
+   "name": "leg_a",
+   "from": [
+    -1.0,
+    0,
+    -1.0
+   ],
+   "to": [
+    1.0,
+    17,
+    1.0
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    0,
+    0,
+    22.380135051959574
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_a_foot",
+   "from": [
+    4.5,
+    0,
+    -2.5
+   ],
+   "to": [
+    9.5,
+    2,
+    2.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "leg_b",
+   "from": [
+    -1.0,
+    0,
+    -0.5
+   ],
+   "to": [
+    1.0,
+    17,
+    1.5
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    0,
+    0,
+    -22.380135051959574
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_b_foot",
+   "from": [
+    -9.5,
+    0,
+    -2.5
+   ],
+   "to": [
+    -4.5,
+    2,
+    2.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "leg_c",
+   "from": [
+    -1.0,
+    0,
+    -1.0
+   ],
+   "to": [
+    1.0,
+    17,
+    1.0
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    -22.380135051959574,
+    0,
+    0
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_c_foot",
+   "from": [
+    -2.5,
+    0,
+    5.5
+   ],
+   "to": [
+    2.5,
+    2,
+    10.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "yoke",
+   "from": [
+    3,
+    13,
+    -3
+   ],
+   "to": [
+    5,
+    21,
+    3
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "yaw_collar",
+   "from": [
+    -4,
+    12,
+    -4
+   ],
+   "to": [
+    4,
+    14,
+    4
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "tube",
+   "from": [
+    -3,
+    15,
+    -26
+   ],
+   "to": [
+    3,
+    19,
+    18
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "rack"
+  },
+  {
+   "name": "tube_b",
+   "from": [
+    -2,
+    14,
+    -25.5
+   ],
+   "to": [
+    2,
+    20,
+    17.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "bone": "rack"
+  },
+  {
+   "name": "breech",
+   "from": [
+    -3,
+    14,
+    18
+   ],
+   "to": [
+    3,
+    20,
+    22
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "breech_cap",
+   "from": [
+    -2,
+    15,
+    22
+   ],
+   "to": [
+    2,
+    19,
+    23
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "muzzle_ring",
+   "from": [
+    -4,
+    13,
+    -27
+   ],
+   "to": [
+    4,
+    21,
+    -25
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band_a",
+   "from": [
+    -4,
+    13,
+    -12
+   ],
+   "to": [
+    4,
+    21,
+    -10
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band_b",
+   "from": [
+    -4,
+    13,
+    6
+   ],
+   "to": [
+    4,
+    21,
+    8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "rail_top",
+   "from": [
+    -1,
+    21,
+    -20
+   ],
+   "to": [
+    1,
+    22,
+    14
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "sight",
+   "from": [
+    -2,
+    22,
+    -4
+   ],
+   "to": [
+    2,
+    25,
+    4
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 1,
+     "w": 4,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "grip",
+   "from": [
+    -1,
+    10,
+    10
+   ],
+   "to": [
+    1,
+    14,
+    14
+   ],
+   "mat": "rubber",
+   "bone": "rack"
+  }
+ ],
+ "canvas": [
+  "#3F4A2D",
+  "#566240",
+  "#6E7C51",
+  "#8A9868"
+ ],
+ "missile": {
+  "bone": "tip0",
+  "L": 26,
+  "D": 4,
+  "zn": -33,
+  "cx": 0,
+  "cy": 17,
+  "palette": "grad"
+ }
+}

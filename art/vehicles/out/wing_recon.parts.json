@@ -1,0 +1,14 @@
+{
+ "body#0": "fuselage",
+ "body#1": "nose",
+ "body#2": "lens",
+ "body#3": "pylon",
+ "body#4": "tail_boom",
+ "body#5": "fin",
+ "body#6": "stab",
+ "body#7": "skid",
+ "wing#0": "wing",
+ "prop#0": "prop_hub",
+ "prop#1": "prop_blade_a",
+ "prop#2": "prop_blade_b"
+}

@@ -16,7 +16,7 @@ import net.minecraft.util.RandomSource;
  */
 public class HdParticle extends TextureSheetParticle {
     public enum Kind {
-        SMOKE, SMOKE_HUGE, SMOKE_WHITE, DUST, FIRE, FLASH, GLOW
+        SMOKE, SMOKE_HUGE, SMOKE_WHITE, DUST, FIRE, FLASH, GLOW, JET_SMOKE, JET_FIRE
     }
 
     private final Kind kind;
@@ -42,6 +42,23 @@ public class HdParticle extends TextureSheetParticle {
         this.spin = (r.nextFloat() - 0.5f) * 0.03f;
         float shade;
         switch (kind) {
+            case JET_SMOKE -> {
+                lifetime = 35 + r.nextInt(20);
+                baseSize = 0.4f + r.nextFloat() * 0.25f;
+                friction = 0.94f;
+                shade = 0.65f + r.nextFloat() * 0.15f;
+                r0 = shade;
+                g0 = shade;
+                b0 = shade;
+            }
+            case JET_FIRE -> {
+                lifetime = 4 + r.nextInt(4);
+                baseSize = 0.22f + r.nextFloat() * 0.12f;
+                friction = 0.9f;
+                r0 = 1f;
+                g0 = 0.85f;
+                b0 = 0.4f;
+            }
             case SMOKE -> {
                 lifetime = 100 + r.nextInt(120);
                 baseSize = 1.6f + r.nextFloat() * 1.8f;
@@ -104,7 +121,7 @@ public class HdParticle extends TextureSheetParticle {
         }
         this.quadSize = baseSize * 0.5f;
         setColor(r0, g0, b0);
-        setAlpha(kind == Kind.FIRE ? 1f : 0.92f);
+        setAlpha(1f);
     }
 
     @Override
@@ -129,27 +146,27 @@ public class HdParticle extends TextureSheetParticle {
                 quadSize = baseSize * (0.6f + k * 0.6f);
                 setAlpha(0.85f * (1 - k) * (1 - k));
             }
-            case FIRE -> {
+            case FIRE, JET_FIRE -> {
                 setSpriteFromAge(sprites);
                 quadSize = baseSize * (0.6f + k * 0.8f);
                 // бело-жёлтый -> оранжевый -> тёмно-красный
                 setColor(1f, Mth.lerp(k, 0.92f, 0.25f), Mth.lerp(k, 0.6f, 0.05f));
-                setAlpha(1 - k * k);
+                setAlpha(k < 0.75f ? 1 : (1 - k) / 0.25f);
                 yd += 0.004;
             }
             case DUST -> {
                 quadSize = baseSize * (0.5f + k * 1.2f);
                 yd -= 0.002;
-                setAlpha(0.8f * (1 - k));
+                setAlpha(k < 0.65f ? 1 : (1 - k) / 0.35f);
             }
             default -> {
                 // дым растёт, всплывает, к концу тает
                 quadSize = baseSize * (0.5f + (float) Math.sqrt(k) * 1.3f);
-                yd += kind == Kind.SMOKE_WHITE ? 0.0006 : 0.0012;
+                yd += kind == Kind.SMOKE_WHITE || kind == Kind.JET_SMOKE ? 0.0006 : 0.0012;
                 float fade = k < 0.6f ? 1 : 1 - (k - 0.6f) / 0.4f;
-                setAlpha(0.92f * fade);
+                setAlpha(fade);
                 // свежий дым подсвечен огнём снизу
-                if (kind != Kind.SMOKE_WHITE && age < 8) {
+                if (kind != Kind.SMOKE_WHITE && kind != Kind.JET_SMOKE && age < 8) {
                     float glow = 1 - age / 8f;
                     setColor(Mth.lerp(glow, r0, 0.9f), Mth.lerp(glow, g0, 0.45f), Mth.lerp(glow, b0, 0.15f));
                 } else {
@@ -165,12 +182,19 @@ public class HdParticle extends TextureSheetParticle {
 
     @Override
     protected int getLightColor(float pt) {
-        return kind == Kind.FIRE || kind == Kind.FLASH || kind == Kind.GLOW || (kind != Kind.SMOKE_WHITE && age < 6) ? 0xF000F0 : super.getLightColor(pt);
+        return kind == Kind.FIRE || kind == Kind.JET_FIRE || kind == Kind.FLASH || kind == Kind.GLOW
+                || (kind != Kind.SMOKE_WHITE && kind != Kind.JET_SMOKE && age < 6) ? 0xF000F0 : super.getLightColor(pt);
     }
 
     @Override
     public ParticleRenderType getRenderType() {
-        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
+        return renderType(kind);
+    }
+
+    static ParticleRenderType renderType(Kind kind) {
+        // Solid smoke/fire silhouettes, like vanilla smoke. Only light flashes blend with the background.
+        return kind == Kind.FLASH || kind == Kind.GLOW ? ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT
+                : ParticleRenderType.PARTICLE_SHEET_OPAQUE;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {

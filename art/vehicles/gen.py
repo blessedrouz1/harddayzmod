@@ -6,6 +6,7 @@ usage: python3 gen.py  -> writes <name>.json next to this file
 """
 import copy
 import json
+import heal
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -318,7 +319,7 @@ def deck(z0, z1, rear_z, y0=19, y1=23):
     if z1 - zb >= 2:
         out.append(side('deck_side_rear', zb, z1, lamp))
     for i, g in enumerate(groups):
-        out += arch(f'rear_arch{i}', g, 12.5, 22.5, y1, slopes=False)
+        out += arch(f'rear_arch{i}', g, 12, 22, y1, slopes=False)
     return out
 
 
@@ -452,7 +453,7 @@ def s400():
              {'name': 'rack', 'pivot': [0, 37.6, 58], 'parent': 'turret'}] + steer_bones(steer) + jb
     extra = [tarp('tarp', [-15, 39, -54], [-3, 43, -32]), crate('crate0', [6, 39, -52], [16, 44, -42]),
              crate('crate1', [7, 39, -40], [15, 43, -32], mat='paint')] + jerrycans('cans', -17, 19.5, 71.5, 2) + \
-        [box('ladder', [19.5, 24, -50], [20.5, 39, -46], 'metal'), box('extinguisher', [-21.5, 27, -40], [-19.5, 34, -38], 'paint2')]
+        [box('ladder', [19, 24, -50], [20, 39, -46], 'metal'), box('extinguisher', [-21, 27, -40], [-19, 34, -38], 'paint2')]
     return detail(spec('s400', 'S-400 5P85SM2 launcher on a MAZ-543M 8x8. Scale 1 m = 16 px. Identifiers: two separate cabs flanking the engine hood, '
                 'two steered front axles, four TPK tubes 2x2 with stiffening belts on a rear-hinged erector, crew box behind the cabs, olive.',
                 OLIVE, PAINT2_DARK, bones, p + t, 400), extra)
@@ -481,7 +482,7 @@ def kung_kit():
             box('kung_rail', [17, 57, -10], [18, 59, 56], 'metal', mirror=True),
             box('cable_reel', [-17, 57, 40], [-9, 63, 48], 'paint2', panels=0, decals=[{'face': 'east', 'x': 1, 'y': 1, 'w': 6, 'h': 4, 'mat': 'rib'}]),
             box('cable_reel2', [-7, 57, 40], [1, 63, 48], 'paint2', panels=0, decals=[{'face': 'east', 'x': 1, 'y': 1, 'w': 6, 'h': 4, 'mat': 'rib'}]),
-            crate('kung_box_r', [13, 12, -10], [20, 19, 8], mat='paint'), crate('kung_box_l', [-20, 12, -10], [-13, 19, 8], mat='paint'),
+            crate('kung_box_r', [13, 12, -10], [20, 23, 8], mat='paint'), crate('kung_box_l', [-20, 12, -10], [-13, 23, 8], mat='paint'),
             box('extinguisher', [-21.5, 27, 50], [-19.5, 34, 52], 'paint2')] + jerrycans('cans', -18, 19, 59.5, 1)
 
 
@@ -525,7 +526,10 @@ def himars():
     sp['parts'] = [p for p in sp['parts'] if p['name'] not in ('deck', 'bumper_rear')]
     sp['parts'] = [p for p in sp['parts'] if p['name'] not in ('transfer_case', 'cross_member')]
     sp['parts'] = finish_cab(sp['parts'], [-40]) + deck(-23, 56, [14, 38]) + underbody([-40], [14, 38])
-    extra = [{'type': 'wheel', 'name': 'spare_wheel', 'center': [0, 34, -18], 'diameter': 22, 'width': 9},
+    for q in sp['parts']:
+        if q['name'] == 'cable_tray':
+            q['to'][2] = 20
+    extra = [{'type': 'wheel', 'name': 'spare_wheel', 'center': [0, 34, -19], 'diameter': 22, 'width': 9},
              crate('crate0', [7, 23, -22], [15, 29, -10]), crate('crate1', [7.5, 29, -21], [14.5, 32, -11], mat='paint'),
              tarp('tarp', [-15, 23, -22], [-7, 27, -8])] + jerrycans('cans', -17, 19.5, 58.5, 2)
     return detail(sp, extra)
@@ -655,7 +659,7 @@ def pickup(name, weapon, seed):
           wheel('wheel_1', [WX, WY, RZ], D, W, mirror=True)]
 
     # weapon on a pintle in the bed (turret yaws, rack pitches)
-    t = [box('pintle_base', [-4, 20, 14], [4, 22, 22], 'metal', bone='turret'),
+    t = [box('pintle_base', [-4, 20, 14], [4, 22, 30], 'metal', bone='turret'),
          box('pintle', [-1, 21.5, 17], [1, 37.5, 19], 'metal', bone='turret'),
          box('pintle_brace', [-3, 22, 16], [3, 24, 20], 'paint2', bone='turret')]
     if weapon == 'mg':
@@ -686,7 +690,7 @@ def pickup(name, weapon, seed):
               box('iff_whip', [-0.5, 48, 12], [0.5, 54, 13], 'metal', bone='rack'),
               box('battery', [-2, 38, 17.5], [2, 41, 23.5], 'paint2', bone='rack'),
               box('grips', [-1.5, 37.5, 24], [1.5, 40.5, 27], 'rubber', bone='rack'),
-              box('seat_post', [-1, 24, 25], [1, 30, 27], 'metal', bone='turret'),
+              box('seat_post', [-1, 22, 25], [1, 30, 27], 'metal', bone='turret'),
               box('gunner_seat', [-4, 30, 24], [4, 32, 30], 'canvas', bone='turret')]
     bones = [{'name': 'cab', 'pivot': [0, 17, -10]}, {'name': 'turret', 'pivot': [0, 16, 17.6]},
              {'name': 'rack', 'pivot': [0, 40, 17.6], 'parent': 'turret'}] + steer_bones([FZ], WX, WY)
@@ -734,7 +738,7 @@ MORE = {
         hatch_box('side_bin', [13, 12, 2], [20, 19, 10], mirror=True),
     ],
     'patriot': [
-        hatch_box('frame_box', [16.5, 32, -10], [19.5, 40, 0], bone='rack', mirror=True),
+        hatch_box('frame_box', [14.5, 32, -10], [17.5, 40, 0], bone='rack', mirror=True),
         box('cable_tray', [-12, 27.5, -10], [-8, 29.5, 48], 'paint2', bone='rack', panels=0),
         box('lug', [-14, 58.5, -18], [-12, 60.5, -16], 'metal', bone='rack', mirror=True),
         hatch_box('turret_box', [14.5, 23.5, 2], [18.5, 29.5, 12], bone='turret', mirror=True),
@@ -759,5 +763,6 @@ MORE = {
 if __name__ == '__main__':
     for s in (himars(), nasams(), patriot(), s400(), ew(), radar(), pickup('pickup_mg', 'mg', 21), pickup('pickup_sam', 'sam', 22)):
         s['parts'] += MORE.get(s['name'], [])
+        heal.heal(s)
         (HERE / f'{s["name"]}.json').write_text(json.dumps(s, indent=1, ensure_ascii=False))
         print('wrote', s['name'])

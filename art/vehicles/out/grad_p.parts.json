@@ -1,0 +1,21 @@
+{
+ "legs#0": "leg_a",
+ "legs#1": "leg_a_foot",
+ "legs#2": "leg_b",
+ "legs#3": "leg_b_foot",
+ "legs#4": "leg_c",
+ "legs#5": "leg_c_foot",
+ "turret#0": "yoke_right",
+ "turret#1": "yoke_left",
+ "turret#2": "yaw_collar",
+ "rack#0": "tube",
+ "rack#1": "tube_b",
+ "rack#2": "breech",
+ "rack#3": "breech_cap",
+ "rack#4": "muzzle_ring",
+ "rack#5": "band_a",
+ "rack#6": "band_b",
+ "rack#7": "rail_top",
+ "rack#8": "sight",
+ "rack#9": "grip"
+}

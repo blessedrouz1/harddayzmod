@@ -1,0 +1,3313 @@
+{
+ "name": "uragan",
+ "note": "BM-27 Uragan 220 mm MLRS on a ZIL-135LM 8x8. Scale 1 m = 16 px. Identifiers: two cabs flanking the hood, 16 tubes (4 x 4) in a bundle on a rear-hinged cradle lifted by two rams, four outriggers, camouflage.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.45,
+ "seed": 41,
+ "bones": [
+  {
+   "name": "cab",
+   "pivot": [
+    0,
+    23,
+    -67
+   ]
+  },
+  {
+   "name": "steer_0_r",
+   "pivot": [
+    17.5,
+    11,
+    -62
+   ]
+  },
+  {
+   "name": "steer_0_l",
+   "pivot": [
+    -17.5,
+    11,
+    -62
+   ]
+  },
+  {
+   "name": "steer_1_r",
+   "pivot": [
+    17.5,
+    11,
+    -38
+   ]
+  },
+  {
+   "name": "steer_1_l",
+   "pivot": [
+    -17.5,
+    11,
+    -38
+   ]
+  },
+  {
+   "name": "jack0",
+   "pivot": [
+    18,
+    14,
+    -22
+   ]
+  },
+  {
+   "name": "jack1",
+   "pivot": [
+    -18,
+    14,
+    -22
+   ]
+  },
+  {
+   "name": "jack2",
+   "pivot": [
+    18,
+    14,
+    62
+   ]
+  },
+  {
+   "name": "jack3",
+   "pivot": [
+    -18,
+    14,
+    62
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    22,
+    8.8
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "ram0",
+   "pivot": [
+    0,
+    30,
+    36
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "ram0_rod",
+   "pivot": [
+    0,
+    30,
+    36
+   ],
+   "parent": "ram0"
+  },
+  {
+   "name": "tip0",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip1",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip2",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip3",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip4",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip5",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip6",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip7",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip8",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip9",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip10",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip11",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip12",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip13",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip14",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip15",
+   "pivot": [
+    0,
+    40,
+    58
+   ],
+   "parent": "rack"
+  }
+ ],
+ "parts": [
+  {
+   "name": "frame_rail",
+   "from": [
+    7,
+    12,
+    -76
+   ],
+   "to": [
+    10,
+    18,
+    70
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "axle_0",
+   "from": [
+    -13,
+    10,
+    -63
+   ],
+   "to": [
+    13,
+    12,
+    -61
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "axle_1",
+   "from": [
+    -13,
+    10,
+    -39
+   ],
+   "to": [
+    13,
+    12,
+    -37
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "axle_2",
+   "from": [
+    -13,
+    10,
+    26
+   ],
+   "to": [
+    13,
+    12,
+    28
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "axle_3",
+   "from": [
+    -13,
+    10,
+    49
+   ],
+   "to": [
+    13,
+    12,
+    51
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "engine",
+   "from": [
+    -6,
+    11,
+    -60
+   ],
+   "to": [
+    6,
+    17,
+    -46
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 2,
+     "y": 1,
+     "w": 10,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 2,
+     "y": 1,
+     "w": 10,
+     "h": 1,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "oil_pan",
+   "from": [
+    -4,
+    9,
+    -58
+   ],
+   "to": [
+    4,
+    11,
+    -50
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "gearbox",
+   "from": [
+    -4,
+    12,
+    -46
+   ],
+   "to": [
+    4,
+    17,
+    -38
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "diff0",
+   "from": [
+    -3,
+    8,
+    -65
+   ],
+   "to": [
+    3,
+    13,
+    -59
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "diff1",
+   "from": [
+    -3,
+    8,
+    -41
+   ],
+   "to": [
+    3,
+    13,
+    -35
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "diff2",
+   "from": [
+    -3,
+    8,
+    24
+   ],
+   "to": [
+    3,
+    13,
+    30
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "shaft2",
+   "from": [
+    -1,
+    11.5,
+    -38
+   ],
+   "to": [
+    1,
+    13.5,
+    24
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "spring2",
+   "from": [
+    7,
+    10.5,
+    18
+   ],
+   "to": [
+    10,
+    11.5,
+    36
+   ],
+   "mat": "metal",
+   "mirror": true
+  },
+  {
+   "name": "diff3",
+   "from": [
+    -3,
+    8,
+    47
+   ],
+   "to": [
+    3,
+    13,
+    53
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "shaft3",
+   "from": [
+    -1,
+    11.5,
+    30
+   ],
+   "to": [
+    1,
+    13.5,
+    47
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "spring3",
+   "from": [
+    7,
+    10.5,
+    41
+   ],
+   "to": [
+    10,
+    11.5,
+    59
+   ],
+   "mat": "metal",
+   "mirror": true
+  },
+  {
+   "name": "cross0",
+   "from": [
+    -7,
+    13.5,
+    -32
+   ],
+   "to": [
+    7,
+    16.5,
+    -30
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "cross1",
+   "from": [
+    -7,
+    13.5,
+    -10
+   ],
+   "to": [
+    7,
+    16.5,
+    -8
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "cross2",
+   "from": [
+    -7,
+    13.5,
+    12
+   ],
+   "to": [
+    7,
+    16.5,
+    14
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "cross3",
+   "from": [
+    -7,
+    13.5,
+    34
+   ],
+   "to": [
+    7,
+    16.5,
+    36
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "deck",
+   "from": [
+    -12,
+    19,
+    -26
+   ],
+   "to": [
+    12,
+    23,
+    70
+   ],
+   "mat": "paint",
+   "panels": 12,
+   "decals": [
+    {
+     "face": "up",
+     "x": 2,
+     "y": 2,
+     "w": 20,
+     "h": 1,
+     "mat": "bolts"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 2,
+     "w": 94,
+     "h": 2,
+     "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 2,
+     "w": 94,
+     "h": 2,
+     "mat": "grime"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 2,
+     "w": 94,
+     "h": 2,
+     "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 2,
+     "w": 94,
+     "h": 2,
+     "mat": "grime"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "bumper_rear",
+   "from": [
+    -19,
+    14,
+    69
+   ],
+   "to": [
+    19,
+    19,
+    72
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 3,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "red"
+    },
+    {
+     "face": "south",
+     "x": 32,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "red"
+    },
+    {
+     "face": "south",
+     "x": 9,
+     "y": 1,
+     "w": 20,
+     "h": 1,
+     "mat": "bolts"
+    }
+   ]
+  },
+  {
+   "name": "deck_side_front",
+   "from": [
+    12,
+    19,
+    -26
+   ],
+   "to": [
+    19,
+    23,
+    16
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 40,
+     "h": 1,
+     "mat": "bolts"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "deck_side_rear",
+   "from": [
+    12,
+    19,
+    61
+   ],
+   "to": [
+    19,
+    23,
+    70
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 2,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "red"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "rear_arch0_top",
+   "from": [
+    12,
+    23,
+    17
+   ],
+   "to": [
+    22,
+    24,
+    60
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 0,
+     "w": 41,
+     "h": 1,
+     "mat": "grime"
+    }
+   ]
+  },
+  {
+   "name": "mudflap",
+   "from": [
+    14,
+    5,
+    62
+   ],
+   "to": [
+    21,
+    21,
+    63
+   ],
+   "mat": "mudflap",
+   "mirror": true
+  },
+  {
+   "name": "jack0_leg_r",
+   "from": [
+    16.5,
+    8,
+    -24
+   ],
+   "to": [
+    19.5,
+    20,
+    -20
+   ],
+   "mat": "metal",
+   "bone": "jack0"
+  },
+  {
+   "name": "jack0_foot_r",
+   "from": [
+    15.5,
+    7,
+    -25
+   ],
+   "to": [
+    20.5,
+    8,
+    -19
+   ],
+   "mat": "metal",
+   "bone": "jack0"
+  },
+  {
+   "name": "jack1_leg_l",
+   "from": [
+    -19.5,
+    8,
+    -24
+   ],
+   "to": [
+    -16.5,
+    20,
+    -20
+   ],
+   "mat": "metal",
+   "bone": "jack1"
+  },
+  {
+   "name": "jack1_foot_l",
+   "from": [
+    -20.5,
+    7,
+    -25
+   ],
+   "to": [
+    -15.5,
+    8,
+    -19
+   ],
+   "mat": "metal",
+   "bone": "jack1"
+  },
+  {
+   "name": "jack2_leg_r",
+   "from": [
+    16.5,
+    8,
+    60
+   ],
+   "to": [
+    19.5,
+    20,
+    64
+   ],
+   "mat": "metal",
+   "bone": "jack2"
+  },
+  {
+   "name": "jack2_foot_r",
+   "from": [
+    15.5,
+    7,
+    59
+   ],
+   "to": [
+    20.5,
+    8,
+    65
+   ],
+   "mat": "metal",
+   "bone": "jack2"
+  },
+  {
+   "name": "jack3_leg_l",
+   "from": [
+    -19.5,
+    8,
+    60
+   ],
+   "to": [
+    -16.5,
+    20,
+    64
+   ],
+   "mat": "metal",
+   "bone": "jack3"
+  },
+  {
+   "name": "jack3_foot_l",
+   "from": [
+    -20.5,
+    7,
+    59
+   ],
+   "to": [
+    -15.5,
+    8,
+    65
+   ],
+   "mat": "metal",
+   "bone": "jack3"
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_0_r",
+   "center": [
+    17.5,
+    11,
+    -62
+   ],
+   "diameter": 22,
+   "width": 9,
+   "bone_parent": "steer_0_r"
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_0_l",
+   "center": [
+    -17.5,
+    11,
+    -62
+   ],
+   "diameter": 22,
+   "width": 9,
+   "bone_parent": "steer_0_l"
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_1_r",
+   "center": [
+    17.5,
+    11,
+    -38
+   ],
+   "diameter": 22,
+   "width": 9,
+   "bone_parent": "steer_1_r"
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_1_l",
+   "center": [
+    -17.5,
+    11,
+    -38
+   ],
+   "diameter": 22,
+   "width": 9,
+   "bone_parent": "steer_1_l"
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_2",
+   "center": [
+    17.5,
+    11,
+    27
+   ],
+   "diameter": 22,
+   "width": 9,
+   "mirror": true
+  },
+  {
+   "type": "wheel",
+   "name": "wheel_3",
+   "center": [
+    17.5,
+    11,
+    50
+   ],
+   "diameter": 22,
+   "width": 9,
+   "mirror": true
+  },
+  {
+   "name": "front_arch_top",
+   "from": [
+    12.5,
+    22.5,
+    -72
+   ],
+   "to": [
+    22.5,
+    23.5,
+    -28
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 0,
+     "w": 42,
+     "h": 1,
+     "mat": "grime"
+    }
+   ]
+  },
+  {
+   "type": "slab",
+   "name": "front_arch_front",
+   "axis": "x",
+   "p0": [
+    0,
+    23.5,
+    -72
+   ],
+   "p1": [
+    0,
+    19.5,
+    -75
+   ],
+   "extent": [
+    13.0,
+    22.0
+   ],
+   "thickness": 1,
+   "inside": [
+    17.5,
+    19.5,
+    -71
+   ],
+   "fit": "exact",
+   "mat": "paint2",
+   "mirror": true
+  },
+  {
+   "type": "slab",
+   "name": "front_arch_rear",
+   "axis": "x",
+   "p0": [
+    0,
+    23.5,
+    -28
+   ],
+   "p1": [
+    0,
+    19.5,
+    -25
+   ],
+   "extent": [
+    13.0,
+    22.0
+   ],
+   "thickness": 1,
+   "inside": [
+    17.5,
+    19.5,
+    -29
+   ],
+   "fit": "exact",
+   "mat": "paint2",
+   "mirror": true
+  },
+  {
+   "name": "cab_r",
+   "from": [
+    7,
+    23,
+    -79
+   ],
+   "to": [
+    20,
+    45,
+    -56
+   ],
+   "mat": "paint",
+   "bone": "cab",
+   "decals": [
+    {
+     "face": "north",
+     "x": 2,
+     "y": 2,
+     "w": 9,
+     "h": 7,
+     "mat": "glass",
+     "clear": true
+    },
+    {
+     "face": "east",
+     "x": 4,
+     "y": 2,
+     "w": 14,
+     "h": 18,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 6,
+     "y": 4,
+     "w": 9,
+     "h": 6,
+     "mat": "glass",
+     "clear": true
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cab_roof_r",
+   "from": [
+    6,
+    45,
+    -80
+   ],
+   "to": [
+    21,
+    49,
+    -55
+   ],
+   "mat": "paint",
+   "bone": "cab",
+   "chamfer": {
+    "legs": [
+     4,
+     3
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "seat_r",
+   "from": [
+    10,
+    24.5,
+    -66
+   ],
+   "to": [
+    17,
+    28.5,
+    -60
+   ],
+   "mat": "canvas",
+   "bone": "cab",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "seat_back_r",
+   "from": [
+    10,
+    28.5,
+    -61
+   ],
+   "to": [
+    17,
+    38.5,
+    -59
+   ],
+   "mat": "canvas",
+   "bone": "cab",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "dashboard_r",
+   "from": [
+    8.5,
+    31.5,
+    -78.5
+   ],
+   "to": [
+    18.5,
+    34.5,
+    -75.5
+   ],
+   "mat": "paint2",
+   "bone": "cab",
+   "decals": [
+    {
+     "face": "south",
+     "x": 2,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "glass"
+    },
+    {
+     "face": "south",
+     "x": 6,
+     "y": 1,
+     "w": 2,
+     "h": 1,
+     "mat": "amber"
+    }
+   ]
+  },
+  {
+   "name": "cab_floor_r",
+   "from": [
+    8,
+    23.5,
+    -78.5
+   ],
+   "to": [
+    19,
+    24.5,
+    -56.5
+   ],
+   "mat": "paint2",
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_north0",
+   "from": [
+    9,
+    43,
+    -78.25
+   ],
+   "to": [
+    18,
+    44,
+    -77.25
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_north1",
+   "from": [
+    9,
+    24,
+    -78.25
+   ],
+   "to": [
+    18,
+    36,
+    -77.25
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_south0",
+   "from": [
+    9,
+    24,
+    -57.75
+   ],
+   "to": [
+    18,
+    44,
+    -56.75
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_east0",
+   "from": [
+    18.25,
+    41,
+    -78
+   ],
+   "to": [
+    19.25,
+    44,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_east1",
+   "from": [
+    18.25,
+    35,
+    -62
+   ],
+   "to": [
+    19.25,
+    41,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_east2",
+   "from": [
+    18.25,
+    35,
+    -78
+   ],
+   "to": [
+    19.25,
+    41,
+    -71
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_east3",
+   "from": [
+    18.25,
+    24,
+    -78
+   ],
+   "to": [
+    19.25,
+    35,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_r_liner_west0",
+   "from": [
+    7.75,
+    24,
+    -78
+   ],
+   "to": [
+    8.75,
+    44,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l",
+   "from": [
+    -20,
+    23,
+    -79
+   ],
+   "to": [
+    -7,
+    45,
+    -56
+   ],
+   "mat": "paint",
+   "bone": "cab",
+   "decals": [
+    {
+     "face": "north",
+     "x": 2,
+     "y": 2,
+     "w": 9,
+     "h": 7,
+     "mat": "glass",
+     "clear": true
+    },
+    {
+     "face": "west",
+     "x": 4,
+     "y": 2,
+     "w": 14,
+     "h": 18,
+     "mat": "hatch"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 4,
+     "w": 9,
+     "h": 6,
+     "mat": "glass",
+     "clear": true
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cab_roof_l",
+   "from": [
+    -21,
+    45,
+    -80
+   ],
+   "to": [
+    -6,
+    49,
+    -55
+   ],
+   "mat": "paint",
+   "bone": "cab",
+   "chamfer": {
+    "legs": [
+     4,
+     3
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "seat_l",
+   "from": [
+    -17,
+    24.5,
+    -66
+   ],
+   "to": [
+    -10,
+    28.5,
+    -60
+   ],
+   "mat": "canvas",
+   "bone": "cab",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "seat_back_l",
+   "from": [
+    -17,
+    28.5,
+    -61
+   ],
+   "to": [
+    -10,
+    38.5,
+    -59
+   ],
+   "mat": "canvas",
+   "bone": "cab",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "dashboard_l",
+   "from": [
+    -18.5,
+    31.5,
+    -78.5
+   ],
+   "to": [
+    -8.5,
+    34.5,
+    -75.5
+   ],
+   "mat": "paint2",
+   "bone": "cab",
+   "decals": [
+    {
+     "face": "south",
+     "x": 2,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "glass"
+    },
+    {
+     "face": "south",
+     "x": 6,
+     "y": 1,
+     "w": 2,
+     "h": 1,
+     "mat": "amber"
+    }
+   ]
+  },
+  {
+   "name": "cab_floor_l",
+   "from": [
+    -19,
+    23.5,
+    -78.5
+   ],
+   "to": [
+    -8,
+    24.5,
+    -56.5
+   ],
+   "mat": "paint2",
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_north0",
+   "from": [
+    -18,
+    43,
+    -78.25
+   ],
+   "to": [
+    -9,
+    44,
+    -77.25
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_north1",
+   "from": [
+    -18,
+    24,
+    -78.25
+   ],
+   "to": [
+    -9,
+    36,
+    -77.25
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_south0",
+   "from": [
+    -18,
+    24,
+    -57.75
+   ],
+   "to": [
+    -9,
+    44,
+    -56.75
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_east0",
+   "from": [
+    -8.75,
+    24,
+    -78
+   ],
+   "to": [
+    -7.75,
+    44,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_west0",
+   "from": [
+    -19.25,
+    41,
+    -78
+   ],
+   "to": [
+    -18.25,
+    44,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_west1",
+   "from": [
+    -19.25,
+    35,
+    -78
+   ],
+   "to": [
+    -18.25,
+    41,
+    -73
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_west2",
+   "from": [
+    -19.25,
+    35,
+    -64
+   ],
+   "to": [
+    -18.25,
+    41,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "cab_l_liner_west3",
+   "from": [
+    -19.25,
+    24,
+    -78
+   ],
+   "to": [
+    -18.25,
+    35,
+    -57
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "cab"
+  },
+  {
+   "name": "hood",
+   "from": [
+    -7,
+    23,
+    -78
+   ],
+   "to": [
+    7,
+    37,
+    -56
+   ],
+   "mat": "paint",
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "panels": 0,
+   "decals": [],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "hood_vent",
+   "from": [
+    -3,
+    37,
+    -74
+   ],
+   "to": [
+    3,
+    38,
+    -60
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "grille",
+   "from": [
+    -6,
+    24,
+    -79
+   ],
+   "to": [
+    6,
+    34,
+    -78
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 10,
+     "h": 8,
+     "mat": "grille"
+    }
+   ]
+  },
+  {
+   "name": "bumper",
+   "from": [
+    -21,
+    13,
+    -82
+   ],
+   "to": [
+    21,
+    18,
+    -79
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 3,
+     "y": 1,
+     "w": 4,
+     "h": 3,
+     "mat": "headlight"
+    },
+    {
+     "face": "north",
+     "x": 35,
+     "y": 1,
+     "w": 4,
+     "h": 3,
+     "mat": "headlight"
+    }
+   ]
+  },
+  {
+   "name": "crew_box",
+   "from": [
+    -19,
+    23,
+    -55
+   ],
+   "to": [
+    19,
+    39,
+    -30
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 4,
+     "y": 3,
+     "w": 12,
+     "h": 9,
+     "mat": "hatch"
+    },
+    {
+     "face": "west",
+     "x": 9,
+     "y": 3,
+     "w": 12,
+     "h": 9,
+     "mat": "hatch"
+    },
+    {
+     "face": "north",
+     "x": 14,
+     "y": 3,
+     "w": 10,
+     "h": 6,
+     "mat": "vent"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 12,
+     "w": 23,
+     "h": 4,
+     "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 12,
+     "w": 23,
+     "h": 4,
+     "mat": "grime"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 12,
+     "w": 23,
+     "h": 4,
+     "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 12,
+     "w": 23,
+     "h": 4,
+     "mat": "grime"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "exhaust",
+   "from": [
+    -3,
+    39,
+    -40
+   ],
+   "to": [
+    3,
+    44,
+    -34
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "cab_base",
+   "from": [
+    -12,
+    17.5,
+    -78.5
+   ],
+   "to": [
+    12,
+    23.5,
+    -56.5
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "steering_wheel",
+   "from": [
+    -17,
+    33,
+    -73
+   ],
+   "to": [
+    -11,
+    39,
+    -72
+   ],
+   "mat": "rubber",
+   "bone": "cab",
+   "rotation": [
+    -22.5,
+    0,
+    0
+   ],
+   "pivot": [
+    -14,
+    36,
+    -72.5
+   ]
+  },
+  {
+   "name": "steering_column",
+   "from": [
+    -15,
+    34.5,
+    -75
+   ],
+   "to": [
+    -13,
+    36.5,
+    -72
+   ],
+   "mat": "metal",
+   "bone": "cab"
+  },
+  {
+   "name": "front_apron",
+   "from": [
+    -19.5,
+    15,
+    -79.5
+   ],
+   "to": [
+    19.5,
+    24,
+    -75.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cans_bracket",
+   "from": [
+    -17.5,
+    18.5,
+    71.0
+   ],
+   "to": [
+    -5.5,
+    19.5,
+    75.0
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "cans0",
+   "from": [
+    -17,
+    19.5,
+    71.5
+   ],
+   "to": [
+    -12,
+    26.5,
+    74.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "south",
+     "x": 1,
+     "y": 4,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cans0_cap",
+   "from": [
+    -14,
+    26.5,
+    72.5
+   ],
+   "to": [
+    -13,
+    27.5,
+    73.5
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "cans1",
+   "from": [
+    -11,
+    19.5,
+    71.5
+   ],
+   "to": [
+    -6,
+    26.5,
+    74.5
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "south",
+     "x": 1,
+     "y": 4,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cans1_cap",
+   "from": [
+    -8,
+    26.5,
+    72.5
+   ],
+   "to": [
+    -7,
+    27.5,
+    73.5
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "ladder",
+   "from": [
+    19,
+    24,
+    -50
+   ],
+   "to": [
+    20,
+    39,
+    -46
+   ],
+   "mat": "metal"
+  },
+  {
+   "name": "extinguisher",
+   "from": [
+    -21,
+    27,
+    -40
+   ],
+   "to": [
+    -19,
+    34,
+    -38
+   ],
+   "mat": "paint2"
+  },
+  {
+   "name": "side_bin",
+   "from": [
+    13,
+    12,
+    -19
+   ],
+   "to": [
+    20,
+    19,
+    -9
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 5,
+     "mat": "hatch"
+    }
+   ],
+   "mirror": true,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "erector_base",
+   "from": [
+    -14,
+    23.5,
+    -4
+   ],
+   "to": [
+    14,
+    25.5,
+    22
+   ],
+   "mat": "metal",
+   "bone": "turret"
+  },
+  {
+   "name": "bearing_ring",
+   "from": [
+    -10,
+    25.5,
+    0
+   ],
+   "to": [
+    10,
+    27.5,
+    18
+   ],
+   "mat": "metal",
+   "bone": "turret"
+  },
+  {
+   "name": "hinge_post",
+   "from": [
+    14,
+    27,
+    55
+   ],
+   "to": [
+    17,
+    43,
+    61
+   ],
+   "mat": "paint",
+   "bone": "turret",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 2,
+     "w": 4,
+     "h": 12,
+     "mat": "hatch"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "hinge_pin",
+   "from": [
+    12,
+    39,
+    57
+   ],
+   "to": [
+    19,
+    41,
+    59
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_barrel",
+   "from": [
+    5,
+    27,
+    1
+   ],
+   "to": [
+    11,
+    33,
+    36
+   ],
+   "mat": "metal",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 2,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 6,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 10,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 14,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 18,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 22,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 26,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 30,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_collar",
+   "from": [
+    4,
+    26,
+    -1
+   ],
+   "to": [
+    12,
+    34,
+    1
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_rodbar",
+   "from": [
+    6,
+    28,
+    -2
+   ],
+   "to": [
+    10,
+    32,
+    34
+   ],
+   "mat": "grey",
+   "panels": 0,
+   "bone": "ram0_rod",
+   "mirror": true
+  },
+  {
+   "name": "ram0_foot",
+   "from": [
+    4,
+    26,
+    36
+   ],
+   "to": [
+    12,
+    34,
+    39
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_eye",
+   "from": [
+    4,
+    26,
+    -5
+   ],
+   "to": [
+    12,
+    34,
+    -2
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_pedestal",
+   "from": [
+    5,
+    24,
+    36
+   ],
+   "to": [
+    11,
+    26,
+    39
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "uragan_pack",
+   "from": [
+    -13,
+    34,
+    -26
+   ],
+   "to": [
+    13,
+    60,
+    58
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 5,
+     "y": 1,
+     "w": 1,
+     "h": 82,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 11,
+     "y": 1,
+     "w": 1,
+     "h": 82,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 17,
+     "y": 1,
+     "w": 1,
+     "h": 82,
+     "mat": "rib"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 5,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 11,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 17,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 5,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 11,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 17,
+     "w": 82,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "uragan_pack_face",
+   "from": [
+    -13,
+    34,
+    -27
+   ],
+   "to": [
+    13,
+    60,
+    -26
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 2,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 8,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 14,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 20,
+     "y": 20,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 2,
+     "y": 14,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 8,
+     "y": 14,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 14,
+     "y": 14,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 20,
+     "y": 14,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 2,
+     "y": 8,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 8,
+     "y": 8,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 14,
+     "y": 8,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 20,
+     "y": 8,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 2,
+     "y": 2,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 8,
+     "y": 2,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 14,
+     "y": 2,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    },
+    {
+     "face": "north",
+     "x": 20,
+     "y": 2,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    }
+   ]
+  },
+  {
+   "name": "uragan_band0",
+   "from": [
+    -14,
+    33,
+    -12
+   ],
+   "to": [
+    14,
+    61,
+    -10
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "uragan_band1",
+   "from": [
+    -14,
+    33,
+    14
+   ],
+   "to": [
+    14,
+    61,
+    16
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "uragan_band2",
+   "from": [
+    -14,
+    33,
+    44
+   ],
+   "to": [
+    14,
+    61,
+    46
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "tip0_cone",
+   "from": [
+    7,
+    36,
+    -28
+   ],
+   "to": [
+    11,
+    40,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip0",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip0_nose",
+   "from": [
+    8,
+    37,
+    -29
+   ],
+   "to": [
+    10,
+    39,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip0",
+   "panels": 0
+  },
+  {
+   "name": "tip1_cone",
+   "from": [
+    1,
+    36,
+    -28
+   ],
+   "to": [
+    5,
+    40,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip1",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip1_nose",
+   "from": [
+    2,
+    37,
+    -29
+   ],
+   "to": [
+    4,
+    39,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip1",
+   "panels": 0
+  },
+  {
+   "name": "tip2_cone",
+   "from": [
+    -5,
+    36,
+    -28
+   ],
+   "to": [
+    -1,
+    40,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip2",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip2_nose",
+   "from": [
+    -4,
+    37,
+    -29
+   ],
+   "to": [
+    -2,
+    39,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip2",
+   "panels": 0
+  },
+  {
+   "name": "tip3_cone",
+   "from": [
+    -11,
+    36,
+    -28
+   ],
+   "to": [
+    -7,
+    40,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip3",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip3_nose",
+   "from": [
+    -10,
+    37,
+    -29
+   ],
+   "to": [
+    -8,
+    39,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip3",
+   "panels": 0
+  },
+  {
+   "name": "tip4_cone",
+   "from": [
+    7,
+    42,
+    -28
+   ],
+   "to": [
+    11,
+    46,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip4",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip4_nose",
+   "from": [
+    8,
+    43,
+    -29
+   ],
+   "to": [
+    10,
+    45,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip4",
+   "panels": 0
+  },
+  {
+   "name": "tip5_cone",
+   "from": [
+    1,
+    42,
+    -28
+   ],
+   "to": [
+    5,
+    46,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip5",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip5_nose",
+   "from": [
+    2,
+    43,
+    -29
+   ],
+   "to": [
+    4,
+    45,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip5",
+   "panels": 0
+  },
+  {
+   "name": "tip6_cone",
+   "from": [
+    -5,
+    42,
+    -28
+   ],
+   "to": [
+    -1,
+    46,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip6",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip6_nose",
+   "from": [
+    -4,
+    43,
+    -29
+   ],
+   "to": [
+    -2,
+    45,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip6",
+   "panels": 0
+  },
+  {
+   "name": "tip7_cone",
+   "from": [
+    -11,
+    42,
+    -28
+   ],
+   "to": [
+    -7,
+    46,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip7",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip7_nose",
+   "from": [
+    -10,
+    43,
+    -29
+   ],
+   "to": [
+    -8,
+    45,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip7",
+   "panels": 0
+  },
+  {
+   "name": "tip8_cone",
+   "from": [
+    7,
+    48,
+    -28
+   ],
+   "to": [
+    11,
+    52,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip8",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip8_nose",
+   "from": [
+    8,
+    49,
+    -29
+   ],
+   "to": [
+    10,
+    51,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip8",
+   "panels": 0
+  },
+  {
+   "name": "tip9_cone",
+   "from": [
+    1,
+    48,
+    -28
+   ],
+   "to": [
+    5,
+    52,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip9",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip9_nose",
+   "from": [
+    2,
+    49,
+    -29
+   ],
+   "to": [
+    4,
+    51,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip9",
+   "panels": 0
+  },
+  {
+   "name": "tip10_cone",
+   "from": [
+    -5,
+    48,
+    -28
+   ],
+   "to": [
+    -1,
+    52,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip10",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip10_nose",
+   "from": [
+    -4,
+    49,
+    -29
+   ],
+   "to": [
+    -2,
+    51,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip10",
+   "panels": 0
+  },
+  {
+   "name": "tip11_cone",
+   "from": [
+    -11,
+    48,
+    -28
+   ],
+   "to": [
+    -7,
+    52,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip11",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip11_nose",
+   "from": [
+    -10,
+    49,
+    -29
+   ],
+   "to": [
+    -8,
+    51,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip11",
+   "panels": 0
+  },
+  {
+   "name": "tip12_cone",
+   "from": [
+    7,
+    54,
+    -28
+   ],
+   "to": [
+    11,
+    58,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip12",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip12_nose",
+   "from": [
+    8,
+    55,
+    -29
+   ],
+   "to": [
+    10,
+    57,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip12",
+   "panels": 0
+  },
+  {
+   "name": "tip13_cone",
+   "from": [
+    1,
+    54,
+    -28
+   ],
+   "to": [
+    5,
+    58,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip13",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip13_nose",
+   "from": [
+    2,
+    55,
+    -29
+   ],
+   "to": [
+    4,
+    57,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip13",
+   "panels": 0
+  },
+  {
+   "name": "tip14_cone",
+   "from": [
+    -5,
+    54,
+    -28
+   ],
+   "to": [
+    -1,
+    58,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip14",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip14_nose",
+   "from": [
+    -4,
+    55,
+    -29
+   ],
+   "to": [
+    -2,
+    57,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip14",
+   "panels": 0
+  },
+  {
+   "name": "tip15_cone",
+   "from": [
+    -11,
+    54,
+    -28
+   ],
+   "to": [
+    -7,
+    58,
+    -27
+   ],
+   "mat": "canvas",
+   "bone": "tip15",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "tip15_nose",
+   "from": [
+    -10,
+    55,
+    -29
+   ],
+   "to": [
+    -8,
+    57,
+    -28
+   ],
+   "mat": "paint2",
+   "bone": "tip15",
+   "panels": 0
+  },
+  {
+   "name": "crate0",
+   "from": [
+    6,
+    39,
+    -52
+   ],
+   "to": [
+    16,
+    44,
+    -42
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "east",
+     "x": 4,
+     "y": 2,
+     "w": 2,
+     "h": 1,
+     "mat": "handle"
+    },
+    {
+     "face": "west",
+     "x": 4,
+     "y": 2,
+     "w": 2,
+     "h": 1,
+     "mat": "handle"
+    },
+    {
+     "face": "up",
+     "x": 4,
+     "y": 0,
+     "w": 2,
+     "h": 10,
+     "mat": "strap"
+    }
+   ]
+  },
+  {
+   "name": "tarp",
+   "from": [
+    -15,
+    39,
+    -54
+   ],
+   "to": [
+    -3,
+    43,
+    -32
+   ],
+   "mat": "canvas",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 0,
+     "y": 3,
+     "w": 12,
+     "h": 2,
+     "mat": "strap"
+    },
+    {
+     "face": "east",
+     "x": 3,
+     "y": 0,
+     "w": 2,
+     "h": 4,
+     "mat": "strap"
+    },
+    {
+     "face": "west",
+     "x": 3,
+     "y": 0,
+     "w": 2,
+     "h": 4,
+     "mat": "strap"
+    },
+    {
+     "face": "up",
+     "x": 0,
+     "y": 17,
+     "w": 12,
+     "h": 2,
+     "mat": "strap"
+    },
+    {
+     "face": "east",
+     "x": 17,
+     "y": 0,
+     "w": 2,
+     "h": 4,
+     "mat": "strap"
+    },
+    {
+     "face": "west",
+     "x": 17,
+     "y": 0,
+     "w": 2,
+     "h": 4,
+     "mat": "strap"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  }
+ ],
+ "camo": {
+  "colors": [
+   "olive",
+   "khaki",
+   "camo_black"
+  ],
+  "shares": [
+   0.6,
+   0.25,
+   0.15
+  ],
+  "scale": 16
+ },
+ "canvas": [
+  "#3F4A2D",
+  "#566240",
+  "#6E7C51",
+  "#8A9868"
+ ]
+}

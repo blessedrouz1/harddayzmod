@@ -218,6 +218,8 @@ public class Drone extends Entity implements Threat {
         d.target = target;
         d.owner = owner;
         d.face(dir);
+        d.yRotO = d.getYRot();
+        d.xRotO = d.getXRot();
         level.addFreshEntity(d);
         return d;
     }

@@ -1,0 +1,276 @@
+{
+ "name": "wing_recon",
+ "note": "Fixed-wing recon drone: tractor prop, high straight wing with red tips, single fin. Scale 1 m = 16 px.",
+ "paint": "grey",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.15,
+ "seed": 82,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "wing",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "prop",
+   "pivot": [
+    0,
+    0,
+    -16.5
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "fuselage",
+   "from": [
+    -2,
+    -2,
+    -12
+   ],
+   "to": [
+    2,
+    2,
+    12
+   ],
+   "mat": "paint",
+   "bone": "body",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 2,
+     "w": 2,
+     "h": 8,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "nose",
+   "from": [
+    -1,
+    -1,
+    -15
+   ],
+   "to": [
+    1,
+    1,
+    -12
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "lens",
+   "from": [
+    -1.5,
+    -3,
+    -10
+   ],
+   "to": [
+    1.5,
+    -2,
+    -6
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "decals": [
+    {
+     "face": "down",
+     "x": 0,
+     "y": 0,
+     "w": 3,
+     "h": 4,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "pylon",
+   "from": [
+    -1,
+    2,
+    -4
+   ],
+   "to": [
+    1,
+    3,
+    2
+   ],
+   "mat": "paint2",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "tail_boom",
+   "from": [
+    -1,
+    -1,
+    12
+   ],
+   "to": [
+    1,
+    1,
+    15
+   ],
+   "mat": "paint",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "fin",
+   "from": [
+    -0.5,
+    2,
+    10
+   ],
+   "to": [
+    0.5,
+    8,
+    15
+   ],
+   "mat": "paint",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "stab",
+   "from": [
+    -8,
+    1,
+    13
+   ],
+   "to": [
+    8,
+    2,
+    16
+   ],
+   "mat": "paint",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "skid",
+   "from": [
+    -1,
+    -4,
+    -6
+   ],
+   "to": [
+    1,
+    -2,
+    6
+   ],
+   "mat": "metal",
+   "bone": "body",
+   "panels": 0
+  },
+  {
+   "name": "wing",
+   "from": [
+    -24,
+    3,
+    -5
+   ],
+   "to": [
+    24,
+    4,
+    3
+   ],
+   "mat": "paint",
+   "bone": "wing",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 0,
+     "y": 0,
+     "w": 3,
+     "h": 8,
+     "mat": "red"
+    },
+    {
+     "face": "up",
+     "x": 45,
+     "y": 0,
+     "w": 3,
+     "h": 8,
+     "mat": "red"
+    }
+   ]
+  },
+  {
+   "name": "prop_hub",
+   "from": [
+    -1,
+    -1,
+    -17.5
+   ],
+   "to": [
+    1,
+    1,
+    -15.5
+   ],
+   "mat": "metal",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_a",
+   "from": [
+    -5,
+    -0.5,
+    -15.5
+   ],
+   "to": [
+    5,
+    0.5,
+    -14.5
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  },
+  {
+   "name": "prop_blade_b",
+   "from": [
+    -0.5,
+    -5,
+    -14.5
+   ],
+   "to": [
+    0.5,
+    5,
+    -13.5
+   ],
+   "mat": "rubber",
+   "bone": "prop",
+   "panels": 0
+  }
+ ]
+}

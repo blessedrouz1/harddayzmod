@@ -1,0 +1,137 @@
+{
+ "name": "it_bandage",
+ "note": "inventory icon model: bandage",
+ "paint": "grey",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "roll",
+   "from": [
+    -5,
+    -3,
+    -2
+   ],
+   "to": [
+    5,
+    3,
+    2
+   ],
+   "mat": "headlight",
+   "panels": 0
+  },
+  {
+   "name": "roll_b",
+   "from": [
+    -3,
+    -5,
+    -1.5
+   ],
+   "to": [
+    3,
+    5,
+    1.5
+   ],
+   "mat": "headlight",
+   "panels": 0
+  },
+  {
+   "name": "roll_c",
+   "from": [
+    -4,
+    -4,
+    -1
+   ],
+   "to": [
+    4,
+    4,
+    1
+   ],
+   "mat": "headlight",
+   "panels": 0
+  },
+  {
+   "name": "core",
+   "from": [
+    -2,
+    -2,
+    -2.5
+   ],
+   "to": [
+    2,
+    2,
+    2.5
+   ],
+   "mat": "dark",
+   "panels": 0
+  },
+  {
+   "name": "tail",
+   "from": [
+    -4,
+    -6,
+    -2
+   ],
+   "to": [
+    4,
+    -5,
+    2
+   ],
+   "mat": "headlight",
+   "panels": 0
+  },
+  {
+   "name": "tail2",
+   "from": [
+    2,
+    -9,
+    -2
+   ],
+   "to": [
+    5,
+    -6,
+    2
+   ],
+   "mat": "headlight",
+   "panels": 0
+  },
+  {
+   "name": "band_a",
+   "from": [
+    -5.5,
+    -5.5,
+    -1
+   ],
+   "to": [
+    5.5,
+    5.5,
+    0
+   ],
+   "mat": "red",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

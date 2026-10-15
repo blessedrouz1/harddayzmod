@@ -1,0 +1,13 @@
+{
+ "base#0": "pad",
+ "base#1": "battery",
+ "base#2": "crate",
+ "base#3": "pedestal",
+ "turret#0": "column",
+ "turret#1": "seeker_box",
+ "rack#0": "beam",
+ "rack#1": "rail_front",
+ "rack#2": "rail_rear",
+ "rack#3": "clamp_a",
+ "rack#4": "sensor"
+}

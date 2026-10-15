@@ -1,0 +1,800 @@
+{
+ "name": "bmp2",
+ "note": "BMP-2 IFV. Scale 1 m = 16 px (6.7 x 3.2 m). Identifiers: sloped glacis with driver hump, flat hull with rear doors, two-man turret with 30 mm 2A42 and a Konkurs missile on a rail, six road wheels, three-colour camouflage.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.35,
+ "seed": 33,
+ "bones": [
+  {
+   "name": "hull",
+   "pivot": [
+    0,
+    4,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    23,
+    -3
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    28,
+    -17
+   ],
+   "parent": "turret"
+  }
+ ],
+ "parts": [
+  {
+   "type": "track",
+   "name": "track",
+   "x": [
+    17,
+    25
+   ],
+   "z": [
+    -46,
+    48
+   ],
+   "y": 0,
+   "height": 13,
+   "road_wheels": 6
+  },
+  {
+   "name": "belly",
+   "from": [
+    -17,
+    6,
+    -48
+   ],
+   "to": [
+    17,
+    14,
+    52
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 3,
+     "y": 1,
+     "w": 28,
+     "h": 1,
+     "mat": "bolts"
+    }
+   ],
+   "bone": "hull"
+  },
+  {
+   "name": "hull",
+   "from": [
+    -17,
+    14,
+    -38
+   ],
+   "to": [
+    17,
+    23,
+    52
+   ],
+   "mat": "paint",
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "type": "slab",
+   "name": "glacis",
+   "axis": "x",
+   "p0": [
+    0,
+    14,
+    -50
+   ],
+   "p1": [
+    0,
+    23,
+    -38
+   ],
+   "extent": [
+    -16,
+    16
+   ],
+   "thickness": 2,
+   "inside": [
+    0,
+    16,
+    -36
+   ],
+   "fit": "exact",
+   "mat": "paint",
+   "bone": "hull"
+  },
+  {
+   "name": "front_plate",
+   "from": [
+    -17,
+    6,
+    -50
+   ],
+   "to": [
+    17,
+    14,
+    -48
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 12,
+     "y": 3,
+     "w": 10,
+     "h": 4,
+     "mat": "rib"
+    }
+   ],
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "driver_hump",
+   "from": [
+    -14,
+    23,
+    -40
+   ],
+   "to": [
+    -6,
+    26,
+    -32
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 0,
+     "w": 6,
+     "h": 2,
+     "mat": "glass"
+    }
+   ],
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "driver_hatch",
+   "from": [
+    -13,
+    26,
+    -38
+   ],
+   "to": [
+    -7,
+    27,
+    -33
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "hull"
+  },
+  {
+   "name": "trim_vane",
+   "from": [
+    -10,
+    20,
+    -45
+   ],
+   "to": [
+    10,
+    22,
+    -44
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "hull"
+  },
+  {
+   "name": "fender",
+   "from": [
+    17,
+    14,
+    -46
+   ],
+   "to": [
+    26,
+    15,
+    50
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 3,
+     "w": 7,
+     "h": 1,
+     "mat": "bolts"
+    },
+    {
+     "face": "east",
+     "x": 3,
+     "y": 0,
+     "w": 90,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "fender_front",
+   "from": [
+    17,
+    12,
+    -50
+   ],
+   "to": [
+    26,
+    15,
+    -46
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "type": "lamp",
+   "name": "headlamp",
+   "center": [
+    22,
+    13,
+    -50
+   ],
+   "size": [
+    3,
+    3
+   ],
+   "face": "north",
+   "mirror": true,
+   "bone": "hull"
+  },
+  {
+   "name": "rear_door_r",
+   "from": [
+    1,
+    14,
+    52
+   ],
+   "to": [
+    9,
+    23,
+    53
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 7,
+     "mat": "hatch"
+    },
+    {
+     "face": "south",
+     "x": 1,
+     "y": 3,
+     "w": 2,
+     "h": 1,
+     "mat": "handle"
+    }
+   ],
+   "bone": "hull"
+  },
+  {
+   "name": "rear_door_l",
+   "from": [
+    -9,
+    14,
+    52
+   ],
+   "to": [
+    -1,
+    23,
+    53
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 7,
+     "mat": "hatch"
+    },
+    {
+     "face": "south",
+     "x": 5,
+     "y": 3,
+     "w": 2,
+     "h": 1,
+     "mat": "handle"
+    }
+   ],
+   "bone": "hull"
+  },
+  {
+   "name": "fuel_tank",
+   "from": [
+    19,
+    15,
+    24
+   ],
+   "to": [
+    25,
+    22,
+    48
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 2,
+     "y": 2,
+     "w": 20,
+     "h": 1,
+     "mat": "strap"
+    },
+    {
+     "face": "east",
+     "x": 1,
+     "y": 5,
+     "w": 22,
+     "h": 2,
+     "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 5,
+     "w": 22,
+     "h": 2,
+     "mat": "grime"
+    }
+   ],
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "stowage",
+   "from": [
+    19,
+    15,
+    -36
+   ],
+   "to": [
+    25,
+    19,
+    -22
+   ],
+   "mat": "canvas",
+   "mirror": true,
+   "panels": 0,
+   "bone": "hull",
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "toolbox",
+   "from": [
+    19,
+    15,
+    -18
+   ],
+   "to": [
+    25,
+    20,
+    -6
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 2,
+     "y": 1,
+     "w": 8,
+     "h": 3,
+     "mat": "hatch"
+    }
+   ],
+   "bone": "hull"
+  },
+  {
+   "name": "exhaust",
+   "from": [
+    10,
+    23,
+    40
+   ],
+   "to": [
+    14,
+    25,
+    48
+   ],
+   "mat": "metal",
+   "bone": "hull"
+  },
+  {
+   "name": "engine_grille",
+   "from": [
+    -10,
+    23,
+    28
+   ],
+   "to": [
+    10,
+    24,
+    46
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 2,
+     "y": 2,
+     "w": 16,
+     "h": 14,
+     "mat": "grille"
+    }
+   ],
+   "bone": "hull"
+  },
+  {
+   "name": "tow_cable",
+   "from": [
+    -15,
+    20,
+    -45
+   ],
+   "to": [
+    -14,
+    22,
+    -38
+   ],
+   "mat": "metal",
+   "bone": "hull"
+  },
+  {
+   "type": "antenna",
+   "name": "whip",
+   "base": [
+    -6,
+    32,
+    6
+   ],
+   "height": 22,
+   "bone": "turret"
+  },
+  {
+   "name": "turret",
+   "from": [
+    -11,
+    23,
+    -16
+   ],
+   "to": [
+    11,
+    32,
+    10
+   ],
+   "mat": "paint",
+   "bone": "turret",
+   "chamfer": {
+    "legs": [
+     3,
+     4
+    ],
+    "edges": [
+     "left",
+     "right"
+    ]
+   },
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cupola",
+   "from": [
+    3,
+    32,
+    -2
+   ],
+   "to": [
+    8,
+    34,
+    3
+   ],
+   "mat": "paint",
+   "bone": "turret",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "cupola_hatch",
+   "from": [
+    3.5,
+    34,
+    -1.5
+   ],
+   "to": [
+    7.5,
+    35,
+    2.5
+   ],
+   "mat": "paint2",
+   "bone": "turret"
+  },
+  {
+   "name": "gunner_sight",
+   "from": [
+    -8,
+    32,
+    -10
+   ],
+   "to": [
+    -3,
+    35,
+    -4
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "smoke_r",
+   "from": [
+    11,
+    25,
+    -12
+   ],
+   "to": [
+    13,
+    27,
+    -4
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "mirror": true
+  },
+  {
+   "name": "turret_bin",
+   "from": [
+    -10,
+    24,
+    10
+   ],
+   "to": [
+    10,
+    30,
+    14
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 3,
+     "y": 1,
+     "w": 14,
+     "h": 3,
+     "mat": "strap"
+    }
+   ]
+  },
+  {
+   "name": "atgm_rail",
+   "from": [
+    -1,
+    32,
+    2
+   ],
+   "to": [
+    1,
+    34,
+    10
+   ],
+   "mat": "metal",
+   "bone": "turret"
+  },
+  {
+   "name": "atgm_missile",
+   "from": [
+    -2,
+    34,
+    0
+   ],
+   "to": [
+    2,
+    38,
+    12
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 0,
+     "w": 2,
+     "h": 1,
+     "mat": "red"
+    }
+   ]
+  },
+  {
+   "name": "mantlet",
+   "from": [
+    -4,
+    24,
+    -19
+   ],
+   "to": [
+    4,
+    31,
+    -16
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "barrel",
+   "from": [
+    -1.5,
+    26.5,
+    -50
+   ],
+   "to": [
+    1.5,
+    29.5,
+    -19
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "barrel_jacket",
+   "from": [
+    -2,
+    26,
+    -32
+   ],
+   "to": [
+    2,
+    30,
+    -20
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "muzzle",
+   "from": [
+    -2,
+    26,
+    -54
+   ],
+   "to": [
+    2,
+    30,
+    -50
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "coax",
+   "from": [
+    3,
+    27,
+    -30
+   ],
+   "to": [
+    5,
+    29,
+    -19
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  }
+ ],
+ "camo": {
+  "colors": [
+   "olive",
+   "camo_brown",
+   "camo_black"
+  ],
+  "shares": [
+   0.55,
+   0.25,
+   0.2
+  ],
+  "scale": 16
+ }
+}

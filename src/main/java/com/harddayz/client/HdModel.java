@@ -13,22 +13,26 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
  */
 public class HdModel<S> {
     public final ModelPart root;
+    private final ModelPart[] animatedParts;
 
     public HdModel(ModelPart root) {
         this.root = root;
+        animatedParts = com.harddayz.client.model.GeoGpu.animatedParts(root);
     }
 
     public void setupAnim(S s) {
-        root.getAllParts().forEach(ModelPart::resetPose);
+        for (ModelPart part : animatedParts) part.resetPose();
     }
 
     public void render(S s, PoseStack pose, MultiBufferSource buffers, RenderType type, int light) {
         setupAnim(s);
-        root.render(pose, buffers.getBuffer(type), light, OverlayTexture.NO_OVERLAY);
+        draw(pose, buffers, type, light);
     }
 
     /** Нарисовать без анимации (поза уже выставлена). */
     public void draw(PoseStack pose, MultiBufferSource buffers, RenderType type, int light) {
-        root.render(pose, buffers.getBuffer(type), light, OverlayTexture.NO_OVERLAY);
+        if (!com.harddayz.client.model.GeoGpu.render(root, pose, buffers, type, light, OverlayTexture.NO_OVERLAY)) {
+            com.harddayz.client.model.GeoGpu.renderVertices(root, pose, buffers.getBuffer(type), light, OverlayTexture.NO_OVERLAY);
+        }
     }
 }

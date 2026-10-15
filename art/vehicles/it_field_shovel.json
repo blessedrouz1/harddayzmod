@@ -1,0 +1,122 @@
+{
+ "name": "it_field_shovel",
+ "note": "inventory icon model: field_shovel",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "handle",
+   "from": [
+    -1,
+    -1,
+    -2
+   ],
+   "to": [
+    1,
+    1,
+    16
+   ],
+   "mat": "brown",
+   "panels": 0
+  },
+  {
+   "name": "grip",
+   "from": [
+    -2,
+    -2,
+    14
+   ],
+   "to": [
+    2,
+    2,
+    18
+   ],
+   "mat": "rubber",
+   "panels": 0
+  },
+  {
+   "name": "collar",
+   "from": [
+    -1.5,
+    -1.5,
+    -4
+   ],
+   "to": [
+    1.5,
+    1.5,
+    -2
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "blade",
+   "from": [
+    -4,
+    -0.5,
+    -12
+   ],
+   "to": [
+    4,
+    0.5,
+    -4
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "blade_tip",
+   "from": [
+    -2,
+    -0.5,
+    -14
+   ],
+   "to": [
+    2,
+    0.5,
+    -12
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "rib",
+   "from": [
+    -0.5,
+    0.5,
+    -10
+   ],
+   "to": [
+    0.5,
+    1.5,
+    -4
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

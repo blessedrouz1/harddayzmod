@@ -1,0 +1,451 @@
+{
+ "name": "mg",
+ "note": "PKM machine gun on a tripod. Scale 1 m = 16 px. Identifiers: ribbed barrel jacket with flash hider, box-fed receiver with ammo can and belt, wooden stock, folded bipod, tripod.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.35,
+ "seed": 73,
+ "bones": [
+  {
+   "name": "legs",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    17,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "parent": "turret"
+  }
+ ],
+ "parts": [
+  {
+   "name": "leg_a",
+   "from": [
+    -1.0,
+    0,
+    -1.0
+   ],
+   "to": [
+    1.0,
+    17,
+    1.0
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    0,
+    0,
+    25.20112364547507
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_a_foot",
+   "from": [
+    5.5,
+    0,
+    -2.5
+   ],
+   "to": [
+    10.5,
+    2,
+    2.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "leg_b",
+   "from": [
+    -1.0,
+    0,
+    -0.5
+   ],
+   "to": [
+    1.0,
+    17,
+    1.5
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    0,
+    0,
+    -25.20112364547507
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_b_foot",
+   "from": [
+    -10.5,
+    0,
+    -2.5
+   ],
+   "to": [
+    -5.5,
+    2,
+    2.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "leg_c",
+   "from": [
+    -1.0,
+    0,
+    -1.0
+   ],
+   "to": [
+    1.0,
+    17,
+    1.0
+   ],
+   "mat": "metal",
+   "bone": "legs",
+   "rotation": [
+    -25.20112364547507,
+    0,
+    0
+   ],
+   "pivot": [
+    0,
+    17,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "leg_c_foot",
+   "from": [
+    -2.5,
+    0,
+    6.5
+   ],
+   "to": [
+    2.5,
+    2,
+    11.5
+   ],
+   "mat": "paint2",
+   "bone": "legs",
+   "panels": 0
+  },
+  {
+   "name": "yoke",
+   "from": [
+    3,
+    13,
+    -3
+   ],
+   "to": [
+    5,
+    21,
+    3
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "yaw_collar",
+   "from": [
+    -4,
+    12,
+    -4
+   ],
+   "to": [
+    4,
+    14,
+    4
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "receiver",
+   "from": [
+    -2,
+    15,
+    -6
+   ],
+   "to": [
+    2,
+    19,
+    12
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "east",
+     "x": 2,
+     "y": 1,
+     "w": 10,
+     "h": 1,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "feed_cover",
+   "from": [
+    -2.5,
+    19,
+    -2
+   ],
+   "to": [
+    2.5,
+    20,
+    8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "barrel_jacket",
+   "from": [
+    -1.5,
+    16,
+    -16
+   ],
+   "to": [
+    1.5,
+    19,
+    -6
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 1,
+     "mat": "vent"
+    }
+   ]
+  },
+  {
+   "name": "barrel",
+   "from": [
+    -1,
+    16.5,
+    -26
+   ],
+   "to": [
+    1,
+    18.5,
+    -16
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "flash_hider",
+   "from": [
+    -1.5,
+    16,
+    -28
+   ],
+   "to": [
+    1.5,
+    19,
+    -26
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "front_sight",
+   "from": [
+    -0.5,
+    18.5,
+    -24
+   ],
+   "to": [
+    0.5,
+    20.5,
+    -23
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "rear_sight",
+   "from": [
+    -1,
+    20,
+    6
+   ],
+   "to": [
+    1,
+    22,
+    7
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "stock",
+   "from": [
+    -1.5,
+    14,
+    12
+   ],
+   "to": [
+    1.5,
+    19,
+    20
+   ],
+   "mat": "canvas",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "grip",
+   "from": [
+    -1,
+    11,
+    8
+   ],
+   "to": [
+    1,
+    15,
+    11
+   ],
+   "mat": "rubber",
+   "bone": "rack"
+  },
+  {
+   "name": "ammo_box",
+   "from": [
+    -7,
+    14,
+    3
+   ],
+   "to": [
+    -3,
+    20,
+    11
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "west",
+     "x": 2,
+     "y": 1,
+     "w": 3,
+     "h": 1,
+     "mat": "handle"
+    }
+   ]
+  },
+  {
+   "name": "belt",
+   "from": [
+    -3,
+    17,
+    4
+   ],
+   "to": [
+    -2,
+    19,
+    10
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "carry_handle",
+   "from": [
+    -1,
+    19,
+    -12
+   ],
+   "to": [
+    1,
+    21,
+    -8
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "bipod_l",
+   "from": [
+    -2.5,
+    13,
+    -12
+   ],
+   "to": [
+    -1.5,
+    16,
+    -10
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "bipod_r",
+   "from": [
+    1.5,
+    13,
+    -12
+   ],
+   "to": [
+    2.5,
+    16,
+    -10
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  }
+ ]
+}

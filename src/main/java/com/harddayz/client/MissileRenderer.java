@@ -122,8 +122,20 @@ public class MissileRenderer extends EntityRenderer<Missile> {
 
     private void draw(State s, PoseStack pose, MultiBufferSource buffers) {
         pose.pushPose();
-        pose.mulPose(Axis.YP.rotationDegrees(s.yaw));
-        pose.mulPose(Axis.XP.rotationDegrees(-s.pitch));
+        // Minecraft yaw/pitch: yaw turns left, negative pitch points upwards.
+        pose.mulPose(Axis.YP.rotationDegrees(-s.yaw));
+        pose.mulPose(Axis.XP.rotationDegrees(s.pitch));
+        // Ракеты ПВО нарисованы в натуральную величину для контейнера, но в полёте
+        // выглядят слишком крупными — масштабируем до реалистичного диаметра.
+        float bodyScale = switch (s.look) {
+            case 2 -> 0.32f; // m_s400 (48Н6: диаметр 0.52м → 8px)
+            case 3 -> 0.30f; // m_patriot (PAC-2: диаметр 0.41м → 6.5px)
+            case 4 -> 0.22f; // m_sam / NASAMS (AIM-120: диаметр 0.18м → ~3px)
+            default -> 1.0f;
+        };
+        if (bodyScale != 1.0f) {
+            pose.scale(bodyScale, bodyScale, bodyScale);
+        }
         String gn = lookName(s);
         if (gn != null) {
             pose.pushPose();

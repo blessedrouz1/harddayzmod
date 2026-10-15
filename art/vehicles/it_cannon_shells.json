@@ -1,0 +1,212 @@
+{
+ "name": "it_cannon_shells",
+ "note": "inventory icon model: cannon_shells",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "s0",
+   "from": [
+    -7,
+    -1,
+    -6
+   ],
+   "to": [
+    -3,
+    1,
+    6
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "s0_b",
+   "from": [
+    -6,
+    -2,
+    -5.5
+   ],
+   "to": [
+    -4,
+    2,
+    5.5
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "p0",
+   "from": [
+    -6.5,
+    -1.5,
+    -9
+   ],
+   "to": [
+    -3.5,
+    1.5,
+    -6
+   ],
+   "mat": "brown",
+   "panels": 0
+  },
+  {
+   "name": "r0",
+   "from": [
+    -7.5,
+    -2.5,
+    5
+   ],
+   "to": [
+    -2.5,
+    2.5,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "s1",
+   "from": [
+    -2,
+    -1,
+    -6
+   ],
+   "to": [
+    2,
+    1,
+    6
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "s1_b",
+   "from": [
+    -1,
+    -2,
+    -5.5
+   ],
+   "to": [
+    1,
+    2,
+    5.5
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "p1",
+   "from": [
+    -1.5,
+    -1.5,
+    -9
+   ],
+   "to": [
+    1.5,
+    1.5,
+    -6
+   ],
+   "mat": "brown",
+   "panels": 0
+  },
+  {
+   "name": "r1",
+   "from": [
+    -2.5,
+    -2.5,
+    5
+   ],
+   "to": [
+    2.5,
+    2.5,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "s2",
+   "from": [
+    3,
+    -1,
+    -6
+   ],
+   "to": [
+    7,
+    1,
+    6
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "s2_b",
+   "from": [
+    4,
+    -2,
+    -5.5
+   ],
+   "to": [
+    6,
+    2,
+    5.5
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "p2",
+   "from": [
+    3.5,
+    -1.5,
+    -9
+   ],
+   "to": [
+    6.5,
+    1.5,
+    -6
+   ],
+   "mat": "brown",
+   "panels": 0
+  },
+  {
+   "name": "r2",
+   "from": [
+    2.5,
+    -2.5,
+    5
+   ],
+   "to": [
+    7.5,
+    2.5,
+    6
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

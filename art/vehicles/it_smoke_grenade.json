@@ -1,0 +1,167 @@
+{
+ "name": "it_smoke_grenade",
+ "note": "inventory icon model: smoke_grenade",
+ "paint": "grey",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -4,
+    -2,
+    -7
+   ],
+   "to": [
+    4,
+    2,
+    5
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_b",
+   "from": [
+    -2,
+    -4,
+    -6.5
+   ],
+   "to": [
+    2,
+    4,
+    4.5
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_c",
+   "from": [
+    -3,
+    -3,
+    -6
+   ],
+   "to": [
+    3,
+    3,
+    4
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "band",
+   "from": [
+    -4.5,
+    -4.5,
+    -2
+   ],
+   "to": [
+    4.5,
+    4.5,
+    0
+   ],
+   "mat": "amber",
+   "panels": 0
+  },
+  {
+   "name": "cap",
+   "from": [
+    -3,
+    -3,
+    5
+   ],
+   "to": [
+    3,
+    3,
+    7
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "top",
+   "from": [
+    -4,
+    -4,
+    -9
+   ],
+   "to": [
+    4,
+    4,
+    -7
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "lever",
+   "from": [
+    1,
+    -5,
+    4
+   ],
+   "to": [
+    2,
+    5,
+    7
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "pin",
+   "from": [
+    -3,
+    3,
+    6
+   ],
+   "to": [
+    -2,
+    6,
+    7
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "vent",
+   "from": [
+    -1,
+    -1,
+    -10
+   ],
+   "to": [
+    1,
+    1,
+    -9
+   ],
+   "mat": "dark",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

@@ -26,6 +26,9 @@ import net.minecraft.world.item.ItemStack;
  */
 public final class Supply {
     public record Entry(Supplier<Item> item, int count, int price, int seconds, boolean heavy) {
+        public boolean available() {
+            return !(item.get() instanceof com.harddayz.item.LauncherItem launcher) || launcher.available();
+        }
         public ItemStack stack() {
             return new ItemStack(item.get(), count);
         }
@@ -167,6 +170,7 @@ public final class Supply {
             return null;
         }
         Entry e = CATALOG.get(index);
+        if (!e.available()) return null;
         if (e.heavy() && !War.isCommander(p)) {
             return Component.translatable("message.harddayz.shop_commander_only");
         }
@@ -197,12 +201,22 @@ public final class Supply {
             }
             boolean changed = false;
             for (Order o : new ArrayList<>(f.orders)) {
+                // Keep catalog indices stable for saved orders; refund discontinued vehicles.
+                Entry entry = CATALOG.get(o.entry);
+                if (!entry.available()) {
+                    f.budget += entry.price();
+                    f.spent = Math.max(0, f.spent - entry.price());
+                    f.orders.remove(o);
+                    changed = true;
+                    continue;
+                }
                 if (now < o.due) {
                     continue;
                 }
-                f.orders.remove(o);
-                changed = true;
-                deliver(server, f, o);
+                if (deliver(server, f, o)) {
+                    f.orders.remove(o);
+                    changed = true;
+                }
             }
             if (changed) {
                 War.save();
@@ -210,7 +224,12 @@ public final class Supply {
         }
     }
 
-    private static void deliver(MinecraftServer server, War.Faction f, Order o) {
+    private static boolean deliver(MinecraftServer server, War.Faction f, Order o) {
+        // Without a base, keep the paid order queued until its buyer returns.
+        ServerPlayer buyer = server.getPlayerList().getPlayerByName(o.by);
+        if (f.hqs.isEmpty() && f.warehouses.isEmpty() && buyer == null) {
+            return false;
+        }
         Entry e = CATALOG.get(o.entry);
         ItemStack stack = e.stack();
         ServerLevel level = server.overworld();
@@ -227,7 +246,7 @@ public final class Supply {
                         m.sendSystemMessage(Component.translatable("message.harddayz.shop_arrived", e.stack().getHoverName(), e.count(),
                                 Component.translatable("message.harddayz.shop_where_hq")).withStyle(ChatFormatting.GREEN));
                     }
-                    return;
+                    return true;
                 }
             }
         }
@@ -246,7 +265,6 @@ public final class Supply {
             level.addFreshEntity(ie);
             level.playSound(null, at, SoundEvents.IRON_DOOR_OPEN, SoundSource.BLOCKS, 1f, 0.7f);
         } else {
-            ServerPlayer buyer = server.getPlayerList().getPlayerByName(o.by);
             if (buyer != null && !buyer.getInventory().add(stack)) {
                 buyer.spawnAtLocation(stack);
             }
@@ -257,6 +275,7 @@ public final class Supply {
             m.sendSystemMessage(Component.translatable("message.harddayz.shop_arrived", e.stack().getHoverName(), e.count(), where)
                     .withStyle(ChatFormatting.GREEN));
         }
+        return true;
     }
 
     static List<ServerPlayer> members(MinecraftServer server, War.Faction f) {

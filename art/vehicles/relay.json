@@ -1,0 +1,755 @@
+{
+ "name": "relay",
+ "note": "Field relay station: shelter with generator, lattice mast, rotating dish and yagi. Scale 1 m = 16 px.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.3,
+ "seed": 74,
+ "bones": [
+  {
+   "name": "base",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    13,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    61,
+    0
+   ],
+   "parent": "turret"
+  }
+ ],
+ "parts": [
+  {
+   "name": "skid",
+   "from": [
+    -16,
+    0,
+    -16
+   ],
+   "to": [
+    16,
+    1,
+    16
+   ],
+   "mat": "metal",
+   "bone": "base",
+   "panels": 0
+  },
+  {
+   "name": "shelter",
+   "from": [
+    -15,
+    1,
+    -15
+   ],
+   "to": [
+    15,
+    13,
+    15
+   ],
+   "mat": "paint",
+   "bone": "base",
+   "panels": 10,
+   "decals": [
+    {
+     "face": "north",
+     "x": 4,
+     "y": 2,
+     "w": 10,
+     "h": 10,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 8,
+     "y": 3,
+     "w": 12,
+     "h": 6,
+     "mat": "vent"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 3,
+     "w": 10,
+     "h": 6,
+     "mat": "vent"
+    },
+    {
+     "face": "south",
+     "x": 3,
+     "y": 2,
+     "w": 8,
+     "h": 9,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "ac_unit",
+   "from": [
+    -14,
+    13,
+    4
+   ],
+   "to": [
+    -7,
+    17,
+    12
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 1,
+     "w": 5,
+     "h": 6,
+     "mat": "grille"
+    }
+   ]
+  },
+  {
+   "name": "cable_reel",
+   "from": [
+    7,
+    13,
+    4
+   ],
+   "to": [
+    14,
+    19,
+    10
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 4,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "generator",
+   "from": [
+    16,
+    0,
+    -8
+   ],
+   "to": [
+    22,
+    8,
+    4
+   ],
+   "mat": "paint",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 10,
+     "h": 5,
+     "mat": "vent"
+    }
+   ]
+  },
+  {
+   "name": "fuel_can",
+   "from": [
+    16,
+    0,
+    6
+   ],
+   "to": [
+    21,
+    7,
+    11
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0
+  },
+  {
+   "name": "step",
+   "from": [
+    -6,
+    0,
+    -20
+   ],
+   "to": [
+    6,
+    1,
+    -16
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 1,
+     "w": 10,
+     "h": 1,
+     "mat": "rib"
+    }
+   ]
+  },
+  {
+   "name": "exhaust",
+   "from": [
+    17,
+    8,
+    -6
+   ],
+   "to": [
+    19,
+    16,
+    -4
+   ],
+   "mat": "metal",
+   "bone": "base"
+  },
+  {
+   "name": "mast_base",
+   "from": [
+    -6,
+    13,
+    -6
+   ],
+   "to": [
+    6,
+    15,
+    6
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "post0",
+   "from": [
+    -5,
+    17,
+    -5
+   ],
+   "to": [
+    -3,
+    59,
+    -3
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "post1",
+   "from": [
+    3,
+    17,
+    -5
+   ],
+   "to": [
+    5,
+    59,
+    -3
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "post2",
+   "from": [
+    -5,
+    17,
+    3
+   ],
+   "to": [
+    -3,
+    59,
+    5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "post3",
+   "from": [
+    3,
+    17,
+    3
+   ],
+   "to": [
+    5,
+    59,
+    5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ring0",
+   "from": [
+    -6,
+    15,
+    -6
+   ],
+   "to": [
+    6,
+    17,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ring1",
+   "from": [
+    -6,
+    27,
+    -6
+   ],
+   "to": [
+    6,
+    29,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ring2",
+   "from": [
+    -6,
+    39,
+    -6
+   ],
+   "to": [
+    6,
+    41,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ring3",
+   "from": [
+    -6,
+    51,
+    -6
+   ],
+   "to": [
+    6,
+    53,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "brace0a",
+   "from": [
+    -0.5,
+    17,
+    -4.5
+   ],
+   "to": [
+    0.5,
+    30,
+    -3.5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    38
+   ],
+   "pivot": [
+    0,
+    23.5,
+    -4
+   ],
+   "panels": 0
+  },
+  {
+   "name": "brace0b",
+   "from": [
+    -0.5,
+    17,
+    -4.25
+   ],
+   "to": [
+    0.5,
+    30,
+    -3.25
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    -38
+   ],
+   "pivot": [
+    0,
+    23.5,
+    -3.75
+   ],
+   "panels": 0
+  },
+  {
+   "name": "brace1a",
+   "from": [
+    -0.5,
+    29,
+    -4.5
+   ],
+   "to": [
+    0.5,
+    42,
+    -3.5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    38
+   ],
+   "pivot": [
+    0,
+    35.5,
+    -4
+   ],
+   "panels": 0
+  },
+  {
+   "name": "brace1b",
+   "from": [
+    -0.5,
+    29,
+    -4.25
+   ],
+   "to": [
+    0.5,
+    42,
+    -3.25
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    -38
+   ],
+   "pivot": [
+    0,
+    35.5,
+    -3.75
+   ],
+   "panels": 0
+  },
+  {
+   "name": "brace2a",
+   "from": [
+    -0.5,
+    41,
+    -4.5
+   ],
+   "to": [
+    0.5,
+    54,
+    -3.5
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    38
+   ],
+   "pivot": [
+    0,
+    47.5,
+    -4
+   ],
+   "panels": 0
+  },
+  {
+   "name": "brace2b",
+   "from": [
+    -0.5,
+    41,
+    -4.25
+   ],
+   "to": [
+    0.5,
+    54,
+    -3.25
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "rotation": [
+    0,
+    0,
+    -38
+   ],
+   "pivot": [
+    0,
+    47.5,
+    -3.75
+   ],
+   "panels": 0
+  },
+  {
+   "name": "top_plate",
+   "from": [
+    -6,
+    59,
+    -6
+   ],
+   "to": [
+    6,
+    61,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "ladder",
+   "from": [
+    -7,
+    15,
+    -1
+   ],
+   "to": [
+    -6,
+    59,
+    1
+   ],
+   "mat": "metal",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "boom",
+   "from": [
+    -1,
+    61,
+    -3
+   ],
+   "to": [
+    1,
+    65,
+    3
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "yoke_arm",
+   "from": [
+    -8,
+    65,
+    -2
+   ],
+   "to": [
+    8,
+    67,
+    2
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "dish",
+   "from": [
+    -9,
+    67,
+    -3
+   ],
+   "to": [
+    9,
+    85,
+    -1
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 2,
+     "y": 2,
+     "w": 14,
+     "h": 14,
+     "mat": "grille"
+    }
+   ]
+  },
+  {
+   "name": "dish_rim",
+   "from": [
+    -10,
+    66,
+    -5
+   ],
+   "to": [
+    10,
+    68,
+    -3
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "feed_arm",
+   "from": [
+    -0.5,
+    75,
+    -10
+   ],
+   "to": [
+    0.5,
+    77,
+    -3
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "feed",
+   "from": [
+    -1.5,
+    74,
+    -14
+   ],
+   "to": [
+    1.5,
+    78,
+    -10
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 1,
+     "w": 3,
+     "h": 2,
+     "mat": "amber"
+    }
+   ]
+  },
+  {
+   "name": "yagi_boom",
+   "from": [
+    8,
+    70,
+    -2
+   ],
+   "to": [
+    10,
+    72,
+    12
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "yagi_a",
+   "from": [
+    5.5,
+    70.5,
+    0
+   ],
+   "to": [
+    12.5,
+    71.5,
+    1
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "yagi_b",
+   "from": [
+    5.5,
+    70.5,
+    5
+   ],
+   "to": [
+    12.5,
+    71.5,
+    6
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "yagi_c",
+   "from": [
+    5.5,
+    70.5,
+    10
+   ],
+   "to": [
+    12.5,
+    71.5,
+    11
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  }
+ ]
+}

@@ -144,7 +144,8 @@ public final class ModItems {
             .title(Component.translatable("itemGroup.harddayz"))
             .icon(() -> new ItemStack(ISKANDER.get()))
             .displayItems((params, out) -> ITEMS.getEntries().forEach(e -> {
-                if (!weapon(e.get()) && !eng(e.get()) && !ammo(e.get())) {
+                if (!weapon(e.get()) && !eng(e.get()) && !ammo(e.get())
+                        && (!(e.get() instanceof LauncherItem launcher) || launcher.available())) {
                     out.accept(e.get());
                 }
             }))

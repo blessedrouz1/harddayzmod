@@ -1,0 +1,14 @@
+{
+ "body#0": "fuselage",
+ "body#1": "fuselage_b",
+ "body#2": "nose",
+ "body#3": "band",
+ "body#4": "tail_cap",
+ "wing#0": "wing00",
+ "wing#1": "wing01",
+ "wing#2": "wing10",
+ "wing#3": "wing11",
+ "prop#0": "prop_hub",
+ "prop#1": "prop_blade_a",
+ "prop#2": "prop_blade_b"
+}

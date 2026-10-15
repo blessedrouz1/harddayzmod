@@ -59,6 +59,11 @@ public final class ClientGuns {
         if (gun() == null && !rangefinder()) {
             return false;
         }
+        // Let the entity interaction reach the server even when holding a gun.
+        if (Minecraft.getInstance().hitResult instanceof net.minecraft.world.phys.EntityHitResult hit
+                && hit.getEntity() instanceof com.harddayz.entity.Drone d && !d.kind().autonomous) {
+            return false;
+        }
         event.setSwingHand(false);
         return true; // ПКМ — только прицел
     }

@@ -1,0 +1,197 @@
+{
+ "name": "it_frag_grenade",
+ "note": "inventory icon model: frag_grenade",
+ "paint": "green",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -5,
+    -3,
+    -6
+   ],
+   "to": [
+    5,
+    3,
+    6
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_b",
+   "from": [
+    -3,
+    -5,
+    -5.5
+   ],
+   "to": [
+    3,
+    5,
+    5.5
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "body_c",
+   "from": [
+    -4,
+    -4,
+    -5
+   ],
+   "to": [
+    4,
+    4,
+    5
+   ],
+   "mat": "paint",
+   "panels": 0
+  },
+  {
+   "name": "ring_a",
+   "from": [
+    -5.5,
+    -5.5,
+    -3
+   ],
+   "to": [
+    5.5,
+    5.5,
+    -2
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "ring_b",
+   "from": [
+    -5.5,
+    -5.5,
+    0
+   ],
+   "to": [
+    5.5,
+    5.5,
+    1
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "ring_c",
+   "from": [
+    -5.5,
+    -5.5,
+    3
+   ],
+   "to": [
+    5.5,
+    5.5,
+    4
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "neck",
+   "from": [
+    -2,
+    -2,
+    6
+   ],
+   "to": [
+    2,
+    2,
+    8
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "fuse",
+   "from": [
+    -1.5,
+    -1.5,
+    8
+   ],
+   "to": [
+    1.5,
+    1.5,
+    10
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "lever",
+   "from": [
+    1,
+    -4,
+    5
+   ],
+   "to": [
+    2,
+    4,
+    8
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "pin",
+   "from": [
+    -3,
+    3,
+    7
+   ],
+   "to": [
+    -2,
+    6,
+    8
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "pin_ring",
+   "from": [
+    -4,
+    5,
+    7
+   ],
+   "to": [
+    -1,
+    6,
+    8
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}

@@ -70,5 +70,6 @@ public final class ClientAccess {
             DronePilot.start(d);
         }
         DronePilot.step(d);
+        DroneExhaust.tick(d);
     }
 }

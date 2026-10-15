@@ -83,9 +83,9 @@ public class Launcher extends Vehicle {
         BRADLEY(150, 320),
         /** Ретранслятор: продлевает связь с «Шахедами» и «Ланцетами» своей фракции на 900 блоков вокруг. */
         RELAY(0, 80, false),
-        /** Т-72Б3: 125-мм пушка, толстая броня, медленная перезарядка. */
+        /** Удалён из мода: значение оставлено только ради порядка в старых сохранениях. */
         T72(22, 520),
-        /** Abrams: 120-мм пушка, ещё толще броня, чуть быстрее перезарядка. */
+        /** Удалён из мода: значение оставлено только ради порядка в старых сохранениях. */
         ABRAMS(20, 600),
         /** Ка-52: ударный — пушка 2А42 (ЛКМ) и блоки НУРС С-8 (ПКМ). */
         KA52(40, 260),
@@ -133,20 +133,16 @@ public class Launcher extends Vehicle {
 
         /** Стрелковые установки: на них садятся и стреляют сами. */
         public boolean gunner() {
-            return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY || tank();
+            return this == SAM_MANUAL || this == MG || this == PICKUP_MG || this == PICKUP_SAM || this == BMP2 || this == BRADLEY;
         }
 
-        /** Убраны из мода (танки и вертолёты): значения оставлены только ради старых сохранений, такие машины исчезают. */
+        /** Убраны из мода (БМП-2, танки и вертолёты): значения оставлены только ради старых сохранений, такие машины исчезают. */
         public boolean removed() {
-            return this == T72 || this == ABRAMS || this == KA52 || this == MI8;
+            return this == BMP2 || this == T72 || this == ABRAMS || this == KA52 || this == MI8;
         }
 
         public boolean heli() {
             return this == KA52 || this == MI8;
-        }
-
-        public boolean tank() {
-            return this == T72 || this == ABRAMS;
         }
 
         /** Стрельба только после захвата цели (ПЗРК). */
@@ -155,7 +151,7 @@ public class Launcher extends Vehicle {
         }
 
         public boolean cannon() {
-            return this == BMP2 || this == BRADLEY || tank();
+            return this == BMP2 || this == BRADLEY;
         }
 
         public Item ammo() {
@@ -284,7 +280,7 @@ public class Launcher extends Vehicle {
         return switch (kind()) {
             case PICKUP_MG, PICKUP_SAM -> 80;
             case BMP2, BRADLEY -> 120;
-            case T72, ABRAMS, TOS -> 160;
+            case TOS -> 160;
             case KA52 -> 180;
             case MI8 -> 220;
             case ISKANDER, S400, PATRIOT -> 140;
@@ -296,8 +292,7 @@ public class Launcher extends Vehicle {
     private float burn() {
         return switch (kind()) {
             case PICKUP_MG, PICKUP_SAM -> 0.008f;
-            case ABRAMS -> 0.03f;
-            case T72, TOS, BMP2, BRADLEY -> 0.02f;
+            case TOS, BMP2, BRADLEY -> 0.02f;
             case KA52, MI8 -> 0.035f;
             default -> 0.014f;
         };
@@ -395,7 +390,7 @@ public class Launcher extends Vehicle {
         return getBoundingBox().inflate(6, 6, 6);
     }
 
-    /** Хитбокс по размеру техники: пулемёт и ПЗРК маленькие, танки и ТОС крупнее. */
+    /** Хитбокс по размеру техники: пулемёт и ПЗРК маленькие, ТОС крупнее. */
     @Override
     public net.minecraft.world.entity.EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose) {
         return switch (kind()) {
@@ -405,7 +400,7 @@ public class Launcher extends Vehicle {
             case PICKUP_MG, PICKUP_SAM -> net.minecraft.world.entity.EntityDimensions.scalable(2.0f, 2.0f);
             case RAMP -> net.minecraft.world.entity.EntityDimensions.scalable(2.4f, 1.6f);
             case KA52, MI8 -> net.minecraft.world.entity.EntityDimensions.scalable(3.0f, 2.6f);
-            case BMP2, BRADLEY, T72, ABRAMS, TOS -> net.minecraft.world.entity.EntityDimensions.scalable(3.2f, 2.3f);
+            case BMP2, BRADLEY, TOS -> net.minecraft.world.entity.EntityDimensions.scalable(3.2f, 2.3f);
             default -> net.minecraft.world.entity.EntityDimensions.scalable(3.0f, 2.6f);
         };
     }
@@ -437,7 +432,6 @@ public class Launcher extends Vehicle {
             case SAM_MANUAL -> new Vec3(0, 0.35, -1.0);
             case PICKUP_MG, PICKUP_SAM -> new Vec3(0, 1.0, -1.7);
             case BMP2, BRADLEY -> new Vec3(0, 1.75, -1.0);
-            case T72, ABRAMS -> new Vec3(0, 1.9, 0.6);
             default -> new Vec3(0, 1, 0);
         };
     }
@@ -473,7 +467,6 @@ public class Launcher extends Vehicle {
         if (!crewed() || i == 0) {
             return crewed() ? switch (kind()) {
                 case BMP2, BRADLEY -> new Vec3(-0.5, 1.2, 1.9);
-                case T72, ABRAMS -> new Vec3(0, 1.0, 2.6);
                 default -> new Vec3(-0.45, 0.55, 0.55);
             } : seat();
         }
@@ -494,9 +487,7 @@ public class Launcher extends Vehicle {
             case PICKUP_MG, PICKUP_SAM -> 0.6;
             case BMP2 -> 0.36;
             case BRADLEY -> 0.33;
-            case T72 -> 0.32;
             case KA52, MI8 -> 0.25;
-            case ABRAMS -> 0.34;
             default -> 0.38;
         };
     }
@@ -506,7 +497,6 @@ public class Launcher extends Vehicle {
         return switch (kind()) {
             case PICKUP_MG, PICKUP_SAM -> 0.012;
             case BMP2, BRADLEY -> 0.006;
-            case T72, ABRAMS -> 0.0045;
             case ISKANDER, PATRIOT, S400 -> 0.004;
             default -> 0.005;
         };
@@ -698,8 +688,9 @@ public class Launcher extends Vehicle {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
                     return;
                 }
-                entityData.set(WANT_ELEV, 25f);
-                entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
+                // Вертикальный пуск из шахты — контейнер не двигается совсем
+                entityData.set(WANT_ELEV, 0f);
+                entityData.set(WANT_TURRET, 0f);
             }
             case GRAD, GRAD_P, TOS, SMERCH, URAGAN -> {
                 Double elev = gradElevation(tv);
@@ -785,7 +776,21 @@ public class Launcher extends Vehicle {
     }
 
     /** Точка вращения пакета направляющих / стрелы (совпадает с моделью). */
+    private Vec3 launchMuzzle() {
+        return position().add(LauncherGeometry.muzzle(kind(), ammo(), getYRot(), turretSmooth().value, elevation(1), erect.value));
+    }
+
+    private Vec3 launchDirection() {
+        return LauncherGeometry.direction(kind(), getYRot(), turretSmooth().value, elevation(1), erect.value);
+    }
+
     private Vec3 muzzleBase() {
+        if (!kind().removed() && (kind().samLike() || kind().dronePad()
+                || kind() == Kind.GRAD || kind() == Kind.GRAD_P || kind() == Kind.ISKANDER || kind() == Kind.TOCHKA
+                || kind() == Kind.TOS || kind() == Kind.HIMARS || kind() == Kind.SMERCH || kind() == Kind.URAGAN
+                || kind() == Kind.KALIBR || kind() == Kind.MORTAR)) {
+            return position().add(LauncherGeometry.pivot(kind(), getYRot(), turretSmooth().value, elevation.value, erect.value));
+        }
         return switch (kind()) {
             case GRAD -> local(0, 2.0, -1.5);
             case ISKANDER -> local(0, 1.75, -2.75);
@@ -807,10 +812,8 @@ public class Launcher extends Vehicle {
             case PATRIOT, NASAMS -> local(0, 2.35, -0.55);
             case PICKUP_MG, PICKUP_SAM -> local(0, 2.4, -1.1);
             case BMP2, BRADLEY -> local(0, 2.2, -0.25);
-            case T72 -> local(0, 1.5, 0.9);
-            case KA52, MI8 -> local(0, 0.8, 2.5);
+            case T72, ABRAMS, KA52, MI8 -> local(0, 0.8, 2.5);
             case MORTAR -> local(0, 0.5, 0);
-            case ABRAMS -> local(0, 1.6, 0.9);
             case RELAY -> local(0, 2.0, 0);
         };
     }
@@ -930,6 +933,7 @@ public class Launcher extends Vehicle {
     private int prep;
 
     private boolean aimed() {
+        if (kind() == Kind.KALIBR) return true; // шахтный пуск — контейнер не двигается
         return turret.near(entityData.get(WANT_TURRET), 0.4f, true) && elevation.near(entityData.get(WANT_ELEV), 0.4f, false)
                 && erect.near(entityData.get(WANT_ERECT), 0.005f, false);
     }
@@ -963,28 +967,13 @@ public class Launcher extends Vehicle {
             stow();
             return;
         }
-        int tube = shot++ % 40;
-        int row = switch (kind()) {
-            case GRAD_P -> 0;
-            case TOS -> (tube % 24) / 8;
-            case SMERCH -> (tube % 12) / 4;
-            case URAGAN -> (tube % 16) / 4;
-            default -> tube / 10;
-        };
-        int col = switch (kind()) {
-            case GRAD_P -> 0;
-            case TOS -> tube % 8;
-            case SMERCH, URAGAN -> tube % 4;
-            default -> tube % 10;
-        };
-        // настоящий разброс РСЗО: каждая ракета чуть по-своему по направлению, углу и скорости
-        float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 1.7f;
-        Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 0.8f);
-        double y = Math.toRadians(yaw);
-        Vec3 right = new Vec3(-Math.cos(y), 0, -Math.sin(y));
-        Vec3 up = forward(yaw, elevation.value + 90);
-        Vec3 muzzle = kind() == Kind.GRAD_P ? muzzleBase().add(dir.scale(1.9))
-                : muzzleBase().add(dir.scale(3.3)).add(right.scale((col - 4.5) * 0.225)).add(up.scale(0.25 + row * 0.25));
+        shot++;
+        // Spread changes velocity, never the launcher's physical tube position.
+        Vec3 axis = launchDirection();
+        float yaw = (float) Math.toDegrees(Math.atan2(-axis.x, axis.z)) + (float) random.nextGaussian() * 1.7f;
+        float pitch = (float) Math.toDegrees(Math.asin(axis.y)) + (float) random.nextGaussian() * 0.8f;
+        Vec3 dir = forward(yaw, pitch);
+        Vec3 muzzle = launchMuzzle();
         Vec3 vel = dir.scale(rocketSpeed() * (1 + random.nextGaussian() * 0.022));
         Missile m = Missile.launch(level, Missile.Kind.GRAD, muzzle, vel, Vec3.atCenterOf(target), this).owner(owner);
         if (kind() == Kind.TOS) {
@@ -1013,7 +1002,7 @@ public class Launcher extends Vehicle {
         shot++;
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 22, 0, random.nextGaussian() * 22);
         Vec3 g = muzzleBase();
-        Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 6.6, 0), new Vec3(0, 0.6, 0), aim, this).owner(owner).powerMul(0.35f).look(2);
+        Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.6), aim, this).owner(owner).powerMul(0.35f).look(2);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.5, 0.4, 1.5, 0.05);
@@ -1031,7 +1020,7 @@ public class Launcher extends Vehicle {
         shot++;
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 2.5, 0, random.nextGaussian() * 2.5);
         Vec3 g = muzzleBase();
-        Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 1.5, 0), new Vec3(0, 0.8, 0), aim, this).owner(owner).powerMul(0.5f).look(1);
+        Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.8), aim, this).owner(owner).powerMul(0.5f).look(1);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 6);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.2, 0.4, 1.2, 0.05);
@@ -1064,9 +1053,11 @@ public class Launcher extends Vehicle {
             return;
         }
         shot++;
-        float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 0.8f;
-        Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 0.6f);
-        Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
+        Vec3 axis = launchDirection();
+        float yaw = (float) Math.toDegrees(Math.atan2(-axis.x, axis.z)) + (float) random.nextGaussian() * 0.8f;
+        float pitch = (float) Math.toDegrees(Math.asin(axis.y)) + (float) random.nextGaussian() * 0.6f;
+        Vec3 dir = forward(yaw, pitch);
+        Vec3 muzzle = launchMuzzle();
         Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED), Vec3.atCenterOf(target), this).owner(owner).powerMul(0.7f).look(7);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 4);
@@ -1074,7 +1065,7 @@ public class Launcher extends Vehicle {
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
     }
 
-    /** «Калибр»: две крылатые ракеты за приказ, с интервалом. */
+    /** «Калибр»: вертикальный пуск из шахт контейнера. Крышки отлетают при выстреле. */
     private void fireKalibr(ServerLevel level) {
         if (timer++ % 40 != 0) {
             return;
@@ -1084,15 +1075,19 @@ public class Launcher extends Vehicle {
             return;
         }
         shot++;
-        Vec3 dir = forward(getYRot() + turret.value, elevation.value);
-        Vec3 muzzle = muzzleBase().add(dir.scale(4.2)).add(0, 0.6, 0);
+        // Позиция текущей ракеты в контейнере: 2 ряда по 2
+        // В LauncherGeometry.muzzle() для KALIBR: i%2==0 -> x=-9, иначе x=9; y=43+i/2*18
+        Vec3 muzzle = launchMuzzle(); // уже вычисляет правильную позицию шахты
+        // Вертикальный старт: ракета летит строго вверх, потом наводится на цель (Drone.Kind.CRUISE)
+        Vec3 vertUp = new Vec3(0, 1, 0).scale(0.5);
         double ang = random.nextDouble() * Math.PI * 2;
         Vec3 aim = Vec3.atCenterOf(target).add(Math.cos(ang) * 3, 0, Math.sin(ang) * 3);
-        Drone.launchShahed(level, muzzle, dir, aim, owner, Drone.Kind.CRUISE);
+        Drone.launchShahed(level, muzzle, vertUp, aim, owner, Drone.Kind.CRUISE);
         entityData.set(AMMO, ammo() - 1);
-        entityData.set(FLASH, 6);
+        entityData.set(FLASH, 8); // крышка отлетает при flash>0 (рендерер)
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, muzzle.x, muzzle.y, muzzle.z, 30, 0.8, 0.4, 0.8, 0.05);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 6f, 0.9f);
+        com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 20, 0.3, 0.2, 0.3, 0.12);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 6f, 0.85f);
     }
 
     private void fireIskander(ServerLevel level) {
@@ -1108,7 +1103,7 @@ public class Launcher extends Vehicle {
             return;
         }
         if (ammo() > 0 && target != null) {
-            Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 3.8, 0), new Vec3(0, 0.4, 0), Vec3.atCenterOf(target), this).owner(owner)
+            Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.4), Vec3.atCenterOf(target), this).owner(owner)
                     .powerMul(kind() == Kind.TOCHKA ? 0.6f : 1f);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 10);
@@ -1128,14 +1123,13 @@ public class Launcher extends Vehicle {
             stow();
             return;
         }
-        float yaw = getYRot() + turret.value;
-        Vec3 dir = forward(yaw, elevation.value);
-        Vec3 muzzle = muzzleBase().add(dir.scale(kind() == Kind.RAMP ? 2.6 : 3.6)).add(0, 0.4, 0);
+        Vec3 dir = launchDirection();
+        Vec3 muzzle = launchMuzzle();
         // у каждого дрона своя точка рядом с целью
         double ang = random.nextDouble() * Math.PI * 2;
         double off = 4 + random.nextDouble() * 9;
         Vec3 aim = Vec3.atCenterOf(target).add(Math.cos(ang) * off, 0, Math.sin(ang) * off);
-        Drone.Kind dk = drones.isEmpty() ? Drone.Kind.SHAHED : drones.remove(0);
+        Drone.Kind dk = drones.isEmpty() ? Drone.Kind.SHAHED : drones.remove(drones.size() - 1);
         if (controlOp != null) {
             // пуск под ручное управление: один дрон, курс — прямо на выбранную точку
             Drone d = Drone.launchShahed(level, muzzle, dir, Vec3.atCenterOf(target), owner, dk);
@@ -1320,13 +1314,9 @@ public class Launcher extends Vehicle {
         int salvo = t instanceof Missile m && m.kind() == Missile.Kind.BALLISTIC ? 2 : 1;
         boolean ready = vertical ? elevation.value > 80 : Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12;
         if (samCooldown == 0 && ammo() > 0 && !busyWith(t, now) && ready) {
-            Vec3 dir = vertical ? new Vec3(0, 1, 0) : forward(getYRot() + samTurret.value, elevation.value);
-            boolean left = shot++ % 2 == 0;
-            double y = Math.toRadians(getYRot() + samTurret.value);
-            Vec3 right = new Vec3(-Math.cos(y), 0, -Math.sin(y));
-            Vec3 muzzle = vertical ? base.add(0, 6.6, 0).add(right.scale(left ? -0.4 : 0.4))
-                    : kind() == Kind.SAM_POST ? base.add(dir.scale(1.6)).add(right.scale(left ? -0.35 : 0.35))
-                    : base.add(dir.scale(2.4)).add(right.scale(left ? -1.1 : 1.1));
+            shot++;
+            Vec3 dir = launchDirection();
+            Vec3 muzzle = launchMuzzle();
             Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(speed), p, this).hunt(t)
                     .owner(owner).bonus(samBonus(t))
                     .look(kind() == Kind.S400 ? 2 : kind() == Kind.PATRIOT ? 3 : kind() == Kind.NASAMS ? 4 : 0);
@@ -1533,7 +1523,7 @@ public class Launcher extends Vehicle {
             return;
         }
         Vec3 look = p.getLookAngle();
-        Vec3 muzzle = muzzleBase().add(look.scale(1.4));
+        Vec3 muzzle = kind().lockOn() ? launchMuzzle() : muzzleBase().add(look.scale(1.4));
         if (kind().lockOn()) {
             Entity t = lockTarget(level, p.getEyePosition(), look, p.getUUID());
             if (t == null) {
@@ -1541,7 +1531,7 @@ public class Launcher extends Vehicle {
                 gunCooldown = 6;
                 return;
             }
-            Missile.launch(level, Missile.Kind.SAM, muzzle, look.scale(1.4), t.position(), this).hunt(t).owner(p.getUUID());
+            Missile.launch(level, Missile.Kind.SAM, muzzle, launchDirection().scale(1.4), t.position(), this).hunt(t).owner(p.getUUID());
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 4);
             gunCooldown = 30;
@@ -1550,10 +1540,10 @@ public class Launcher extends Vehicle {
         }
         // пулемёт / автопушка: мгновенный выстрел с небольшим разбросом
         boolean cannon = kind().cannon();
-        gunCooldown = kind() == Kind.T72 ? 90 : kind() == Kind.ABRAMS ? 75 : kind() == Kind.BMP2 ? 6 : kind() == Kind.BRADLEY ? 4 : 2;
+        gunCooldown = kind() == Kind.BMP2 ? 6 : kind() == Kind.BRADLEY ? 4 : 2;
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 2);
-        float spread = kind().tank() ? 0.12f : cannon ? 0.35f : 0.4f;
+        float spread = cannon ? 0.35f : 0.4f;
         Vec3 dir = net.minecraft.world.phys.Vec3.directionFromRotation(p.getXRot() + (float) random.nextGaussian() * spread,
                 p.getYRot() + (float) random.nextGaussian() * spread);
         Vec3 end = muzzle.add(dir.scale(cannon ? 300 : 260));
@@ -1567,21 +1557,15 @@ public class Launcher extends Vehicle {
             Entity e = hit.getEntity();
             float dmg = e instanceof Drone ? 3.5f : e instanceof Vehicle ? 2.5f : 5f;
             if (cannon) {
-                dmg = kind().tank() ? 70f : kind() == Kind.BMP2 ? 9f : 7f;
+                dmg = kind() == Kind.BMP2 ? 9f : 7f;
             }
             e.hurt(damageSources().playerAttack(p), dmg);
         }
         if (cannon && (hit != null || hitBlock)) {
-            Blast.detonate(level, stop, kind().tank() ? 3.2f : kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // фугасный — рушит укрытия
+            Blast.detonate(level, stop, kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // фугасный — рушит укрытия
         }
-        if (kind().tank()) {
-            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.TANK_FIRE.get(), SoundSource.PLAYERS, 8f, 0.9f);
-            com.harddayz.Compat.particles(level, ParticleTypes.EXPLOSION, muzzle.x, muzzle.y, muzzle.z, 3, 0.3, 0.3, 0.3, 0);
-            com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.8, 0.4, 0.8, 0.03);
-        } else {
-            level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 4f,
-                    (kind().cannon() ? 0.6f : 0.95f) + random.nextFloat() * 0.1f);
-        }
+        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 4f,
+                (kind().cannon() ? 0.6f : 0.95f) + random.nextFloat() * 0.1f);
         var fx = new com.harddayz.network.Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hitBlock);
         for (ServerPlayer pl : level.players()) {
             if (pl.distanceToSqr(this) < 250 * 250) {

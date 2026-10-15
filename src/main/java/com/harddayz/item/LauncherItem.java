@@ -25,8 +25,13 @@ public class LauncherItem extends Item {
         this.kind = kind;
     }
 
+    public boolean available() {
+        return !kind.removed();
+    }
+
     @Override
     public InteractionResult useOn(UseOnContext ctx) {
+        if (!available()) return InteractionResult.FAIL;
         if (!(ctx.getLevel() instanceof ServerLevel level) || ctx.getPlayer() == null) {
             return InteractionResult.SUCCESS;
         }

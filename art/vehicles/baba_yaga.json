@@ -1,0 +1,783 @@
+{
+ "name": "baba_yaga",
+ "note": "Baba Yaga heavy hexacopter bomber: six arms, big payload pod, long legs. Scale 1 m = 16 px.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.25,
+ "seed": 86,
+ "bones": [
+  {
+   "name": "frame",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "prop0",
+   "pivot": [
+    -7,
+    2,
+    12
+   ]
+  },
+  {
+   "name": "prop1",
+   "pivot": [
+    -14,
+    2,
+    0
+   ]
+  },
+  {
+   "name": "prop2",
+   "pivot": [
+    -7,
+    2,
+    -12
+   ]
+  },
+  {
+   "name": "prop3",
+   "pivot": [
+    7,
+    2,
+    -12
+   ]
+  },
+  {
+   "name": "prop4",
+   "pivot": [
+    14,
+    2,
+    0
+   ]
+  },
+  {
+   "name": "prop5",
+   "pivot": [
+    7,
+    2,
+    12
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -5,
+    -4,
+    -5
+   ],
+   "to": [
+    5,
+    2,
+    5
+   ],
+   "mat": "paint",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "lid",
+   "from": [
+    -4,
+    2,
+    -4
+   ],
+   "to": [
+    4,
+    3,
+    4
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "payload",
+   "from": [
+    -3,
+    -8,
+    -3
+   ],
+   "to": [
+    3,
+    -4,
+    3
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 2,
+     "mat": "red"
+    }
+   ]
+  },
+  {
+   "name": "gps",
+   "from": [
+    -1,
+    3,
+    -1
+   ],
+   "to": [
+    1,
+    6,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "arm0",
+   "from": [
+    0,
+    -1.25,
+    -1
+   ],
+   "to": [
+    14,
+    -0.25,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    -120.25643716352927,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor0",
+   "from": [
+    -8.5,
+    -2,
+    10.5
+   ],
+   "to": [
+    -5.5,
+    2,
+    13.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg0",
+   "from": [
+    -7.5,
+    -8,
+    11.5
+   ],
+   "to": [
+    -6.5,
+    -2,
+    12.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "arm1",
+   "from": [
+    0,
+    -0.95,
+    -1
+   ],
+   "to": [
+    14,
+    0.04999999999999999,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    -180.0,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor1",
+   "from": [
+    -15.5,
+    -2,
+    -1.5
+   ],
+   "to": [
+    -12.5,
+    2,
+    1.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg1",
+   "from": [
+    -14.5,
+    -8,
+    -0.5
+   ],
+   "to": [
+    -13.5,
+    -2,
+    0.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "arm2",
+   "from": [
+    0,
+    -0.65,
+    -1
+   ],
+   "to": [
+    14,
+    0.35,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    120.25643716352927,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor2",
+   "from": [
+    -8.5,
+    -2,
+    -13.5
+   ],
+   "to": [
+    -5.5,
+    2,
+    -10.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg2",
+   "from": [
+    -7.5,
+    -8,
+    -12.5
+   ],
+   "to": [
+    -6.5,
+    -2,
+    -11.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "arm3",
+   "from": [
+    0,
+    -0.3500000000000001,
+    -1
+   ],
+   "to": [
+    14,
+    0.6499999999999999,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    59.743562836470744,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor3",
+   "from": [
+    5.5,
+    -2,
+    -13.5
+   ],
+   "to": [
+    8.5,
+    2,
+    -10.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg3",
+   "from": [
+    6.5,
+    -8,
+    -12.5
+   ],
+   "to": [
+    7.5,
+    -2,
+    -11.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "arm4",
+   "from": [
+    0,
+    -0.050000000000000044,
+    -1
+   ],
+   "to": [
+    14,
+    0.95,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    -0.0,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor4",
+   "from": [
+    12.5,
+    -2,
+    -1.5
+   ],
+   "to": [
+    15.5,
+    2,
+    1.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg4",
+   "from": [
+    13.5,
+    -8,
+    -0.5
+   ],
+   "to": [
+    14.5,
+    -2,
+    0.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "arm5",
+   "from": [
+    0,
+    0.25,
+    -1
+   ],
+   "to": [
+    14,
+    1.25,
+    1
+   ],
+   "mat": "metal",
+   "bone": "frame",
+   "rotation": [
+    0,
+    -59.743562836470744,
+    0
+   ],
+   "pivot": [
+    0,
+    0,
+    0
+   ],
+   "panels": 0
+  },
+  {
+   "name": "motor5",
+   "from": [
+    5.5,
+    -2,
+    10.5
+   ],
+   "to": [
+    8.5,
+    2,
+    13.5
+   ],
+   "mat": "paint2",
+   "bone": "frame",
+   "panels": 0
+  },
+  {
+   "name": "leg5",
+   "from": [
+    6.5,
+    -8,
+    11.5
+   ],
+   "to": [
+    7.5,
+    -2,
+    12.5
+   ],
+   "mat": "metal",
+   "bone": "frame"
+  },
+  {
+   "name": "prop0_hub",
+   "from": [
+    -8,
+    2,
+    11
+   ],
+   "to": [
+    -6,
+    4,
+    13
+   ],
+   "mat": "metal",
+   "bone": "prop0",
+   "panels": 0
+  },
+  {
+   "name": "prop0_blade_a",
+   "from": [
+    -13,
+    4,
+    11.5
+   ],
+   "to": [
+    -1,
+    5,
+    12.5
+   ],
+   "mat": "rubber",
+   "bone": "prop0",
+   "panels": 0
+  },
+  {
+   "name": "prop0_blade_b",
+   "from": [
+    -7.5,
+    5,
+    6
+   ],
+   "to": [
+    -6.5,
+    6,
+    18
+   ],
+   "mat": "rubber",
+   "bone": "prop0",
+   "panels": 0
+  },
+  {
+   "name": "prop1_hub",
+   "from": [
+    -15,
+    2,
+    -1
+   ],
+   "to": [
+    -13,
+    4,
+    1
+   ],
+   "mat": "metal",
+   "bone": "prop1",
+   "panels": 0
+  },
+  {
+   "name": "prop1_blade_a",
+   "from": [
+    -20,
+    4,
+    -0.5
+   ],
+   "to": [
+    -8,
+    5,
+    0.5
+   ],
+   "mat": "rubber",
+   "bone": "prop1",
+   "panels": 0
+  },
+  {
+   "name": "prop1_blade_b",
+   "from": [
+    -14.5,
+    5,
+    -6
+   ],
+   "to": [
+    -13.5,
+    6,
+    6
+   ],
+   "mat": "rubber",
+   "bone": "prop1",
+   "panels": 0
+  },
+  {
+   "name": "prop2_hub",
+   "from": [
+    -8,
+    2,
+    -13
+   ],
+   "to": [
+    -6,
+    4,
+    -11
+   ],
+   "mat": "metal",
+   "bone": "prop2",
+   "panels": 0
+  },
+  {
+   "name": "prop2_blade_a",
+   "from": [
+    -13,
+    4,
+    -12.5
+   ],
+   "to": [
+    -1,
+    5,
+    -11.5
+   ],
+   "mat": "rubber",
+   "bone": "prop2",
+   "panels": 0
+  },
+  {
+   "name": "prop2_blade_b",
+   "from": [
+    -7.5,
+    5,
+    -18
+   ],
+   "to": [
+    -6.5,
+    6,
+    -6
+   ],
+   "mat": "rubber",
+   "bone": "prop2",
+   "panels": 0
+  },
+  {
+   "name": "prop3_hub",
+   "from": [
+    6,
+    2,
+    -13
+   ],
+   "to": [
+    8,
+    4,
+    -11
+   ],
+   "mat": "metal",
+   "bone": "prop3",
+   "panels": 0
+  },
+  {
+   "name": "prop3_blade_a",
+   "from": [
+    1,
+    4,
+    -12.5
+   ],
+   "to": [
+    13,
+    5,
+    -11.5
+   ],
+   "mat": "rubber",
+   "bone": "prop3",
+   "panels": 0
+  },
+  {
+   "name": "prop3_blade_b",
+   "from": [
+    6.5,
+    5,
+    -18
+   ],
+   "to": [
+    7.5,
+    6,
+    -6
+   ],
+   "mat": "rubber",
+   "bone": "prop3",
+   "panels": 0
+  },
+  {
+   "name": "prop4_hub",
+   "from": [
+    13,
+    2,
+    -1
+   ],
+   "to": [
+    15,
+    4,
+    1
+   ],
+   "mat": "metal",
+   "bone": "prop4",
+   "panels": 0
+  },
+  {
+   "name": "prop4_blade_a",
+   "from": [
+    8,
+    4,
+    -0.5
+   ],
+   "to": [
+    20,
+    5,
+    0.5
+   ],
+   "mat": "rubber",
+   "bone": "prop4",
+   "panels": 0
+  },
+  {
+   "name": "prop4_blade_b",
+   "from": [
+    13.5,
+    5,
+    -6
+   ],
+   "to": [
+    14.5,
+    6,
+    6
+   ],
+   "mat": "rubber",
+   "bone": "prop4",
+   "panels": 0
+  },
+  {
+   "name": "prop5_hub",
+   "from": [
+    6,
+    2,
+    11
+   ],
+   "to": [
+    8,
+    4,
+    13
+   ],
+   "mat": "metal",
+   "bone": "prop5",
+   "panels": 0
+  },
+  {
+   "name": "prop5_blade_a",
+   "from": [
+    1,
+    4,
+    11.5
+   ],
+   "to": [
+    13,
+    5,
+    12.5
+   ],
+   "mat": "rubber",
+   "bone": "prop5",
+   "panels": 0
+  },
+  {
+   "name": "prop5_blade_b",
+   "from": [
+    6.5,
+    5,
+    6
+   ],
+   "to": [
+    7.5,
+    6,
+    18
+   ],
+   "mat": "rubber",
+   "bone": "prop5",
+   "panels": 0
+  }
+ ]
+}

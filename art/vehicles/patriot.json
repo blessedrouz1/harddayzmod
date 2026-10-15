@@ -42,7 +42,7 @@
    "name": "rack",
    "pivot": [
     0,
-    37.6,
+    41.6,
     56
    ],
    "parent": "turret"
@@ -110,6 +110,24 @@
     14,
     68.5
    ]
+  },
+  {
+   "name": "ram0",
+   "pivot": [
+    0,
+    30,
+    20
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "ram0_rod",
+   "pivot": [
+    0,
+    30,
+    20
+   ],
+   "parent": "ram0"
   }
  ],
  "parts": [
@@ -717,12 +735,12 @@
    "name": "grab_bar",
    "bone": "cab",
    "from": [
-    18.25,
+    18.0,
     30,
     -53
    ],
    "to": [
-    19.25,
+    19.0,
     40,
     -52
    ],
@@ -1712,12 +1730,12 @@
   {
    "name": "rear_arch0_top",
    "from": [
-    12.5,
+    12,
     23,
     -42
    ],
    "to": [
-    22.5,
+    22,
     24,
     -22
    ],
@@ -1738,12 +1756,12 @@
   {
    "name": "rear_arch1_top",
    "from": [
-    12.5,
+    12,
     23,
     20
    ],
    "to": [
-    22.5,
+    22,
     24,
     64
    ],
@@ -2124,234 +2142,6 @@
    }
   },
   {
-   "name": "canister0",
-   "from": [
-    -15,
-    30,
-    -20
-   ],
-   "to": [
-    -1,
-    43,
-    56
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 12,
-     "h": 11,
-     "mat": "hatch"
-    },
-    {
-     "face": "east",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    },
-    {
-     "face": "west",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    }
-   ],
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "canister1",
-   "from": [
-    0.5,
-    30,
-    -20
-   ],
-   "to": [
-    14.5,
-    43,
-    56
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 12,
-     "h": 11,
-     "mat": "hatch"
-    },
-    {
-     "face": "east",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    },
-    {
-     "face": "west",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    }
-   ],
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "canister2",
-   "from": [
-    -15,
-    44.5,
-    -20
-   ],
-   "to": [
-    -1,
-    57.5,
-    56
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 12,
-     "h": 11,
-     "mat": "hatch"
-    },
-    {
-     "face": "east",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    },
-    {
-     "face": "west",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    }
-   ],
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "canister3",
-   "from": [
-    0.5,
-    44.5,
-    -20
-   ],
-   "to": [
-    14.5,
-    57.5,
-    56
-   ],
-   "mat": "paint",
-   "bone": "rack",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "north",
-     "x": 1,
-     "y": 1,
-     "w": 12,
-     "h": 11,
-     "mat": "hatch"
-    },
-    {
-     "face": "east",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    },
-    {
-     "face": "west",
-     "x": 6,
-     "y": 5,
-     "w": 60,
-     "h": 2,
-     "mat": "rib"
-    }
-   ],
-   "faces": {
-    "down": "paint2"
-   }
-  },
-  {
-   "name": "frame_front",
-   "from": [
-    -16,
-    29,
-    -14
-   ],
-   "to": [
-    16,
-    59,
-    -12
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "frame_mid",
-   "from": [
-    -16,
-    29,
-    18
-   ],
-   "to": [
-    16,
-    59,
-    20
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "frame_rear",
-   "from": [
-    -16,
-    29,
-    50
-   ],
-   "to": [
-    16,
-    59,
-    52
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
    "name": "hinge",
    "from": [
     -12,
@@ -2392,21 +2182,6 @@
     10,
     27.5,
     18
-   ],
-   "mat": "metal",
-   "bone": "turret"
-  },
-  {
-   "name": "lift_ram",
-   "from": [
-    -2,
-    24,
-    -10
-   ],
-   "to": [
-    2,
-    30,
-    0
    ],
    "mat": "metal",
    "bone": "turret"
@@ -2651,74 +2426,15 @@
    ]
   },
   {
-   "name": "frame_box",
-   "from": [
-    16.5,
-    32,
-    -10
-   ],
-   "to": [
-    19.5,
-    40,
-    0
-   ],
-   "mat": "paint",
-   "panels": 0,
-   "decals": [
-    {
-     "face": "east",
-     "x": 1,
-     "y": 1,
-     "w": 8,
-     "h": 6,
-     "mat": "hatch"
-    }
-   ],
-   "bone": "rack",
-   "mirror": true
-  },
-  {
-   "name": "cable_tray",
-   "from": [
-    -12,
-    27.5,
-    -10
-   ],
-   "to": [
-    -8,
-    29.5,
-    48
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "lug",
-   "from": [
-    -14,
-    58.5,
-    -18
-   ],
-   "to": [
-    -12,
-    60.5,
-    -16
-   ],
-   "mat": "metal",
-   "bone": "rack",
-   "mirror": true
-  },
-  {
    "name": "turret_box",
    "from": [
     14.5,
-    23.5,
+    23.0,
     2
    ],
    "to": [
     18.5,
-    29.5,
+    29.0,
     12
    ],
    "mat": "paint",
@@ -2789,6 +2505,460 @@
     }
    ],
    "mirror": true
+  },
+  {
+   "name": "canister0",
+   "from": [
+    -15,
+    34,
+    -20
+   ],
+   "to": [
+    -1,
+    47,
+    56
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 11,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "canister1",
+   "from": [
+    0.5,
+    34,
+    -20
+   ],
+   "to": [
+    14.5,
+    47,
+    56
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 11,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "canister2",
+   "from": [
+    -15,
+    48.5,
+    -20
+   ],
+   "to": [
+    -1,
+    61.5,
+    56
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 11,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "canister3",
+   "from": [
+    0.5,
+    48.5,
+    -20
+   ],
+   "to": [
+    14.5,
+    61.5,
+    56
+   ],
+   "mat": "paint",
+   "bone": "rack",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 11,
+     "mat": "hatch"
+    },
+    {
+     "face": "east",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    },
+    {
+     "face": "west",
+     "x": 6,
+     "y": 5,
+     "w": 60,
+     "h": 2,
+     "mat": "rib"
+    }
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "frame_front",
+   "from": [
+    -16,
+    33,
+    -14
+   ],
+   "to": [
+    16,
+    63,
+    -12
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "frame_mid",
+   "from": [
+    -16,
+    33,
+    18
+   ],
+   "to": [
+    16,
+    63,
+    20
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "frame_rear",
+   "from": [
+    -16,
+    33,
+    50
+   ],
+   "to": [
+    16,
+    63,
+    52
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "frame_box",
+   "from": [
+    14.5,
+    36,
+    -10
+   ],
+   "to": [
+    17.5,
+    44,
+    0
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "east",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 6,
+     "mat": "hatch"
+    }
+   ],
+   "bone": "rack",
+   "mirror": true
+  },
+  {
+   "name": "cable_tray",
+   "from": [
+    -12,
+    31.5,
+    -10
+   ],
+   "to": [
+    -8,
+    33.5,
+    48
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "lug",
+   "from": [
+    -14,
+    61.5,
+    -18
+   ],
+   "to": [
+    -12,
+    63.5,
+    -16
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "mirror": true
+  },
+  {
+   "name": "ram0_barrel",
+   "from": [
+    6.5,
+    27,
+    -14
+   ],
+   "to": [
+    12.5,
+    33,
+    20
+   ],
+   "mat": "metal",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 1,
+     "y": 2,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 6,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 10,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 14,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 18,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 22,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 26,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 30,
+     "w": 4,
+     "h": 1,
+     "mat": "rib"
+    }
+   ],
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_collar",
+   "from": [
+    5.5,
+    26,
+    -16
+   ],
+   "to": [
+    13.5,
+    34,
+    -14
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "ram0",
+   "mirror": true
+  },
+  {
+   "name": "ram0_rodbar",
+   "from": [
+    7.5,
+    28,
+    -17
+   ],
+   "to": [
+    11.5,
+    32,
+    18
+   ],
+   "mat": "grey",
+   "panels": 0,
+   "bone": "ram0_rod",
+   "mirror": true
+  },
+  {
+   "name": "ram0_foot",
+   "from": [
+    5.5,
+    26,
+    20
+   ],
+   "to": [
+    13.5,
+    34,
+    23
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_eye",
+   "from": [
+    5.5,
+    26,
+    -20
+   ],
+   "to": [
+    13.5,
+    33,
+    -17
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "ram0_pedestal",
+   "from": [
+    6.5,
+    24,
+    20
+   ],
+   "to": [
+    12.5,
+    26,
+    23
+   ],
+   "mat": "paint2",
+   "mirror": true,
+   "panels": 0
   }
- ]
+ ],
+ "rams": true
 }

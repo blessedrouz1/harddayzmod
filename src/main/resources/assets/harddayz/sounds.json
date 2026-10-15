@@ -167,13 +167,6 @@
       }
     ]
   },
-  "tank_fire": {
-    "sounds": [
-      {
-        "name": "harddayz:tank_fire"
-      }
-    ]
-  },
   "mortar_fire": {
     "sounds": [
       {

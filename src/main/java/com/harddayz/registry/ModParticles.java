@@ -18,6 +18,8 @@ public final class ModParticles {
     public static final RegistryObject<SimpleParticleType> DUST = reg("dust");
     public static final RegistryObject<SimpleParticleType> FIRE = reg("fire");
     public static final RegistryObject<SimpleParticleType> FLASH = reg("flash");
+    public static final RegistryObject<SimpleParticleType> JET_SMOKE = reg("jet_smoke");
+    public static final RegistryObject<SimpleParticleType> JET_FIRE = reg("jet_fire");
     public static final RegistryObject<SimpleParticleType> GLOW = reg("glow");
 
     private static RegistryObject<SimpleParticleType> reg(String name) {

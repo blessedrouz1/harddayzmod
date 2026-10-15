@@ -1,0 +1,16 @@
+{
+ "body#0": "pod",
+ "body#1": "nose",
+ "body#2": "boom_right",
+ "body#3": "boom_left",
+ "body#4": "boom_join_right",
+ "body#5": "boom_join_left",
+ "body#6": "tail_plane",
+ "body#7": "fin_right",
+ "body#8": "fin_left",
+ "body#9": "skid",
+ "wing#0": "wing",
+ "prop#0": "prop_hub",
+ "prop#1": "prop_blade_a",
+ "prop#2": "prop_blade_b"
+}

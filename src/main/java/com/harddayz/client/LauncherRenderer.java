@@ -51,6 +51,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         final GeoModel geo;
         final String name;
         final boolean variants;
+        final com.harddayz.client.model.HydraulicLift[] lifts;
 
         GeoLauncherModel(String name, GeoModel.Marks marks, boolean variants) {
             this(GeoModel.get(name, marks), name, variants);
@@ -61,6 +62,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             this.geo = geo;
             this.name = name;
             this.variants = variants;
+            lifts = com.harddayz.client.model.HydraulicLift.create(geo);
         }
 
         private void each(String n, java.util.function.Consumer<ModelPart> f) {
@@ -73,18 +75,25 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         @Override
         public void setupAnim(State s) {
             super.setupAnim(s);
-            float drop = s.kind == Launcher.Kind.RAMP ? 2f : 8.5f;
             for (int i = 0; i < 4; i++) {
                 for (String side : new String[] {"r", "l"}) {
                     each("wheel_" + i + side, b -> b.xRot -= s.wheelSpin);
                     each("steer_" + i + side, b -> b.yRot -= (float) Math.toRadians(s.steer));
                 }
-                each("jack" + i, b -> b.y -= s.outrig * drop);
+                String jack = "jack" + i;
+                float[] foot = geo.boxes.get(jack + "_foot");
+                float[] rod = geo.boxes.get(jack + "_extension");
+                if (foot != null && rod != null) {
+                    float drop = s.outrig * Math.max(0, foot[1]);
+                    // The sleeve stays attached to the frame; only the foot and inner rod extend.
+                    each(jack + "_foot", b -> b.y -= drop);
+                    each(jack + "_extension", b -> b.yScale = 1 + drop / Math.max(0.01f, rod[4] - rod[1]));
+                }
             }
             each("turret", b -> b.yRot -= (float) Math.toRadians(s.turret));
             each("rack", b -> {
                 b.xRot += (float) Math.toRadians(s.elevation);
-                b.z += s.flash * 0.35f;
+                if (s.kind.gunner() && !s.kind.lockOn()) b.z += s.flash * 0.35f;
             });
             each("radar", b -> b.yRot += s.time * 0.15f);
             each("rotor", b -> b.yRot += s.rotor);
@@ -95,18 +104,21 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
                 each("tip" + i, b -> b.visible = shown);
             }
             each("missile", b -> b.visible = s.ammo > 0);
-            // стрела «Искандера»: шарнир (0, 28, 44), цилиндры толкают точку в 34 px по стреле
-            double a = Math.toRadians(s.erect * 90);
-            each("erector", b -> b.xRot += (float) a);
-            for (String n : new String[] {"piston_l", "piston_r"}) {
-                each(n, b -> {
-                    double dy0 = 28.0 - 30.0;
-                    double dz0 = 44.0 - 34.0 - 30.0;
-                    double dy = 28.0 + Math.sin(a) * 34.0 - 30.0;
-                    double dz = 44.0 - Math.cos(a) * 34.0 - 30.0;
-                    b.xRot += (float) (Math.atan2(dy, -dz) - Math.atan2(dy0, -dz0));
-                    b.zScale = (float) (Math.hypot(dy, dz) / Math.hypot(dy0, dz0));
-                });
+            each("erector", b -> b.xRot += (float) Math.toRadians(s.erect * 90));
+            // Solve after rack/erector animation, in each cylinder's own parent frame.
+            for (var lift : lifts) lift.animate();
+            // Крышки пусковых шахт: при flash > 0 отлетают вверх (Калибр, С-400, Patriot, NASAMS)
+            if (s.flash > 0 && (s.kind == Launcher.Kind.KALIBR || s.kind == Launcher.Kind.S400
+                    || s.kind == Launcher.Kind.PATRIOT || s.kind == Launcher.Kind.NASAMS)) {
+                float capFly = s.flash * 0.22f; // чем свежее выстрел — тем дальше крышка
+                for (var entry : geo.parts.entrySet()) {
+                    if (entry.getKey().endsWith("_cap")) {
+                        ModelPart cap = entry.getValue();
+                        cap.y -= capFly;
+                        cap.xRot += capFly * 0.4f;
+                        cap.zRot += capFly * 0.25f;
+                    }
+                }
             }
         }
 
@@ -186,7 +198,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             return;
         }
         HdModel<Object> m = MARK_MODELS.computeIfAbsent(geo.marks[faction], p -> new HdModel<Object>(p));
-        m.render(null, pose, buffers, RenderType.entityCutout(MARKS), light);
+        m.render(null, pose, buffers, HdRender.cutout(MARKS), light);
     }
 
     static class LauncherModel extends HdModel<State> {
@@ -399,7 +411,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             int tint = -1;
             g.render(s, pose, buffers, HdRender.body(g.texture(s)), s.lightCoords);
             submitPayloads(g, s, pose, buffers);
-            g.render(s, pose, buffers, RenderType.eyes(g.glow(s)), s.lightCoords);
+            g.render(s, pose, buffers, HdRender.eyes(g.glow(s)), s.lightCoords);
             submitMarks(g.geo, s.faction, pose, buffers, s.lightCoords);
             pose.popPose();
             return;

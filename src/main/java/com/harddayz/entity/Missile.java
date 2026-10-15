@@ -88,7 +88,13 @@ public class Missile extends Entity implements Threat {
         m.setDeltaMovement(velocity);
         m.target = target;
         m.launcherId = launcher == null ? -1 : launcher.getId();
+        if (launcher instanceof Launcher l) {
+            // A vertical velocity has no yaw; retain the orientation of its rail.
+            m.setYRot(l.getYRot() + (l.kind() == Launcher.Kind.ISKANDER || l.kind() == Launcher.Kind.TOCHKA ? 0 : l.turret(1)));
+        }
         m.face(velocity);
+        m.yRotO = m.getYRot();
+        m.xRotO = m.getXRot();
         level.addFreshEntity(m);
         return m;
     }
@@ -140,8 +146,10 @@ public class Missile extends Entity implements Threat {
             return;
         }
         double h = Math.sqrt(v.x * v.x + v.z * v.z);
-        setYRot((float) Math.toDegrees(Math.atan2(v.x, v.z)));
-        setXRot((float) Math.toDegrees(Math.atan2(v.y, h)));
+        if (h > 1.0E-6) {
+            setYRot((float) Math.toDegrees(Math.atan2(-v.x, v.z)));
+        }
+        setXRot((float) Math.toDegrees(-Math.atan2(v.y, h)));
     }
 
     @Override
@@ -208,8 +216,12 @@ public class Missile extends Entity implements Threat {
         double ceiling = level.getMaxBuildHeight() - 12;
         double apex = Math.min(1500, Math.max(ceiling, target.y + 160 + dh * 0.35));
         if (tickCount < 40 || (!diving && tickCount < 260 && pos.y < Math.min(apex, ceiling) - 30)) {
-            // вертикальный старт с разгоном — до самого верха
-            return new Vec3(0, Math.min(3.2, 0.4 + tickCount * 0.08), 0);
+            double speed = Math.min(3.2, 0.4 + tickCount * 0.08);
+            // Clear the rail along its actual axis before gradually pitching up.
+            if (tickCount <= 4) {
+                return v.normalize().scale(speed);
+            }
+            return steer(v, new Vec3(0, 1, 0), speed, 0.05);
         }
         Vec3 desired;
         double speed;

@@ -9,3 +9,7 @@ sound_backup/
 КОМАНДЫ.txt
 release.ps1
 .DS_Store
+art/vehicles/tmp/
+review/*.log
+review/*/*.log
+review/*-checks/

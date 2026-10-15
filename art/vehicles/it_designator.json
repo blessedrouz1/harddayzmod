@@ -1,0 +1,167 @@
+{
+ "name": "it_designator",
+ "note": "inventory icon model: designator",
+ "paint": "olive",
+ "paint2": [
+  "#0E0F13",
+  "#181A20",
+  "#262932",
+  "#3A3E4A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.1,
+ "seed": 1,
+ "bones": [
+  {
+   "name": "body",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  }
+ ],
+ "parts": [
+  {
+   "name": "body",
+   "from": [
+    -6,
+    -3,
+    -6
+   ],
+   "to": [
+    6,
+    3,
+    6
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "lens_a",
+   "from": [
+    -5,
+    -3,
+    6
+   ],
+   "to": [
+    -1,
+    1,
+    10
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "lens_b",
+   "from": [
+    1,
+    -3,
+    6
+   ],
+   "to": [
+    5,
+    1,
+    10
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "glass_a",
+   "from": [
+    -4.5,
+    -2.5,
+    10
+   ],
+   "to": [
+    -1.5,
+    0.5,
+    11
+   ],
+   "mat": "red",
+   "panels": 0
+  },
+  {
+   "name": "glass_b",
+   "from": [
+    1.5,
+    -2.5,
+    10
+   ],
+   "to": [
+    4.5,
+    0.5,
+    11
+   ],
+   "mat": "glass",
+   "panels": 0
+  },
+  {
+   "name": "eyepiece",
+   "from": [
+    -5,
+    3,
+    -4
+   ],
+   "to": [
+    5,
+    5,
+    -2
+   ],
+   "mat": "rubber",
+   "panels": 0
+  },
+  {
+   "name": "handle",
+   "from": [
+    -2,
+    -7,
+    -3
+   ],
+   "to": [
+    2,
+    -3,
+    3
+   ],
+   "mat": "rubber",
+   "panels": 0
+  },
+  {
+   "name": "button",
+   "from": [
+    -1,
+    -3,
+    -4
+   ],
+   "to": [
+    1,
+    -2,
+    -2
+   ],
+   "mat": "red",
+   "panels": 0
+  },
+  {
+   "name": "antenna",
+   "from": [
+    4,
+    3,
+    -6
+   ],
+   "to": [
+    5,
+    8,
+    -5
+   ],
+   "mat": "metal",
+   "panels": 0
+  }
+ ],
+ "panel_step": 0
+}
