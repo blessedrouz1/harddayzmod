@@ -16,37 +16,44 @@ import net.minecraftforge.registries.RegistryObject;
 public final class ModSounds {
     public static final DeferredRegister<SoundEvent> SOUNDS = DeferredRegister.create(ForgeRegistries.SOUND_EVENTS, HardDayz.MODID);
 
-    public static final RegistryObject<SoundEvent> EXPLODE_NEAR = reg("explode_near");
-    public static final RegistryObject<SoundEvent> EXPLODE_BIG = reg("explode_big");
-    public static final RegistryObject<SoundEvent> EXPLODE_FAR = reg("explode_far");
-    public static final RegistryObject<SoundEvent> MISSILE_LAUNCH = reg("missile_launch");
-    public static final RegistryObject<SoundEvent> ROCKET_LAUNCH = reg("rocket_launch");
-    public static final RegistryObject<SoundEvent> WHOOSH = reg("whoosh");
+    public static final RegistryObject<SoundEvent> MISSILE_LAUNCH = reg("launch_ballistic");
+    public static final RegistryObject<SoundEvent> ROCKET_LAUNCH = reg("launch_mlrs");
     public static final RegistryObject<SoundEvent> MG_FIRE = reg("mg_fire");
-    public static final RegistryObject<SoundEvent> JET_LOOP = reg("jet_loop");
-    public static final RegistryObject<SoundEvent> ENGINE_LOOP = reg("engine_loop");
+    public static final RegistryObject<SoundEvent> JET_LOOP = reg("fly_cruise");
+    public static final RegistryObject<SoundEvent> ENGINE_LOOP = reg("fly_shahed");
     public static final RegistryObject<SoundEvent> SIREN = reg("siren");
 
 
     public static final RegistryObject<SoundEvent> LAUNCH_CRUISE = reg("launch_cruise");
     public static final RegistryObject<SoundEvent> LAUNCH_SHAHED = reg("launch_shahed");
     public static final RegistryObject<SoundEvent> SAM_LAUNCH = reg("sam_launch");
-    public static final RegistryObject<SoundEvent> FPV_LOOP = reg("fpv_loop");
+    public static final RegistryObject<SoundEvent> FPV_LOOP = reg("fly_drone");
     public static final RegistryObject<SoundEvent> INCOMING_MORTAR = reg("incoming_mortar");
-    public static final RegistryObject<SoundEvent> INCOMING_ROCKET = reg("incoming_rocket");
+    public static final RegistryObject<SoundEvent> INCOMING_ROCKET = reg("incoming_mlrs");
     public static final RegistryObject<SoundEvent> INCOMING_BALLISTIC = reg("incoming_ballistic");
     public static final RegistryObject<SoundEvent> INCOMING_SHAHED = reg("incoming_shahed");
     public static final RegistryObject<SoundEvent> INCOMING_CRUISE = reg("incoming_cruise");
 
-    public static final RegistryObject<SoundEvent> EXP_MEDIUM = reg("exp_medium");
-    public static final RegistryObject<SoundEvent> EXP_LARGE = reg("exp_large");
-    public static final RegistryObject<SoundEvent> FLY_ROCKET = reg("fly_rocket");
-    public static final RegistryObject<SoundEvent> FLY_MISSILE = reg("fly_missile");
+    public static final RegistryObject<SoundEvent> FLY_ROCKET = reg("fly_mlrs");
+    public static final RegistryObject<SoundEvent> FLY_MISSILE = reg("fly_ballistic");
     public static final RegistryObject<SoundEvent> FLY_JET = reg("fly_jet");
+    public static final RegistryObject<SoundEvent> LAUNCH_DRONE = reg("launch_drone");
+    public static final RegistryObject<SoundEvent> LAUNCH_JETDRONE = reg("launch_jetdrone");
+    public static final RegistryObject<SoundEvent> FLY_JETDRONE = reg("fly_jetdrone");
+    public static final RegistryObject<SoundEvent> FLYBY_JETDRONE = reg("flyby_jetdrone");
+    public static final RegistryObject<SoundEvent> INCOMING_JETDRONE = reg("incoming_jetdrone");
+    public static final RegistryObject<SoundEvent> FLY_MORTAR = reg("fly_mortar");
+    public static final RegistryObject<SoundEvent> INCOMING_DRONE = reg("incoming_drone");
+    public static final RegistryObject<SoundEvent> FLYBY_SHAHED = reg("flyby_shahed");
+    public static final RegistryObject<SoundEvent> FLYBY_DRONE = reg("flyby_drone");
+    public static final RegistryObject<SoundEvent> FLYBY_CRUISE = reg("flyby_cruise");
+    public static final RegistryObject<SoundEvent> FLYBY_BALLISTIC = reg("flyby_ballistic");
+    public static final RegistryObject<SoundEvent> FLYBY_MLRS = reg("flyby_mlrs");
+    public static final RegistryObject<SoundEvent> FLYBY_MORTAR = reg("flyby_mortar");
 
 
     /** Взрывы по оружию: exp_&lt;тип&gt;[_air]_&lt;near|mid|far&gt;. */
-    public static final String[] BLAST_TYPES = {"small", "mortar", "rocket", "thermo", "ballistic", "shahed", "cruise"};
+    public static final String[] BLAST_TYPES = {"small", "mortar", "rocket", "thermo", "ballistic", "shahed", "cruise", "jetdrone"};
     public static final java.util.Map<String, RegistryObject<SoundEvent>> BLASTS = new java.util.HashMap<>();
 
     static {
@@ -81,6 +88,5 @@ public final class ModSounds {
     public static final RegistryObject<SoundEvent> HELI_LOOP = reg("heli_loop");
     public static final RegistryObject<SoundEvent> DIESEL_LOOP = reg("diesel_loop");
     public static final RegistryObject<SoundEvent> TURBINE_LOOP = reg("turbine_loop");
-    public static final RegistryObject<SoundEvent> SHELL_WHISTLE = reg("shell_whistle");
-    public static final RegistryObject<SoundEvent> MORTAR_FIRE = reg("mortar_fire");
+    public static final RegistryObject<SoundEvent> MORTAR_FIRE = reg("launch_mortar");
 }

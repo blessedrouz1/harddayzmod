@@ -29,7 +29,7 @@ public final class ClientAccess {
     /** «Шахед» или крылатая пикирует рядом: нарастающий вой, который кончается к взрыву. */
     public static void droneIncoming(com.harddayz.entity.Drone d) {
         var k = d.kind();
-        if (d.incomingPlayed || !k.autonomous || k.warhead < 2 || k == com.harddayz.entity.Drone.Kind.INTERCEPTOR) {
+        if (d.incomingPlayed || k.warhead < 2 || k == com.harddayz.entity.Drone.Kind.INTERCEPTOR || Minecraft.getInstance().getCameraEntity() == d) {
             return;
         }
         var mc = Minecraft.getInstance();
@@ -40,7 +40,7 @@ public final class ClientAccess {
         if (v.y > -0.25) {
             return;
         }
-        double len = k.jet() ? 3.0 : 3.2;
+        double len = k.jet() ? 3.0 : k.shahedLike() ? 3.2 : 2.4;
         int top = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, d.getBlockX(), d.getBlockZ());
         double ticks = (d.getY() - top) / -v.y;
         if (ticks > len * 20) {
@@ -51,8 +51,9 @@ public final class ClientAccess {
             return;
         }
         d.incomingPlayed = true;
-        mc.level.playLocalSound(hit.x, hit.y + 2, hit.z, k.jet() ? com.harddayz.registry.ModSounds.INCOMING_CRUISE.get()
-                : com.harddayz.registry.ModSounds.INCOMING_SHAHED.get(), net.minecraft.sounds.SoundSource.HOSTILE, 5f, 1f, false);
+        mc.level.playLocalSound(hit.x, hit.y + 2, hit.z, k.jetDrone() ? com.harddayz.registry.ModSounds.INCOMING_JETDRONE.get()
+                : k.jet() ? com.harddayz.registry.ModSounds.INCOMING_CRUISE.get()
+                : k.shahedLike() ? com.harddayz.registry.ModSounds.INCOMING_SHAHED.get() : com.harddayz.registry.ModSounds.INCOMING_DRONE.get(), net.minecraft.sounds.SoundSource.HOSTILE, 5f, 1f, false);
     }
 
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {

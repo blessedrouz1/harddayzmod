@@ -28,6 +28,7 @@ public final class ClientSetup {
     /** V: пульт машины, на которой едешь / выйти из управления дроном. */
     public static final KeyMapping CONTROL = new KeyMapping("key.harddayz.control", InputConstants.KEY_V, CATEGORY);
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
+    public static final KeyMapping NIGHT = new KeyMapping("key.harddayz.night", InputConstants.KEY_N, CATEGORY);
 
     /**
      * Embeddium Extras по умолчанию прячет сущности дальше 64 блоков — техника и ракеты пропадают.
@@ -104,6 +105,7 @@ public final class ClientSetup {
         modBus.addListener((RegisterKeyMappingsEvent e) -> {
             e.register(CONTROL);
             e.register(ENGINE);
+            e.register(NIGHT);
         });
         modBus.addListener(ClientSetup::onGuiLayers);
         IEventBus bus = MinecraftForge.EVENT_BUS;
@@ -305,6 +307,9 @@ public final class ClientSetup {
             alertTicks--;
         }
         Minecraft mc = Minecraft.getInstance();
+        while (NIGHT.consumeClick()) {
+            DronePilot.toggleNightVision();
+        }
         while (ENGINE.consumeClick()) {
             DronePilot.toggleEngine();
         }

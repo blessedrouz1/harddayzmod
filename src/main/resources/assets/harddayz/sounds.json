@@ -1,77 +1,8 @@
 {
-  "explode_near": {
-    "sounds": [
-      {
-        "name": "harddayz:explode_near",
-        "stream": false
-      }
-    ]
-  },
-  "explode_big": {
-    "sounds": [
-      {
-        "name": "harddayz:explode_big",
-        "stream": false
-      }
-    ]
-  },
-  "explode_far": {
-    "sounds": [
-      {
-        "name": "harddayz:explode_far_1"
-      },
-      {
-        "name": "harddayz:explode_far_2"
-      },
-      {
-        "name": "harddayz:explode_far_3"
-      }
-    ]
-  },
-  "missile_launch": {
-    "sounds": [
-      {
-        "name": "harddayz:missile_launch",
-        "stream": false
-      }
-    ]
-  },
-  "rocket_launch": {
-    "sounds": [
-      {
-        "name": "harddayz:rocket_launch",
-        "stream": false
-      }
-    ]
-  },
-  "whoosh": {
-    "sounds": [
-      {
-        "name": "harddayz:whoosh",
-        "stream": false
-      }
-    ]
-  },
   "mg_fire": {
     "sounds": [
       {
         "name": "harddayz:mg_fire",
-        "stream": false
-      }
-    ]
-  },
-  "jet_loop": {
-    "sounds": [
-      {
-        "name": "harddayz:jet_loop",
-        "stream": false
-      }
-    ]
-  },
-  "engine_loop": {
-    "sounds": [
-      {
-        "name": "harddayz:engine_loop",
         "stream": false
       }
     ]
@@ -161,78 +92,10 @@
       }
     ]
   },
-  "shell_whistle": {
-    "sounds": [
-      {
-        "name": "harddayz:shell_whistle"
-      }
-    ]
-  },
-  "mortar_fire": {
-    "sounds": [
-      {
-        "name": "harddayz:mortar_fire"
-      }
-    ]
-  },
-  "exp_medium": {
-    "sounds": [
-      {
-        "name": "harddayz:exp_medium_1"
-      },
-      {
-        "name": "harddayz:exp_medium_2"
-      },
-      {
-        "name": "harddayz:exp_medium_3"
-      }
-    ]
-  },
-  "exp_large": {
-    "sounds": [
-      {
-        "name": "harddayz:exp_large_1"
-      },
-      {
-        "name": "harddayz:exp_large_2"
-      },
-      {
-        "name": "harddayz:exp_large_3"
-      }
-    ]
-  },
-  "fly_rocket": {
-    "sounds": [
-      {
-        "name": "harddayz:fly_rocket"
-      }
-    ]
-  },
-  "fly_missile": {
-    "sounds": [
-      {
-        "name": "harddayz:fly_missile"
-      }
-    ]
-  },
   "fly_jet": {
     "sounds": [
       {
         "name": "harddayz:fly_jet"
-      }
-    ]
-  },
-  "launch_cruise": {
-    "sounds": [
-      {
-        "name": "harddayz:launch_cruise"
-      }
-    ]
-  },
-  "launch_shahed": {
-    "sounds": [
-      {
-        "name": "harddayz:launch_shahed"
       }
     ]
   },
@@ -243,123 +106,263 @@
       }
     ]
   },
-  "fpv_loop": {
+  "launch_shahed": {
     "sounds": [
       {
-        "name": "harddayz:fpv_loop"
+        "name": "harddayz:launch_shahed_1"
+      },
+      {
+        "name": "harddayz:launch_shahed_2"
+      },
+      {
+        "name": "harddayz:launch_shahed_3"
       }
     ]
   },
-  "incoming_mortar": {
+  "fly_shahed": {
     "sounds": [
       {
-        "name": "harddayz:incoming_mortar"
+        "name": "harddayz:fly_shahed_1"
+      },
+      {
+        "name": "harddayz:fly_shahed_2"
+      },
+      {
+        "name": "harddayz:fly_shahed_3"
       }
     ]
   },
-  "incoming_rocket": {
+  "flyby_shahed": {
     "sounds": [
       {
-        "name": "harddayz:incoming_rocket"
-      }
-    ]
-  },
-  "incoming_ballistic": {
-    "sounds": [
+        "name": "harddayz:flyby_shahed_1"
+      },
       {
-        "name": "harddayz:incoming_ballistic"
+        "name": "harddayz:flyby_shahed_2"
+      },
+      {
+        "name": "harddayz:flyby_shahed_3"
       }
     ]
   },
   "incoming_shahed": {
     "sounds": [
       {
-        "name": "harddayz:incoming_shahed"
+        "name": "harddayz:incoming_shahed_1"
+      },
+      {
+        "name": "harddayz:incoming_shahed_2"
+      },
+      {
+        "name": "harddayz:incoming_shahed_3"
+      }
+    ]
+  },
+  "launch_cruise": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_cruise_1"
+      },
+      {
+        "name": "harddayz:launch_cruise_2"
+      },
+      {
+        "name": "harddayz:launch_cruise_3"
+      }
+    ]
+  },
+  "fly_cruise": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_cruise_1"
+      },
+      {
+        "name": "harddayz:fly_cruise_2"
+      },
+      {
+        "name": "harddayz:fly_cruise_3"
+      }
+    ]
+  },
+  "flyby_cruise": {
+    "sounds": [
+      {
+        "name": "harddayz:flyby_cruise_1"
+      },
+      {
+        "name": "harddayz:flyby_cruise_2"
+      },
+      {
+        "name": "harddayz:flyby_cruise_3"
       }
     ]
   },
   "incoming_cruise": {
     "sounds": [
       {
-        "name": "harddayz:incoming_cruise"
+        "name": "harddayz:incoming_cruise_1"
+      },
+      {
+        "name": "harddayz:incoming_cruise_2"
+      },
+      {
+        "name": "harddayz:incoming_cruise_3"
       }
     ]
   },
-  "exp_small_near": {
+  "launch_ballistic": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_near_1"
+        "name": "harddayz:launch_ballistic_1"
       },
       {
-        "name": "harddayz:exp_small_near_2"
+        "name": "harddayz:launch_ballistic_2"
       },
       {
-        "name": "harddayz:exp_small_near_3"
+        "name": "harddayz:launch_ballistic_3"
       }
     ]
   },
-  "exp_small_mid": {
+  "fly_ballistic": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_mid_1"
+        "name": "harddayz:fly_ballistic_1"
       },
       {
-        "name": "harddayz:exp_small_mid_2"
+        "name": "harddayz:fly_ballistic_2"
       },
       {
-        "name": "harddayz:exp_small_mid_3"
+        "name": "harddayz:fly_ballistic_3"
       }
     ]
   },
-  "exp_small_far": {
+  "flyby_ballistic": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_far_1"
+        "name": "harddayz:flyby_ballistic_1"
       },
       {
-        "name": "harddayz:exp_small_far_2"
+        "name": "harddayz:flyby_ballistic_2"
       },
       {
-        "name": "harddayz:exp_small_far_3"
+        "name": "harddayz:flyby_ballistic_3"
       }
     ]
   },
-  "exp_small_air_near": {
+  "incoming_ballistic": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_air_near_1"
+        "name": "harddayz:incoming_ballistic_1"
       },
       {
-        "name": "harddayz:exp_small_air_near_2"
+        "name": "harddayz:incoming_ballistic_2"
       },
       {
-        "name": "harddayz:exp_small_air_near_3"
+        "name": "harddayz:incoming_ballistic_3"
       }
     ]
   },
-  "exp_small_air_mid": {
+  "launch_mlrs": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_air_mid_1"
+        "name": "harddayz:launch_mlrs_1"
       },
       {
-        "name": "harddayz:exp_small_air_mid_2"
+        "name": "harddayz:launch_mlrs_2"
       },
       {
-        "name": "harddayz:exp_small_air_mid_3"
+        "name": "harddayz:launch_mlrs_3"
       }
     ]
   },
-  "exp_small_air_far": {
+  "fly_mlrs": {
     "sounds": [
       {
-        "name": "harddayz:exp_small_air_far_1"
+        "name": "harddayz:fly_mlrs_1"
       },
       {
-        "name": "harddayz:exp_small_air_far_2"
+        "name": "harddayz:fly_mlrs_2"
       },
       {
-        "name": "harddayz:exp_small_air_far_3"
+        "name": "harddayz:fly_mlrs_3"
+      }
+    ]
+  },
+  "flyby_mlrs": {
+    "sounds": [
+      {
+        "name": "harddayz:flyby_mlrs_1"
+      },
+      {
+        "name": "harddayz:flyby_mlrs_2"
+      },
+      {
+        "name": "harddayz:flyby_mlrs_3"
+      }
+    ]
+  },
+  "incoming_mlrs": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_mlrs_1"
+      },
+      {
+        "name": "harddayz:incoming_mlrs_2"
+      },
+      {
+        "name": "harddayz:incoming_mlrs_3"
+      }
+    ]
+  },
+  "launch_mortar": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_mortar_1"
+      },
+      {
+        "name": "harddayz:launch_mortar_2"
+      },
+      {
+        "name": "harddayz:launch_mortar_3"
+      }
+    ]
+  },
+  "fly_mortar": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_mortar_1"
+      },
+      {
+        "name": "harddayz:fly_mortar_2"
+      },
+      {
+        "name": "harddayz:fly_mortar_3"
+      }
+    ]
+  },
+  "flyby_mortar": {
+    "sounds": [
+      {
+        "name": "harddayz:flyby_mortar_1"
+      },
+      {
+        "name": "harddayz:flyby_mortar_2"
+      },
+      {
+        "name": "harddayz:flyby_mortar_3"
+      }
+    ]
+  },
+  "incoming_mortar": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_mortar_1"
+      },
+      {
+        "name": "harddayz:incoming_mortar_2"
+      },
+      {
+        "name": "harddayz:incoming_mortar_3"
       }
     ]
   },
@@ -828,6 +831,266 @@
       },
       {
         "name": "harddayz:exp_thermo_air_far_3"
+      }
+    ]
+  },
+  "launch_drone": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_drone_1"
+      },
+      {
+        "name": "harddayz:launch_drone_2"
+      },
+      {
+        "name": "harddayz:launch_drone_3"
+      }
+    ]
+  },
+  "fly_drone": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_drone_1"
+      },
+      {
+        "name": "harddayz:fly_drone_2"
+      },
+      {
+        "name": "harddayz:fly_drone_3"
+      }
+    ]
+  },
+  "flyby_drone": {
+    "sounds": [
+      {
+        "name": "harddayz:flyby_drone_1"
+      },
+      {
+        "name": "harddayz:flyby_drone_2"
+      },
+      {
+        "name": "harddayz:flyby_drone_3"
+      }
+    ]
+  },
+  "incoming_drone": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_drone_1"
+      },
+      {
+        "name": "harddayz:incoming_drone_2"
+      },
+      {
+        "name": "harddayz:incoming_drone_3"
+      }
+    ]
+  },
+  "launch_jetdrone": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_jetdrone_1"
+      },
+      {
+        "name": "harddayz:launch_jetdrone_2"
+      },
+      {
+        "name": "harddayz:launch_jetdrone_3"
+      }
+    ]
+  },
+  "fly_jetdrone": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_jetdrone_1"
+      },
+      {
+        "name": "harddayz:fly_jetdrone_2"
+      },
+      {
+        "name": "harddayz:fly_jetdrone_3"
+      }
+    ]
+  },
+  "flyby_jetdrone": {
+    "sounds": [
+      {
+        "name": "harddayz:flyby_jetdrone_1"
+      },
+      {
+        "name": "harddayz:flyby_jetdrone_2"
+      },
+      {
+        "name": "harddayz:flyby_jetdrone_3"
+      }
+    ]
+  },
+  "incoming_jetdrone": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_jetdrone_1"
+      },
+      {
+        "name": "harddayz:incoming_jetdrone_2"
+      },
+      {
+        "name": "harddayz:incoming_jetdrone_3"
+      }
+    ]
+  },
+  "exp_small_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_near_1"
+      },
+      {
+        "name": "harddayz:exp_small_near_2"
+      },
+      {
+        "name": "harddayz:exp_small_near_3"
+      }
+    ]
+  },
+  "exp_small_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_mid_1"
+      },
+      {
+        "name": "harddayz:exp_small_mid_2"
+      },
+      {
+        "name": "harddayz:exp_small_mid_3"
+      }
+    ]
+  },
+  "exp_small_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_far_1"
+      },
+      {
+        "name": "harddayz:exp_small_far_2"
+      },
+      {
+        "name": "harddayz:exp_small_far_3"
+      }
+    ]
+  },
+  "exp_small_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_near_3"
+      }
+    ]
+  },
+  "exp_small_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_mid_3"
+      }
+    ]
+  },
+  "exp_small_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_far_3"
+      }
+    ]
+  },
+  "exp_jetdrone_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_near_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_near_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_near_3"
+      }
+    ]
+  },
+  "exp_jetdrone_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_mid_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_mid_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_mid_3"
+      }
+    ]
+  },
+  "exp_jetdrone_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_far_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_far_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_far_3"
+      }
+    ]
+  },
+  "exp_jetdrone_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_near_3"
+      }
+    ]
+  },
+  "exp_jetdrone_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_mid_3"
+      }
+    ]
+  },
+  "exp_jetdrone_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_jetdrone_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_jetdrone_air_far_3"
       }
     ]
   }

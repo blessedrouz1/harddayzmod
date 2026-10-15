@@ -59,7 +59,9 @@ public class DroneItem extends Item {
                 }
                 net.minecraft.world.phys.Vec3 dir = look.add(0, 0.35, 0).normalize();
                 Drone.launchShahed(sl, sp.getEyePosition().add(look.scale(1.5)), dir, aim, sp.getUUID(), kind);
-                sl.playSound(null, sp.blockPosition(), com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(),
+                sl.playSound(null, sp.blockPosition(), kind.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE.get()
+                                : kind.shahedLike() ? com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get()
+                                : com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(),
                         net.minecraft.sounds.SoundSource.PLAYERS, 1.5f, 1.2f);
                 com.harddayz.Compat.consume(player.getItemInHand(hand), player);
                 return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));

@@ -79,6 +79,16 @@ public class Drone extends Entity implements Threat {
         CRUISE(7, 0, 12f, 3.2, 25, true);
 
         public final float health;
+        /** Поршневые «Шахеды»: мопедный мотор, свой звук взрыва. */
+        public boolean shahedLike() {
+            return this == SHAHED || this == SHAHED_131 || this == GERBERA || this == SHAHED_238 || this == GERAN5;
+        }
+
+        /** Реактивные дроны (не крылатая ракета): свой звук турбины и взрыва. */
+        public boolean jetDrone() {
+            return this == SHAHED_238 || this == GERAN5 || this == BANDEROL;
+        }
+
         /** Реактивные/крылатые: быстрые цели для ПВО. */
         public boolean jet() {
             return this == SHAHED_238 || this == GERAN5 || this == BANDEROL || this == CRUISE;
@@ -380,7 +390,11 @@ public class Drone extends Entity implements Threat {
         entityData.set(ENGINE, on);
         from.displayClientMessage(net.minecraft.network.chat.Component.translatable(on ? "message.harddayz.engine_on" : "message.harddayz.engine_off")
                 .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.YELLOW), true);
-        level().playSound(null, getX(), getY(), getZ(), on ? SoundEvents.BEACON_ACTIVATE : SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 0.5f, 2f);
+        if (on) {
+            level().playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), SoundSource.HOSTILE, 1.5f, 1f);
+        } else {
+            level().playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 0.5f, 2f);
+        }
     }
 
     private int hunt = -1;
@@ -454,7 +468,7 @@ public class Drone extends Entity implements Threat {
         Vec3 dir = (flat.lengthSqr() < 1 ? p.getLookAngle().multiply(1, 0, 1) : flat).normalize().add(0, 1.2, 0).normalize();
         setDeltaMovement(dir.scale(0.6));
         face(dir);
-        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 3f, 1.15f);
+        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), SoundSource.HOSTILE, 3f, 1f);
         com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
     }
 
@@ -685,7 +699,21 @@ public class Drone extends Entity implements Threat {
             detonate(level);
             return;
         }
-        if (flight() < 25) {
+        if (kind() == Kind.CRUISE && flight() < 50) {
+            // выход из шахты: порох выталкивает ракету медленно вверх, потом маршевый разгоняет и плавно кладёт на курс
+            if (flight() < 14) {
+                v = new Vec3(0, 0.3 + flight() * 0.02, 0);
+                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, pos.x, pos.y - 0.8, pos.z, 4, 0.25, 0.2, 0.25, 0.02);
+                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, pos.x, pos.y - 0.6, pos.z, 3, 0.1, 0.1, 0.1, 0.02);
+            } else {
+                double k = (flight() - 14) / 36.0;
+                Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
+                flat = flat.lengthSqr() < 1 ? Vec3.ZERO : flat.normalize();
+                Vec3 dir = new Vec3(0, 1, 0).scale(1 - k).add(flat.scale(k)).normalize();
+                v = dir.scale(0.6 + k * kind().cruise);
+                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, pos.x - dir.x, pos.y - dir.y, pos.z - dir.z, 2, 0.05, 0.05, 0.05, 0.01);
+            }
+        } else if (flight() < 25) {
             v = v.normalize().scale(Math.min(kind().cruise, v.length() + 0.04 * kind().cruise)).add(0, 0.02, 0);
         } else {
             double dx = target.x - pos.x;
@@ -793,6 +821,9 @@ public class Drone extends Entity implements Threat {
         }
         for (Entity e : level.getEntities(this, new AABB(from, to).inflate(1.2), e -> (e instanceof Drone || e instanceof Missile) && e != ignore)) {
             if (e instanceof Drone d && d.parked) {
+                continue;
+            }
+            if (e instanceof Drone d && (flight() < 200 || d.flight() < 200) && java.util.Objects.equals(d.owner, owner)) {
                 continue;
             }
             if (!e.getBoundingBox().inflate(0.5).clip(from, to).isPresent() && !e.getBoundingBox().inflate(0.5).contains(to)) {

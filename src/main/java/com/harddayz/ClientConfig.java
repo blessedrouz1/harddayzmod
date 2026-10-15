@@ -19,6 +19,10 @@ public final class ClientConfig {
             .comment("Вспышка и зарево неба от взрывов")
             .define("skyFlash", true);
 
+    public static final ForgeConfigSpec.BooleanValue GPU_MODELS = B
+            .comment("Быстрый рендер моделей через видеокарту (эксперимент; если модели пропали — выключи)")
+            .define("gpuModels", false);
+
     public static final ForgeConfigSpec SPEC = B.build();
 
     private ClientConfig() {
@@ -38,6 +42,10 @@ public final class ClientConfig {
 
     public static boolean shake() {
         return get(SCREEN_SHAKE);
+    }
+
+    public static boolean gpuModels() {
+        return SPEC.isLoaded() && GPU_MODELS.get();
     }
 
     public static boolean flash() {

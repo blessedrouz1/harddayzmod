@@ -178,16 +178,12 @@ public class Missile extends Entity implements Threat {
             if (collide(level, v)) {
                 return;
             }
-            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7) {
+            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7 && look() != 5 && look() != 6) { // мина, РПГ и Javelin звучат сами
                 level.playSound(null, getX(), getY(), getZ(), switch (kind()) {
                             case GRAD -> com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get();
                             case SAM -> com.harddayz.registry.ModSounds.SAM_LAUNCH.get();
                             default -> com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get();
                         }, SoundSource.HOSTILE, kind() == Kind.BALLISTIC ? 8f : 4f, 0.9f + random.nextFloat() * 0.2f);
-            }
-            if (tickCount % 50 == 25 && kind() != Kind.BOMB && kind() != Kind.GRAD) {
-                level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.WHOOSH.get(), SoundSource.HOSTILE,
-                        kind() == Kind.BALLISTIC ? 6f : 2f, 0.8f);
             }
             setPos(position().add(v));
             face(v);
@@ -525,8 +521,8 @@ public class Missile extends Entity implements Threat {
         boolean heavy = kind() == Kind.BALLISTIC;
         var sound = heavy ? com.harddayz.registry.ModSounds.INCOMING_BALLISTIC.get()
                 : look() == 7 ? com.harddayz.registry.ModSounds.INCOMING_MORTAR.get()
-                : look() == 6 ? com.harddayz.registry.ModSounds.SHELL_WHISTLE.get() : com.harddayz.registry.ModSounds.INCOMING_ROCKET.get();
-        double len = heavy ? 2.6 : look() == 7 ? 2.8 : 2.2;
+                : com.harddayz.registry.ModSounds.INCOMING_ROCKET.get();
+        double len = heavy ? 2.8 : look() == 7 ? 2.8 : 2.2;
         int top = level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, getBlockX(), getBlockZ());
         double ticks = (getY() - top) / -v.y;
         if (ticks > len * 20) {

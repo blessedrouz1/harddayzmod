@@ -47,7 +47,7 @@ public abstract class TrackedEntityMixin {
         if (eye == null || player == entity) {
             return;
         }
-        double range = Math.min(getEffectiveRange(), player.getServer().getPlayerList().getViewDistance() * 16);
+        double range = player.getServer().getPlayerList().getViewDistance() * 16; // с высоты пилот видит далеко
         double dx = entity.getX() - eye.x;
         double dz = entity.getZ() - eye.z;
         boolean pilotedDrone = PilotView.isPiloted(player, entity);

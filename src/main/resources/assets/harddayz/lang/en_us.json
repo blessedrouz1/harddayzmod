@@ -59,8 +59,8 @@
   "hud.harddayz.battery": "BAT %s%%",
   "hud.harddayz.signal": "SIGNAL %s%%",
   "hud.harddayz.grenades": "GRENADES %s",
-  "hud.harddayz.help_fpv": "LMB detonate   V exit",
-  "hud.harddayz.help_recon": "RMB mark point   wheel zoom   V exit",
+  "hud.harddayz.help_fpv": "LMB detonate   N night   V exit",
+  "hud.harddayz.help_recon": "RMB mark point   wheel zoom   N night   V exit",
   "screen.harddayz.shahed": "Shahed launcher - control",
   "screen.harddayz.drive_hint": "RMB to drive, Shift+RMB panel, V panel from the cab",
   "item.harddayz.shahed_238": "Shahed-238 (jet)",
@@ -384,5 +384,7 @@
   "config.harddayz.blast_sounds": "Explosion sounds",
   "config.harddayz.screen_shake": "Camera shake",
   "config.harddayz.sky_flash": "Sky flash and glow",
-  "hud.harddayz.help_bomber": "RMB mark point   LMB drop   wheel zoom   V exit"
+  "hud.harddayz.help_bomber": "RMB mark point   LMB drop   wheel zoom   N night   V exit",
+  "config.harddayz.gpu_models": "Fast model rendering (experimental)",
+  "key.harddayz.night": "Drone camera night mode"
 }

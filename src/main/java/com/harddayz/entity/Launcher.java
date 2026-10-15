@@ -698,8 +698,8 @@ public class Launcher extends Vehicle {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
                     return;
                 }
-                // Вертикальный пуск из шахты — контейнер не двигается совсем
-                entityData.set(WANT_ELEV, 0f);
+                // контейнер поднимается гидроцилиндром в вертикаль, ракеты уходят из ячеек вверх
+                entityData.set(WANT_ELEV, 90f);
                 entityData.set(WANT_TURRET, 0f);
             }
             case GRAD, GRAD_P, TOS, SMERCH, URAGAN -> {
@@ -943,7 +943,6 @@ public class Launcher extends Vehicle {
     private int prep;
 
     private boolean aimed() {
-        if (kind() == Kind.KALIBR) return true; // шахтный пуск — контейнер не двигается
         return turret.near(entityData.get(WANT_TURRET), 0.4f, true) && elevation.near(entityData.get(WANT_ELEV), 0.4f, false)
                 && erect.near(entityData.get(WANT_ERECT), 0.005f, false);
     }
@@ -1034,7 +1033,7 @@ public class Launcher extends Vehicle {
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 6);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.2, 0.4, 1.2, 0.05);
-        level.playSound(null, g.x, g.y, g.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 5f, 1.1f);
+        // звук пуска даёт сама ракета (Missile), второй не нужен
     }
 
     /** Миномёт: следующий выстрел не раньше этого тика. */
@@ -1192,7 +1191,8 @@ public class Launcher extends Vehicle {
             entityData.set(FLASH, 6);
             com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
             com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 5f, 1f);
+            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
+                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), SoundSource.HOSTILE, 5f, 1f);
             stow();
             return;
         }
@@ -1201,7 +1201,8 @@ public class Launcher extends Vehicle {
         entityData.set(FLASH, 6);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
         com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 5f, 1f);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
+                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), SoundSource.HOSTILE, 5f, 1f);
     }
 
     /** Пульт оператора по пусковой: дрон стартует и сразу переходит под ручное управление. */

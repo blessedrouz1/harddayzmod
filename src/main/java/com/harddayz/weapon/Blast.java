@@ -51,9 +51,9 @@ public final class Blast {
         }
         if (source instanceof com.harddayz.entity.Drone d) {
             return switch (d.kind()) {
-                case CRUISE, BANDEROL -> 7;
-                case SHAHED, SHAHED_131, SHAHED_238, GERAN5, GERBERA -> 6;
-                case LANCET -> 3;
+                case CRUISE -> 7;
+                case SHAHED_238, GERAN5, BANDEROL -> 8;
+                case SHAHED, SHAHED_131, GERBERA -> 6;
                 default -> 1;
             } | air;
         }

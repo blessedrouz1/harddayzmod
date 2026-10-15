@@ -199,7 +199,7 @@ public final class GeoGpu {
     public static boolean render(ModelPart root, PoseStack pose, MultiBufferSource buffers, RenderType type, int light, int overlay) {
         Node node = NODES.get(root);
         Pass pass = PASSES.get(type);
-        if (SHADER_PACK_MOD || node == null || pass == null || !SHADERS.containsKey(pass)
+        if (SHADER_PACK_MOD || !com.harddayz.ClientConfig.gpuModels() || node == null || pass == null || !SHADERS.containsKey(pass)
                 || !(buffers instanceof MultiBufferSource.BufferSource source)) return false;
         Mesh mesh = MESHES.computeIfAbsent(root, k -> new Mesh(node));
         if (mesh.bones.size() > BONES) return false; // Future oversized models retain the vanilla path.

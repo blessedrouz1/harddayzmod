@@ -37,6 +37,31 @@ public final class DronePilot {
 
     private static boolean nightVision;
 
+    private static double savedViewScale;
+
+    /** N: ночной режим камеры — всё видно в темноте, картинка зелёная, как у настоящего ПНВ. */
+    public static void toggleNightVision() {
+        Minecraft mc = Minecraft.getInstance();
+        if (drone == null || mc.player == null) {
+            return;
+        }
+        if (nightVision) {
+            mc.player.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+            nightVision = false;
+        } else {
+            if (!mc.player.hasEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION)) {
+                mc.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 1_000_000, 0,
+                        false, false));
+            }
+            nightVision = true;
+        }
+        mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_HAT.value(), 0.6f, nightVision ? 1.8f : 1.2f);
+    }
+
+    public static boolean nightMode() {
+        return drone != null && nightVision;
+    }
+
     public static boolean active() {
         return drone != null;
     }
@@ -62,6 +87,7 @@ public final class DronePilot {
             return;
         }
         drone = d;
+        headSet = false;
         body = mc.player.position();
         mc.player.setNoGravity(true);
         mc.gameRenderer.setRenderHand(false); // никаких автоматов в кадре камеры дрона
@@ -72,11 +98,9 @@ public final class DronePilot {
         savedCamera = mc.options.getCameraType();
         mc.options.setCameraType(CameraType.FIRST_PERSON);
         mc.setCameraEntity(d);
-        if (d.kind() != Drone.Kind.FPV && !mc.player.hasEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION)) {
-            mc.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 1_000_000, 0,
-                    false, false));
-            nightVision = true;
-        }
+        // с высоты видно далеко: сущности рисуются в несколько раз дальше обычного
+        savedViewScale = net.minecraft.world.entity.Entity.getViewScale();
+        net.minecraft.world.entity.Entity.setViewScale(Math.max(savedViewScale, 6.0));
         mc.player.displayClientMessage(Component.translatable("message.harddayz.pilot_start").withStyle(ChatFormatting.GREEN), true);
     }
 
@@ -85,6 +109,7 @@ public final class DronePilot {
         Minecraft mc = Minecraft.getInstance();
         Drone d = drone;
         drone = null;
+        headSet = false;
         if (mc.player != null) {
             if (savedInput != null) {
                 mc.player.input = savedInput;
@@ -93,6 +118,10 @@ public final class DronePilot {
             if (nightVision) {
                 mc.player.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
                 nightVision = false;
+            }
+            if (savedViewScale > 0) {
+                net.minecraft.world.entity.Entity.setViewScale(savedViewScale);
+                savedViewScale = 0;
             }
             if (savedCamera != null) {
                 mc.options.setCameraType(savedCamera);
@@ -116,6 +145,10 @@ public final class DronePilot {
             if (savedInput != null) sessionPlayer.input = savedInput;
             sessionPlayer.setNoGravity(false);
             if (nightVision) sessionPlayer.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
+            if (savedViewScale > 0) {
+                net.minecraft.world.entity.Entity.setViewScale(savedViewScale);
+                savedViewScale = 0;
+            }
         }
         if (savedCamera != null) mc.options.setCameraType(savedCamera);
         if (drone != null) {
@@ -175,6 +208,7 @@ public final class DronePilot {
         }
         stepReady = false;
         Minecraft mc = Minecraft.getInstance();
+        steer(mc, d);
         if (d.kind().autonomous) {
             flyShahed(mc, d);
             return;
@@ -191,8 +225,8 @@ public final class DronePilot {
             vel = vel.add((rr.nextFloat() - 0.5f) * nz * 0.14, (rr.nextFloat() - 0.5f) * nz * 0.08, (rr.nextFloat() - 0.5f) * nz * 0.14);
         }
         float u = (mc.options.keyJump.isDown() ? 1 : 0) - (mc.options.keyShift.isDown() ? 1 : 0);
-        float yaw = mc.player.getYRot();
-        float pitch = mc.player.getXRot();
+        float yaw = yawOf(mc, d);
+        float pitch = pitchOf(mc, d);
         double yr = Math.toRadians(yaw);
         Vec3 fwd;
         if (fpv) {
@@ -237,15 +271,15 @@ public final class DronePilot {
     private static void flyShahed(Minecraft mc, Drone d) {
         float nz = noise(d);
         var rr = mc.player.getRandom();
-        float yaw = mc.player.getYRot() + (rr.nextFloat() - 0.5f) * nz * 25;
-        float pitch = Mth.clamp(mc.player.getXRot() + (rr.nextFloat() - 0.5f) * nz * 18, -40, 70);
+        float yaw = yawOf(mc, d) + (rr.nextFloat() - 0.5f) * nz * 25;
+        float pitch = Mth.clamp(pitchOf(mc, d) + (rr.nextFloat() - 0.5f) * nz * 18, -40, 70);
         Vec3 want = rr.nextFloat() < nz * 0.45f && vel.lengthSqr() > 1.0E-4 ? vel.normalize() : Vec3.directionFromRotation(pitch, yaw);
         double speed = d.kind().cruise * (mc.options.keyUp.isDown() ? 1.25 : mc.options.keyDown.isDown() ? 0.75 : 1.0);
         Vec3 cur = vel.lengthSqr() < 1.0E-4 ? d.getDeltaMovement() : vel;
         if (cur.lengthSqr() < 1.0E-4) {
             cur = want;
         }
-        Vec3 dir = cur.normalize().scale(0.88).add(want.scale(0.12)).normalize();
+        Vec3 dir = cur.normalize().scale(0.6).add(want.scale(0.4)).normalize(); // курс уже ограничен steer()
         vel = dir.scale(speed);
         Vec3 before = d.position();
         d.setYRot(yaw);
@@ -262,6 +296,63 @@ public final class DronePilot {
     }
 
     private static float lastYaw;
+
+    /** Курс самого аппарата: мышь задаёт цель, аппарат доворачивает к ней не быстрее своей скорости поворота. */
+    private static float headYaw, headPitch, prevHeadYaw, prevHeadPitch;
+    private static boolean headSet;
+
+    /** Градусов за тик: рыскание и тангаж. Тяжёлые и быстрые — медленно, FPV — резко. */
+    private static float[] turnRate(Drone.Kind k) {
+        return switch (k) {
+            case FPV -> new float[] {8f, 7f};
+            case SHAHED -> new float[] {1.6f, 1.4f};
+            case SHAHED_131, GERBERA -> new float[] {2.0f, 1.7f};
+            case SHAHED_238, GERAN5, BANDEROL -> new float[] {1.2f, 1.0f};
+            case CRUISE -> new float[] {0.9f, 0.8f};
+            case LANCET, KUB, MOLNIYA -> new float[] {3.0f, 2.6f};
+            case INTERCEPTOR -> new float[] {5f, 4.5f};
+            case WING_RECON -> new float[] {2.4f, 2f};
+            default -> null; // разведчик и Баба-Яга: камера на подвесе, крутится свободно
+        };
+    }
+
+    /** Двигает курс к взгляду пилота; мышь не может убежать от курса дальше, чем на 50° / 35°. */
+    private static boolean steer(Minecraft mc, Drone d) {
+        float[] rate = turnRate(d.kind());
+        if (rate == null) {
+            return false;
+        }
+        if (!headSet) {
+            headYaw = prevHeadYaw = mc.player.getYRot();
+            headPitch = prevHeadPitch = mc.player.getXRot();
+            headSet = true;
+        }
+        prevHeadYaw = headYaw;
+        prevHeadPitch = headPitch;
+        float dy = Mth.wrapDegrees(mc.player.getYRot() - headYaw);
+        float dp = mc.player.getXRot() - headPitch;
+        if (Math.abs(dy) > 50) {
+            mc.player.setYRot(headYaw + Math.signum(dy) * 50);
+            dy = Math.signum(dy) * 50;
+        }
+        if (Math.abs(dp) > 35) {
+            mc.player.setXRot(Mth.clamp(headPitch + Math.signum(dp) * 35, -90, 90));
+            dp = Math.signum(dp) * 35;
+        }
+        // плавный разгон поворота: чем дальше цель, тем быстрее, но не выше предела
+        headYaw += Mth.clamp(dy * 0.25f, -rate[0], rate[0]);
+        headPitch = Mth.clamp(headPitch + Mth.clamp(dp * 0.25f, -rate[1], rate[1]), -89, 89);
+        return true;
+    }
+
+    /** Куда направлен аппарат сейчас (с учётом инерции поворота). */
+    private static float yawOf(Minecraft mc, Drone d) {
+        return turnRate(d.kind()) != null ? headYaw : mc.player.getYRot();
+    }
+
+    private static float pitchOf(Minecraft mc, Drone d) {
+        return turnRate(d.kind()) != null ? headPitch : mc.player.getXRot();
+    }
 
     // ------------------------------------------------------------------ ввод
 
@@ -313,8 +404,13 @@ public final class DronePilot {
         Minecraft mc = Minecraft.getInstance();
         if (drone != null && mc.player != null) {
             float pt = (float) event.getPartialTick();
-            event.setYaw(mc.player.getViewYRot(pt));
-            event.setPitch(mc.player.getViewXRot(pt));
+            if (headSet && turnRate(drone.kind()) != null) {
+                event.setYaw(prevHeadYaw + Mth.wrapDegrees(headYaw - prevHeadYaw) * pt);
+                event.setPitch(Mth.lerp(pt, prevHeadPitch, headPitch));
+            } else {
+                event.setYaw(mc.player.getViewYRot(pt));
+                event.setPitch(mc.player.getViewXRot(pt));
+            }
             event.setRoll(Mth.lerp(pt, prevRoll, roll));
         }
     }
@@ -373,6 +469,28 @@ public final class DronePilot {
             if (d.interference() > 0.2f) {
                 g.text(mc.font, Component.translatable("hud.harddayz.jamming", (int) (d.interference() * 100)), w / 2 - 40, 30, 0xFFFF6040, true);
             }
+        }
+        if (nightVision) {
+            // зелёная картинка ПНВ и лёгкое «зерно»
+            g.fill(0, 0, w, h, 0x5520FF40);
+            var rnd = mc.player.getRandom();
+            for (int i = 0; i < 90; i++) {
+                int x = rnd.nextInt(w), y = rnd.nextInt(h);
+                g.fill(x, y, x + 1, y + 1, 0x60C0FFC0);
+            }
+            g.text(mc.font, Component.literal("NV"), 24, 24, 0xFF60FF60, true);
+        }
+        if (headSet && turnRate(d.kind()) != null) {
+            // кружок «куда хочу»: показывает, куда сейчас доворачивает аппарат
+            double fov = Math.toRadians(mc.options.fov().get());
+            double px = h / 2.0 / Math.tan(fov / 2);
+            int mx = w / 2 + (int) (Math.tan(Math.toRadians(Mth.wrapDegrees(mc.player.getYRot() - headYaw))) * px);
+            int my = h / 2 + (int) (Math.tan(Math.toRadians(mc.player.getXRot() - headPitch)) * px);
+            int c = 0xC0FFFFFF;
+            g.fill(mx - 4, my - 4, mx + 5, my - 3, c);
+            g.fill(mx - 4, my + 4, mx + 5, my + 5, c);
+            g.fill(mx - 4, my - 3, mx - 3, my + 4, c);
+            g.fill(mx + 4, my - 3, mx + 5, my + 4, c);
         }
         renderVignette(g, w, h);
         // рамка и прицел

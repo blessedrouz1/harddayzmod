@@ -25,7 +25,8 @@ public class HdConfigScreen extends Screen {
         toggle(ClientConfig.BLAST_SOUNDS, "config.harddayz.blast_sounds", y + 24);
         toggle(ClientConfig.SCREEN_SHAKE, "config.harddayz.screen_shake", y + 48);
         toggle(ClientConfig.SKY_FLASH, "config.harddayz.sky_flash", y + 72);
-        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose()).bounds(width / 2 - 100, y + 110, 200, 20).build());
+        toggle(ClientConfig.GPU_MODELS, "config.harddayz.gpu_models", y + 96);
+        addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, b -> onClose()).bounds(width / 2 - 100, y + 134, 200, 20).build());
     }
 
     private void toggle(ForgeConfigSpec.BooleanValue v, String key, int y) {

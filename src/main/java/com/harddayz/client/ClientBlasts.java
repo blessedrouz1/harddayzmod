@@ -347,17 +347,13 @@ public final class ClientBlasts {
         } else {
             int tier = d < 60 ? 0 : d < 160 ? 1 : 2;
             int type = a.sound & 15;
-            SoundEvent snd;
-            if (type >= 1 && type <= 7) {
-                // в воздухе: сбито ПВО или рвануло высоко над землёй
-                boolean air = (a.sound & 16) != 0 || a.pos.y - a.ground > 6;
-                snd = com.harddayz.registry.ModSounds.blast(type - 1, air, tier);
-            } else if (tier == 2) {
-                snd = com.harddayz.registry.ModSounds.EXPLODE_FAR.get();
-            } else {
-                snd = a.power < 2.5f ? com.harddayz.registry.ModSounds.blast(0, false, tier)
-                        : a.power < 7f ? com.harddayz.registry.ModSounds.EXP_MEDIUM.get() : com.harddayz.registry.ModSounds.EXP_LARGE.get();
+            if (type < 1 || type > com.harddayz.registry.ModSounds.BLAST_TYPES.length) {
+                // без явного оружия (мина, техника, свой подрыв): по силе — малый, РСЗО или крылатая
+                type = a.power < 2.5f ? 1 : a.power < 7f ? 3 : 7;
             }
+            // в воздухе: сбито ПВО или рвануло высоко над землёй
+            boolean air = (a.sound & 16) != 0 || a.pos.y - a.ground > 6;
+            SoundEvent snd = com.harddayz.registry.ModSounds.blast(type - 1, air, tier);
             mc.level.playLocalSound(at.x, at.y, at.z, snd, SoundSource.BLOCKS, tier == 2 ? (float) Mth.clamp(vol * 1.2, 0.05, 4) : vol,
                     0.95f + R.nextFloat() * 0.1f, false);
         }

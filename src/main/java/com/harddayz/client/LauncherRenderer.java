@@ -389,12 +389,12 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         int ammo = e.ammo();
         if (e.capLastAmmo >= 0 && ammo < e.capLastAmmo) {
             int fired = e.kind().capacity - ammo;
-            for (int i = Math.max(0, fired - (e.capLastAmmo - ammo)); i < Math.min(fired, e.capLaunched.length); i++) {
+            for (int i = ammo; i < Math.min(e.capLastAmmo, e.capLaunched.length); i++) {
                 e.capLaunched[i] = e.tickCount + pt;
             }
         } else if (ammo > e.capLastAmmo) {
             java.util.Arrays.fill(e.capLaunched, -1);
-            for (int i = 0; i < Math.min(e.kind().capacity - ammo, e.capLaunched.length); i++) {
+            for (int i = ammo; i < Math.min(e.kind().capacity, e.capLaunched.length); i++) {
                 e.capLaunched[i] = -1000; // уже стреляные (загрузка мира): крышек нет
             }
         }
