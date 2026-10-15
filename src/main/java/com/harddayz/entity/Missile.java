@@ -534,6 +534,11 @@ public class Missile extends Entity implements Threat {
     // ------------------------------------------------------------------ служебное
 
     @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() {
+        return getBoundingBox().inflate(8);
+    }
+
+    @Override
     public boolean shouldRenderAtSqrDistance(double d) {
         return d < 512 * 512;
     }

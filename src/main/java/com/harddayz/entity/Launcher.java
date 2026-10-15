@@ -360,6 +360,17 @@ public class Launcher extends Vehicle implements Threat {
         refreshDimensions();
     }
 
+    /** Модель больше хитбокса и видна издалека — не прятать её раньше времени. */
+    @Override
+    public boolean shouldRenderAtSqrDistance(double d) {
+        return d < 320 * 320;
+    }
+
+    @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() {
+        return getBoundingBox().inflate(6, 6, 6);
+    }
+
     /** Хитбокс по размеру техники: пулемёт и ПЗРК маленькие, танки и ТОС крупнее. */
     @Override
     public net.minecraft.world.entity.EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose) {

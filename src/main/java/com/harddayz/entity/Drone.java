@@ -414,6 +414,9 @@ public class Drone extends Entity implements Threat {
         if (e instanceof Missile m && (m.kind() == Missile.Kind.SAM || !m.isThreat())) {
             return false;
         }
+        if (owner != null && owner.equals(o)) {
+            return false; // свои дроны и ракеты — никогда
+        }
         return !com.harddayz.war.War.active() || !com.harddayz.war.War.allied(owner, o);
     }
 
@@ -857,6 +860,11 @@ public class Drone extends Entity implements Threat {
     @Override
     public boolean isPickable() {
         return !isRemoved();
+    }
+
+    @Override
+    public net.minecraft.world.phys.AABB getBoundingBoxForCulling() {
+        return getBoundingBox().inflate(3);
     }
 
     @Override
