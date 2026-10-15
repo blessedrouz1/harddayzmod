@@ -343,5 +343,8 @@
   "item.harddayz.empty_jerrycan": "Empty jerrycan",
   "message.harddayz.no_fuel": "Out of fuel! Use a jerrycan on the vehicle (RMB).",
   "message.harddayz.tank_full": "Tank is full.",
-  "message.harddayz.refueled": "Refueled: %s / %s L"
+  "message.harddayz.refueled": "Refueled: %s / %s L",
+  "message.harddayz.lancet_manual": "Lancet climbed - you have control. LMB - detonate.",
+  "message.harddayz.drone_busy": "Someone is already piloting this drone.",
+  "message.harddayz.drone_foreign": "This drone belongs to someone else."
 }

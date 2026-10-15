@@ -343,5 +343,8 @@
   "item.harddayz.empty_jerrycan": "Пустая канистра",
   "message.harddayz.no_fuel": "Бак пуст! Нужна канистра (ПКМ ею по технике).",
   "message.harddayz.tank_full": "Бак полный.",
-  "message.harddayz.refueled": "Заправлено: %s / %s л"
+  "message.harddayz.refueled": "Заправлено: %s / %s л",
+  "message.harddayz.lancet_manual": "«Ланцет» набрал высоту — управление у тебя. ЛКМ — подрыв.",
+  "message.harddayz.drone_busy": "Дроном уже кто-то управляет.",
+  "message.harddayz.drone_foreign": "Это чужой дрон."
 }

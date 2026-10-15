@@ -51,8 +51,8 @@ public class Drone extends Entity implements Threat {
     public enum Kind {
         /** «Шахед-136» / «Герань-2»: медленный, громкий, мощный. */
         SHAHED(8, 3600, 7.5f, 1.25, 26, true),
-        FPV(4, 1800, 4.5f, 0, 0, false),
-        RECON(6, 4800, 0f, 0, 0, false),
+        FPV(4, 3600, 4.5f, 0, 0, false),
+        RECON(6, 9600, 0f, 0, 0, false),
         /** «Шахед-238»: реактивный — в 2 раза быстрее, летит высоко, ПВО сбивает хуже. */
         SHAHED_238(10, 2400, 8f, 2.6, 70, true),
         /** «Шахед-131»: малый, слабее заряд. */
@@ -278,7 +278,7 @@ public class Drone extends Entity implements Threat {
             return;
         }
         // пилотируемые: заряд тратится только при включённом моторе
-        if (engineOn()) {
+        if (engineOn() && (pilotId() >= 0 || tickCount % 4 == 0)) {
             entityData.set(BATTERY, Math.max(0, battery() - 1));
             if (battery() <= 0) {
                 entityData.set(ENGINE, false); // сел аккумулятор — мотор встал, дрон падает
@@ -364,10 +364,18 @@ public class Drone extends Entity implements Threat {
                 break;
             }
         }
+        manualClimb = aim == null && kind() == Kind.LANCET;
         if (aim == null || kind() == Kind.INTERCEPTOR) {
             var hit = level.clip(new ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(600)), ClipContext.Block.COLLIDER,
                     ClipContext.Fluid.NONE, p));
-            aim = hit.getLocation();
+            if (hit.getType() == HitResult.Type.MISS) {
+                // смотрел в небо — берём точку на земле в 150 блоках по направлению взгляда
+                Vec3 flat = p.getLookAngle().multiply(1, 0, 1);
+                Vec3 at = position().add((flat.lengthSqr() < 1.0E-4 ? new Vec3(0, 0, 1) : flat.normalize()).scale(150));
+                aim = new Vec3(at.x, level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(at.x), Mth.floor(at.z)), at.z);
+            } else {
+                aim = hit.getLocation();
+            }
         }
         parked = false;
         entityData.set(PARKED, false);
@@ -525,10 +533,29 @@ public class Drone extends Entity implements Threat {
         }
     }
 
+    /** «Ланцет» запущен без целеуказателя: сначала вертикальный взлёт, потом управление сразу у оператора. */
+    private boolean manualClimb;
+
     private void tickShahed(ServerLevel level) {
         if (parked) {
             tickParked(level);
             return;
+        }
+        if (manualClimb) {
+            int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(getX()), Mth.floor(getZ()));
+            if (getY() < ground + 25 && flight() < 120) {
+                setDeltaMovement(new Vec3(0, 0.45, 0));
+                setPos(position().add(0, 0.45, 0));
+                return;
+            }
+            manualClimb = false;
+            offered = true;
+            Vec3 fwd = Vec3.directionFromRotation(0, getYRot());
+            setDeltaMovement(fwd.scale(0.6));
+            target = position().add(fwd.scale(400)).subtract(0, 25, 0);
+            if (owner != null && level.getPlayerByUUID(owner) instanceof ServerPlayer op && linked(op) && takeControl(op)) {
+                op.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.lancet_manual").withStyle(net.minecraft.ChatFormatting.GOLD), true);
+            }
         }
         if (kind() == Kind.INTERCEPTOR) {
             tickInterceptor(level);
@@ -681,6 +708,10 @@ public class Drone extends Entity implements Threat {
     /** Подключиться к своему квадрокоптеру (ПКМ по нему или пульт). */
     public boolean connect(ServerPlayer p) {
         if (kind().autonomous || pilotId() >= 0 || battery() <= 0 || (owner != null && !com.harddayz.war.War.allied(p.getUUID(), owner))) {
+            String why = battery() <= 0 ? "message.harddayz.drone_dead" : pilotId() >= 0 ? "message.harddayz.drone_busy" : "message.harddayz.drone_foreign";
+            if (!kind().autonomous) {
+                p.displayClientMessage(net.minecraft.network.chat.Component.translatable(why).withStyle(net.minecraft.ChatFormatting.RED), true);
+            }
             return false;
         }
         entityData.set(PILOT, p.getId());

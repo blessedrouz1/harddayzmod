@@ -26,34 +26,45 @@ public final class FlightChunks {
      * ещё не готов — тогда объекту надо подождать тик, а не лететь в незагруженный мир.
      */
     public boolean update(ServerLevel level, Vec3 pos, Vec3 vel, @Nullable Vec3 target) {
-        var cache = level.getChunkSource();
-        com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(pos.x) >> 4, Mth.floor(pos.z) >> 4), 2);
-        // путь вперёд: на 2 секунды полёта
+        long t = level.getGameTime() + phase;
+        // свой чанк — раз в 10 тиков (тикет живёт 40), и только если его не держат игроки
+        BlockPos here = BlockPos.containing(pos);
+        if (t % 10 == 0 && !level.isPositionEntityTicking(here)) {
+            com.harddayz.Compat.ticket(level, new ChunkPos(here), 2);
+        }
+        // путь вперёд — редко и только незагруженные чанки, без «живых» соседей
         double speed = vel.length();
-        if (speed > 1.0E-3) {
+        if (t % 20 == 0 && speed > 1.0E-3) {
             Vec3 dir = vel.scale(1 / speed);
-            double ahead = Math.min(160, speed * 40 + 16);
-            for (double d = 8; d <= ahead; d += 8) {
-                Vec3 p = pos.add(dir.scale(d));
-                com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(p.x) >> 4, Mth.floor(p.z) >> 4), 2);
+            double ahead = Math.min(96, speed * 30 + 16);
+            for (double d = 16; d <= ahead; d += 16) {
+                BlockPos p = BlockPos.containing(pos.add(dir.scale(d)));
+                if (!level.isPositionEntityTicking(p)) {
+                    com.harddayz.Compat.ticket(level, new ChunkPos(p), 1);
+                }
             }
         }
-        if (target != null && level.getGameTime() % 20 == 0) {
-            com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(target.x) >> 4, Mth.floor(target.z) >> 4), 1);
+        if (target != null && t % 100 == 0) {
+            BlockPos tp = BlockPos.containing(target);
+            if (!level.isPositionEntityTicking(tp)) {
+                com.harddayz.Compat.ticket(level, new ChunkPos(tp), 1);
+            }
         }
         BlockPos next = BlockPos.containing(pos.add(vel));
-        int nx = next.getX() >> 4;
-        int nz = next.getZ() >> 4;
-        if (!level.hasChunk(nx, nz)) {
-            level.getChunk(nx, nz); // загрузить сразу
-        }
-        com.harddayz.Compat.ticket(level, new ChunkPos(nx, nz), 2);
-        if (level.isPositionEntityTicking(next) || ++waited > 40) {
+        if (level.isPositionEntityTicking(next)) {
             waited = 0;
-            return true; // готово или ждали достаточно — летим дальше
+            return true;
+        }
+        com.harddayz.Compat.ticket(level, new ChunkPos(next), 2);
+        if (++waited > 40) {
+            waited = 0;
+            return true; // ждали достаточно — летим дальше
         }
         return false;
     }
+
+    /** Сдвиг по времени, чтобы ракеты одного залпа не обновлялись в один и тот же тик. */
+    private final int phase = (int) (Math.random() * 20);
 
     /** Тикеты истекают сами. */
     public void release(ServerLevel level) {
