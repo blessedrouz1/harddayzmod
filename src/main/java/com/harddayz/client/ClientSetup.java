@@ -58,11 +58,44 @@ public final class ClientSetup {
         }
     }
 
+    /** Entity Culling (tr7zw) прячет «закрытые» сущности — наша техника исчезает, остаётся тень. Вносим в исключения. */
+    private static void allowEntityCulling() {
+        try {
+            java.nio.file.Path cfg = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("entityculling.json");
+            if (!java.nio.file.Files.exists(cfg)) {
+                return;
+            }
+            com.google.gson.Gson gson = new com.google.gson.GsonBuilder().setPrettyPrinting().create();
+            com.google.gson.JsonObject j = com.google.gson.JsonParser.parseString(java.nio.file.Files.readString(cfg)).getAsJsonObject();
+            boolean changed = false;
+            for (String list : new String[] {"entityWhitelist", "tickCullingWhitelist"}) {
+                com.google.gson.JsonArray a = j.has(list) ? j.getAsJsonArray(list) : new com.google.gson.JsonArray();
+                for (String id : new String[] {"harddayz:launcher", "harddayz:drone", "harddayz:missile", "harddayz:mine"}) {
+                    boolean has = false;
+                    for (var e : a) {
+                        has |= id.equals(e.getAsString());
+                    }
+                    if (!has) {
+                        a.add(id);
+                        changed = true;
+                    }
+                }
+                j.add(list, a);
+            }
+            if (changed) {
+                java.nio.file.Files.writeString(cfg, gson.toJson(j));
+            }
+        } catch (Exception e) {
+            com.mojang.logging.LogUtils.getLogger().warn("HardDayz: не удалось поправить entityculling.json", e);
+        }
+    }
+
     private ClientSetup() {
     }
 
     public static void init(IEventBus modBus) {
         allowFarRendering();
+        allowEntityCulling();
         modBus.addListener(ClientSetup::onRenderers);
         modBus.addListener(ClientSetup::onLayers);
         modBus.addListener(ClientSetup::onParticles);
