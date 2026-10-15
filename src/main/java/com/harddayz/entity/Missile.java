@@ -284,8 +284,36 @@ public class Missile extends Entity implements Threat {
             return v;
         }
         double speed = Math.min(4.5, v.length() + 0.25);
-        Vec3 lead = aim.add(t.getDeltaMovement().scale(dist / speed));
+        Vec3 lead = intercept(position(), speed, t.position(), t.getDeltaMovement());
         return steer(v, lead.subtract(position()).normalize(), speed, 0.3);
+    }
+
+    /**
+     * Точка встречи: куда лететь со скоростью {@code speed}, чтобы поймать цель, идущую прямо со скоростью {@code tv}.
+     * Ракета летит на перехват наперёд траектории, а не догоняет хвост.
+     */
+    public static Vec3 intercept(Vec3 from, double speed, Vec3 tp, Vec3 tv) {
+        Vec3 r = tp.subtract(from);
+        double a = tv.lengthSqr() - speed * speed;
+        double b = 2 * r.dot(tv);
+        double c = r.lengthSqr();
+        double tau;
+        if (Math.abs(a) < 1.0E-6) {
+            tau = b < 0 ? -c / b : r.length() / speed;
+        } else {
+            double disc = b * b - 4 * a * c;
+            if (disc < 0) {
+                return tp.add(tv.scale(r.length() / speed)); // не догнать — хотя бы упреждение
+            }
+            double s = Math.sqrt(disc);
+            double t1 = (-b - s) / (2 * a);
+            double t2 = (-b + s) / (2 * a);
+            tau = t1 > 0 && t2 > 0 ? Math.min(t1, t2) : Math.max(t1, t2);
+        }
+        if (!(tau > 0) || tau > 200) {
+            tau = r.length() / speed;
+        }
+        return tp.add(tv.scale(tau));
     }
 
     /** Вероятность поразить цель ракетой ПВО: медленное сбить легко, быстрое — трудно. */

@@ -1256,7 +1256,16 @@ public class Launcher extends Vehicle implements Threat {
             return false; // ПРО не тратит ракеты на дроны
         }
         double d = e.distanceTo(this);
-        return d >= 18 && d <= samRange() && e.getY() > getY() + 6; // слишком близко ракета не успеет взвестись
+        if (d < 18 || e.getY() < getY() + 6) {
+            return false; // слишком близко ракета не успеет взвестись
+        }
+        if (d <= samRange()) {
+            return true;
+        }
+        // цель ещё дальше, но идёт к нам: стреляем наперёд, если точка встречи будет в зоне поражения
+        double speed = kind() == Kind.S400 || kind() == Kind.PATRIOT ? 4.5 : 4.0;
+        Vec3 meet = Missile.intercept(muzzleBase(), speed, e.position(), e.getDeltaMovement());
+        return d <= samRange() * 1.4 && meet.distanceTo(position()) <= samRange() * 0.95;
     }
 
     private void tickSam(ServerLevel level) {
@@ -1282,7 +1291,7 @@ public class Launcher extends Vehicle implements Threat {
         }
         // упреждение: куда цель придёт к моменту встречи
         double speed = kind() == Kind.S400 || kind() == Kind.PATRIOT ? 2.0 : 1.4;
-        Vec3 p = t.position().add(t.getDeltaMovement().scale(t.distanceTo(this) / (speed * 2.2)));
+        Vec3 p = Missile.intercept(muzzleBase(), 4.0, t.position(), t.getDeltaMovement()); // пуск в точку встречи
         entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(p) - getYRot()));
         Vec3 base = muzzleBase();
         double h = Math.sqrt((p.x - base.x) * (p.x - base.x) + (p.z - base.z) * (p.z - base.z));
@@ -1319,7 +1328,7 @@ public class Launcher extends Vehicle implements Threat {
         Entity best = null;
         double bestP = Double.MAX_VALUE;
         int r = samRange();
-        for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r, 300, r), e -> e instanceof Threat)) {
+        for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r * 1.4, 300, r * 1.4), e -> e instanceof Threat)) {
             if (!canEngage(e) || busyWith(e, now)) {
                 continue;
             }
