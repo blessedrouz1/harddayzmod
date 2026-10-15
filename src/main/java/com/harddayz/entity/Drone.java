@@ -68,7 +68,15 @@ public class Drone extends Entity implements Threat {
         /** «Герань-5»: реактивная, летит почти как крылатая ракета — быстро и высоко, ПВО её сбивает тяжело. */
         GERAN5(8, 1800, 9f, 3.6, 90, true),
         /** «Бандероль»: малая крылатая ракета, быстрая и низковысотная. */
-        BANDEROL(6, 1800, 6f, 3.0, 35, true);
+        BANDEROL(6, 1800, 6f, 3.0, 35, true),
+        /** «Куб»: малый барражирующий боеприпас — запуск с руки, сам летит к точке. */
+        KUB(4, 1800, 3f, 2.0, 30, true),
+        /** «Молния»: дешёвый самолётный камикадзе, только под оператором (как «Ланцет»). */
+        MOLNIYA(3, 2400, 3.5f, 1.8, 30, true),
+        /** «Баба-Яга»: тяжёлый гексакоптер-бомбардировщик, две мощные бомбы. */
+        BABA_YAGA(10, 7200, 0f, 0, 0, false),
+        /** Крылатая ракета «Калибр» (с пусковой): низко и далеко, мощная БЧ. */
+        CRUISE(7, 0, 12f, 3.2, 25, true);
 
         public final float health;
         /** Заряд АКБ в тиках (у «Шахедов» — запас ручного управления, дальше летит сам). */
@@ -221,7 +229,7 @@ public class Drone extends Entity implements Threat {
     public void setKind(Kind k) {
         entityData.set(KIND, k.ordinal());
         entityData.set(BATTERY, k.battery);
-        entityData.set(GRENADES, k == Kind.RECON ? 3 : 0);
+        entityData.set(GRENADES, k == Kind.RECON ? 3 : k == Kind.BABA_YAGA ? 2 : 0);
         health = k.health;
     }
 
@@ -369,12 +377,17 @@ public class Drone extends Entity implements Threat {
     private boolean parked;
     private int launchedAt;
 
+    /** Самолётные камикадзе под оператором: сами не летают. */
+    private boolean wingFpv() {
+        return kind() == Kind.LANCET || kind() == Kind.MOLNIYA;
+    }
+
     public boolean isParked() {
         return parked;
     }
 
     public boolean parkable() {
-        return kind() == Kind.INTERCEPTOR || kind() == Kind.LANCET || kind() == Kind.WING_RECON;
+        return kind() == Kind.INTERCEPTOR || wingFpv() || kind() == Kind.WING_RECON;
     }
 
     /** Поставить на землю перед игроком, мотор не запущен. */
@@ -405,7 +418,7 @@ public class Drone extends Entity implements Threat {
                 break;
             }
         }
-        manualClimb = kind() == Kind.LANCET; // «Ланцет» сам не летает: взлёт и сразу к оператору
+        manualClimb = wingFpv(); // «Ланцет» сам не летает: взлёт и сразу к оператору
         if (aim == null || kind() == Kind.INTERCEPTOR) {
             var hit = level.clip(new ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(600)), ClipContext.Block.COLLIDER,
                     ClipContext.Fluid.NONE, p));
@@ -639,11 +652,11 @@ public class Drone extends Entity implements Threat {
             tickWingRecon(level);
             return;
         }
-        if (kind() == Kind.LANCET && !manualClimb && pilotId() < 0) {
+        if (wingFpv() && !manualClimb && pilotId() < 0) {
             loiter(level); // оператор отключился — кружит на месте и ждёт
             return;
         }
-        if (kind() == Kind.LANCET && !offered && owner != null && flight() > 80
+        if (wingFpv() && !offered && owner != null && flight() > 80
                 && getY() - level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(getX()), Mth.floor(getZ())) > 20
                 && Math.sqrt(position().distanceToSqr(target.x, position().y, target.z)) < 120
                 && level.getPlayerByUUID(owner) instanceof ServerPlayer op && linked(op)) {
@@ -794,9 +807,10 @@ public class Drone extends Entity implements Threat {
         }
         if (kind() == Kind.FPV || kind().autonomous) {
             detonate(level);
-        } else if (kind() == Kind.RECON && grenades() > 0) {
+        } else if ((kind() == Kind.RECON || kind() == Kind.BABA_YAGA) && grenades() > 0) {
             entityData.set(GRENADES, grenades() - 1);
-            Missile.launch(level, Missile.Kind.BOMB, position().add(0, -0.4, 0), getDeltaMovement().scale(0.5), position(), this).owner(owner);
+            Missile.launch(level, Missile.Kind.BOMB, position().add(0, -0.4, 0), getDeltaMovement().scale(0.5), position(), this).owner(owner)
+                    .powerMul(kind() == Kind.BABA_YAGA ? 1.6f : 1f);
             level.playSound(null, getX(), getY(), getZ(), SoundEvents.DISPENSER_LAUNCH, SoundSource.HOSTILE, 1f, 1.4f);
         }
     }
@@ -918,6 +932,8 @@ public class Drone extends Entity implements Threat {
                 case INTERCEPTOR -> ModItems.INTERCEPTOR.get();
                 case LANCET -> ModItems.LANCET.get();
                 case WING_RECON -> ModItems.WING_RECON.get();
+                case MOLNIYA -> ModItems.MOLNIYA.get();
+                case BABA_YAGA -> ModItems.BABA_YAGA.get();
                 default -> ModItems.RECON_DRONE.get();
             }));
             discard();

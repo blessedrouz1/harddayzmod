@@ -32,7 +32,7 @@ public class DroneItem extends Item {
         }
         player.getCooldowns().addCooldown(this, 100);
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
-            if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON) {
+            if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON || kind == Drone.Kind.MOLNIYA) {
                 // ставится на землю; пуск — ПКМ по нему
                 Drone.park(sl, sp, kind);
                 com.harddayz.Compat.consume(player.getItemInHand(hand), player);

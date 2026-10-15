@@ -259,7 +259,8 @@ public class Missile extends Entity implements Threat {
             return v;
         }
         Entity t = targetEntity >= 0 ? level.getEntity(targetEntity) : null;
-        if (tickCount < 6) {
+        if (tickCount < (look() == 2 ? 14 : 6)) {
+            // С-400 сначала уходит вертикально вверх (холодный старт), потом доворачивает на цель
             return v.normalize().scale(Math.min(4.5, v.length() + 0.4));
         }
         if (t == null || !t.isAlive()) {
@@ -324,6 +325,9 @@ public class Missile extends Entity implements Threat {
                 case GERBERA -> 0.97f;
                 case SHAHED_238 -> 0.55f;
                 case GERAN5 -> 0.4f;
+                case CRUISE -> 0.45f;
+                case KUB, MOLNIYA -> 0.8f;
+                case BABA_YAGA -> 0.85f;
                 case BANDEROL -> 0.5f;
                 case RECON, WING_RECON -> 0.9f;
                 case INTERCEPTOR -> 0.5f;

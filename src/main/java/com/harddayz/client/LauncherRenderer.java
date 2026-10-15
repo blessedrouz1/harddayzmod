@@ -309,6 +309,10 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         GeoModel.Marks cab = new GeoModel.Marks("cab", GeoModel.Mode.SIDES_TOP);
         geo.put(Launcher.Kind.GRAD, new GeoLauncherModel("grad", cab, true));
         geo.put(Launcher.Kind.ISKANDER, new GeoLauncherModel("iskander", cab, true));
+        geo.put(Launcher.Kind.TOCHKA, new GeoLauncherModel("tochka", cab, true));
+        geo.put(Launcher.Kind.SMERCH, new GeoLauncherModel("smerch", cab, true));
+        geo.put(Launcher.Kind.URAGAN, new GeoLauncherModel("uragan", cab, true));
+        geo.put(Launcher.Kind.KALIBR, new GeoLauncherModel("kalibr", cab, true));
         geo.put(Launcher.Kind.SAM, new GeoLauncherModel("sam", cab, true));
         GeoModel.Marks hull = new GeoModel.Marks("hull", GeoModel.Mode.SIDES_TOP);
         GeoModel.Marks base = new GeoModel.Marks("base", GeoModel.Mode.TOP);

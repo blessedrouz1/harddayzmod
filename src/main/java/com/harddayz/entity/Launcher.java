@@ -92,7 +92,15 @@ public class Launcher extends Vehicle implements Threat {
         /** Ми-8АМТШ: транспортно-боевой — пилот и 3 десантника, НУРС. */
         MI8(32, 300),
         /** Миномёт 82 мм: навесной огонь по точке, 3 мины за приказ. */
-        MORTAR(12, 40, false);
+        MORTAR(12, 40, false),
+        /** «Точка-У»: тактическая баллистика — ближе и слабее «Искандера», дешевле. */
+        TOCHKA(1, 200),
+        /** «Смерч»: тяжёлая РСЗО 300 мм, 12 ракет — далеко и мощно. */
+        SMERCH(12, 240),
+        /** «Ураган»: РСЗО 220 мм, 16 ракет — между «Градом» и «Смерчем». */
+        URAGAN(16, 220),
+        /** «Калибр» (береговой): 4 крылатые ракеты, летят низко над землёй далеко. */
+        KALIBR(4, 220);
 
         public final int capacity;
         public final float health;
@@ -149,6 +157,10 @@ public class Launcher extends Vehicle implements Threat {
             return switch (this) {
                 case GRAD -> ModItems.GRAD_ROCKET.get();
                 case ISKANDER -> ModItems.BALLISTIC_MISSILE.get();
+                case TOCHKA -> ModItems.TOCHKA_MISSILE.get();
+                case SMERCH -> ModItems.SMERCH_ROCKET.get();
+                case URAGAN -> ModItems.URAGAN_ROCKET.get();
+                case KALIBR -> ModItems.KALIBR_MISSILE.get();
                 case SAM -> ModItems.SAM_MISSILE.get();
                 case SHAHED, RAMP -> ModItems.SHAHED_DRONE.get();
                 case GRAD_P -> ModItems.GRAD_ROCKET.get();
@@ -176,6 +188,10 @@ public class Launcher extends Vehicle implements Threat {
             return switch (this) {
                 case GRAD -> ModItems.GRAD.get();
                 case ISKANDER -> ModItems.ISKANDER.get();
+                case TOCHKA -> ModItems.TOCHKA.get();
+                case SMERCH -> ModItems.SMERCH.get();
+                case URAGAN -> ModItems.URAGAN.get();
+                case KALIBR -> ModItems.KALIBR.get();
                 case SAM -> ModItems.SAM.get();
                 case SHAHED -> ModItems.SHAHED_LAUNCHER.get();
                 case RAMP -> ModItems.RAMP.get();
@@ -676,7 +692,15 @@ public class Launcher extends Vehicle implements Threat {
                 entityData.set(WANT_ELEV, elev.floatValue());
                 entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
             }
-            case GRAD, GRAD_P, TOS -> {
+            case KALIBR -> {
+                if (dist < 150 || dist > Drone.SHAHED_RANGE) {
+                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
+                    return;
+                }
+                entityData.set(WANT_ELEV, 25f);
+                entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
+            }
+            case GRAD, GRAD_P, TOS, SMERCH, URAGAN -> {
                 Double elev = gradElevation(tv);
                 if (elev == null) {
                     int dy = (int) (tv.y - muzzleBase().y);
@@ -697,10 +721,15 @@ public class Launcher extends Vehicle implements Threat {
                 entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
             }
             default -> {
-                int max = kind() == Kind.S400 ? 1500 : kind() == Kind.HIMARS ? 1800 : com.harddayz.Config.ballisticRange();
+                int max = kind() == Kind.S400 ? 1500 : kind() == Kind.HIMARS ? 1800 : kind() == Kind.TOCHKA ? com.harddayz.Config.ballisticRange() / 2
+                        : com.harddayz.Config.ballisticRange();
                 if (dist > max || dist < 60) {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
                     return;
+                }
+                if (kind() == Kind.S400) {
+                    entityData.set(WANT_ELEV, 88f); // и по земле — вертикальный пуск
+                    entityData.set(WANT_TURRET, 0f);
                 }
             }
         }
@@ -719,7 +748,12 @@ public class Launcher extends Vehicle implements Threat {
 
     /** Скорость неуправляемых ракет: у «Солнцепёка» меньше — и дальность меньше. */
     private double rocketSpeed() {
-        return kind() == Kind.TOS ? Missile.GRAD_SPEED * 0.92 : Missile.GRAD_SPEED;
+        return switch (kind()) {
+            case TOS -> Missile.GRAD_SPEED * 0.92;
+            case SMERCH -> Missile.GRAD_SPEED * 1.4;
+            case URAGAN -> Missile.GRAD_SPEED * 1.22;
+            default -> Missile.GRAD_SPEED;
+        };
     }
 
     private double maxGradRange() {
@@ -754,6 +788,9 @@ public class Launcher extends Vehicle implements Threat {
         return switch (kind()) {
             case GRAD -> local(0, 2.0, -1.5);
             case ISKANDER -> local(0, 1.75, -2.75);
+            case TOCHKA -> local(0, 1.75, -1.9);
+            case SMERCH, URAGAN -> local(0, 2.0, -1.9);
+            case KALIBR -> local(0, 2.2, -1.6);
             case SAM -> local(0, 2.35, -0.55);
             case SHAHED -> local(0, 1.95, -1.6);
             case RAMP -> local(0, 0.6, -1.2);
@@ -833,14 +870,14 @@ public class Launcher extends Vehicle implements Threat {
             case DEPLOY -> {
                 if (outrig.near(kind().mobile ? 1f : 0f, 0.01f, false)) {
                     state = State.AIMING;
-                    if (kind() == Kind.ISKANDER) {
+                    if (kind() == Kind.ISKANDER || kind() == Kind.TOCHKA) {
                         entityData.set(WANT_ERECT, 1f);
                     }
                     level.playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.5f, 0.4f);
                 }
             }
             case AIMING -> {
-                if (kind() == Kind.ISKANDER && tickCount % 20 == 0) {
+                if ((kind() == Kind.ISKANDER || kind() == Kind.TOCHKA) && tickCount % 20 == 0) {
                     level.playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.0f, 0.35f);
                 }
                 if (aimed()) {
@@ -850,8 +887,9 @@ public class Launcher extends Vehicle implements Threat {
             }
             case FIRING -> {
                 switch (kind()) {
-                    case GRAD, GRAD_P, TOS -> fireGrad(level);
-                    case ISKANDER -> fireIskander(level);
+                    case GRAD, GRAD_P, TOS, SMERCH, URAGAN -> fireGrad(level);
+                    case ISKANDER, TOCHKA -> fireIskander(level);
+                    case KALIBR -> fireKalibr(level);
                     case SHAHED, RAMP -> fireShahed(level);
                     case S400 -> fireS400Ground(level);
                     case HIMARS -> fireHimars(level);
@@ -891,6 +929,10 @@ public class Launcher extends Vehicle implements Threat {
         timer = 0;
         reloadUntil = tickCount + switch (kind()) {
             case ISKANDER -> 2400;
+            case TOCHKA -> 1800;
+            case SMERCH -> 1600;
+            case URAGAN -> 1400;
+            case KALIBR -> 1200;
             case GRAD, TOS -> 1200;
             case HIMARS, S400 -> 800;
             case GRAD_P -> 400;
@@ -912,8 +954,19 @@ public class Launcher extends Vehicle implements Threat {
             return;
         }
         int tube = shot++ % 40;
-        int row = kind() == Kind.GRAD_P ? 0 : kind() == Kind.TOS ? (tube % 24) / 8 : tube / 10;
-        int col = kind() == Kind.GRAD_P ? 0 : kind() == Kind.TOS ? tube % 8 : tube % 10;
+        int row = switch (kind()) {
+            case GRAD_P -> 0;
+            case TOS -> (tube % 24) / 8;
+            case SMERCH -> (tube % 12) / 4;
+            case URAGAN -> (tube % 16) / 4;
+            default -> tube / 10;
+        };
+        int col = switch (kind()) {
+            case GRAD_P -> 0;
+            case TOS -> tube % 8;
+            case SMERCH, URAGAN -> tube % 4;
+            default -> tube % 10;
+        };
         // настоящий разброс РСЗО: каждая ракета чуть по-своему по направлению, углу и скорости
         float yaw = getYRot() + turret.value + (float) random.nextGaussian() * 2.6f;
         Vec3 dir = forward(yaw, elevation.value + (float) random.nextGaussian() * 1.1f);
@@ -926,6 +979,10 @@ public class Launcher extends Vehicle implements Threat {
         Missile m = Missile.launch(level, Missile.Kind.GRAD, muzzle, vel, Vec3.atCenterOf(target), this).owner(owner);
         if (kind() == Kind.TOS) {
             m.thermobaric();
+        } else if (kind() == Kind.SMERCH) {
+            m.powerMul(1.8f);
+        } else if (kind() == Kind.URAGAN) {
+            m.powerMul(1.35f);
         }
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 3);
@@ -946,7 +1003,7 @@ public class Launcher extends Vehicle implements Threat {
         shot++;
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 22, 0, random.nextGaussian() * 22);
         Vec3 g = muzzleBase();
-        Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 2.5, 0), new Vec3(0, 0.6, 0), aim, this).owner(owner).powerMul(0.35f).look(2);
+        Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 6.6, 0), new Vec3(0, 0.6, 0), aim, this).owner(owner).powerMul(0.35f).look(2);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.5, 0.4, 1.5, 0.05);
@@ -1109,6 +1166,27 @@ public class Launcher extends Vehicle implements Threat {
 
     private int lastCrash;
 
+    /** «Калибр»: две крылатые ракеты за приказ, с интервалом. */
+    private void fireKalibr(ServerLevel level) {
+        if (timer++ % 40 != 0) {
+            return;
+        }
+        if (ammo() <= 0 || target == null || shot >= 2) {
+            stow();
+            return;
+        }
+        shot++;
+        Vec3 dir = forward(getYRot() + turret.value, elevation.value);
+        Vec3 muzzle = muzzleBase().add(dir.scale(4.2)).add(0, 0.6, 0);
+        double ang = random.nextDouble() * Math.PI * 2;
+        Vec3 aim = Vec3.atCenterOf(target).add(Math.cos(ang) * 3, 0, Math.sin(ang) * 3);
+        Drone.launchShahed(level, muzzle, dir, aim, owner, Drone.Kind.CRUISE);
+        entityData.set(AMMO, ammo() - 1);
+        entityData.set(FLASH, 6);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, muzzle.x, muzzle.y, muzzle.z, 30, 0.8, 0.4, 0.8, 0.05);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 6f, 0.9f);
+    }
+
     private void fireIskander(ServerLevel level) {
         timer++;
         Vec3 g = muzzleBase();
@@ -1122,7 +1200,8 @@ public class Launcher extends Vehicle implements Threat {
             return;
         }
         if (ammo() > 0 && target != null) {
-            Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 3.8, 0), new Vec3(0, 0.4, 0), Vec3.atCenterOf(target), this).owner(owner);
+            Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 3.8, 0), new Vec3(0, 0.4, 0), Vec3.atCenterOf(target), this).owner(owner)
+                    .powerMul(kind() == Kind.TOCHKA ? 0.6f : 1f);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 10);
             com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 50, 3.0, 0.5, 3.0, 0.06);
@@ -1226,9 +1305,20 @@ public class Launcher extends Vehicle implements Threat {
         };
     }
 
+    /** Общий «журнал целей» ПВО каждой фракции: цель → до какого тика по ней уже работает какая-то установка. */
+    private static final java.util.Map<String, java.util.Map<Integer, Long>> CLAIMS = new java.util.HashMap<>();
+
+    private java.util.Map<Integer, Long> claims() {
+        return CLAIMS.computeIfAbsent(com.harddayz.war.RadarNet.key(owner), k -> new java.util.HashMap<>());
+    }
+
     private boolean busyWith(Entity e, long now) {
         Long until = inFlight.get(e.getId());
-        return until != null && until > now;
+        if (until != null && until > now) {
+            return true;
+        }
+        Long other = claims().get(e.getId()); // по цели уже стреляет соседняя установка
+        return other != null && other > now;
     }
 
     /** Чем меньше, тем важнее цель: баллистика и ракеты — первыми, дальше «Шахеды», потом мелкие дроны. */
@@ -1285,24 +1375,35 @@ public class Launcher extends Vehicle implements Threat {
                 }
             }
         }
+        boolean vertical = kind() == Kind.S400; // С-400: вертикальный пуск, башня не крутится
         if (t == null) {
-            entityData.set(WANT_ELEV, 12f);
+            entityData.set(WANT_ELEV, vertical ? 0f : 12f);
+            if (vertical) {
+                entityData.set(WANT_TURRET, 0f);
+            }
             return;
         }
         // упреждение: куда цель придёт к моменту встречи
         double speed = kind() == Kind.S400 || kind() == Kind.PATRIOT ? 2.0 : 1.4;
         Vec3 p = Missile.intercept(muzzleBase(), 4.0, t.position(), t.getDeltaMovement()); // пуск в точку встречи
-        entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(p) - getYRot()));
         Vec3 base = muzzleBase();
-        double h = Math.sqrt((p.x - base.x) * (p.x - base.x) + (p.z - base.z) * (p.z - base.z));
-        entityData.set(WANT_ELEV, (float) Mth.clamp(Math.toDegrees(Math.atan2(p.y - base.y, h)), 15, 80));
+        if (vertical) {
+            entityData.set(WANT_TURRET, 0f);
+            entityData.set(WANT_ELEV, 88f); // контейнеры поднимаются вертикально
+        } else {
+            entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(p) - getYRot()));
+            double h = Math.sqrt((p.x - base.x) * (p.x - base.x) + (p.z - base.z) * (p.z - base.z));
+            entityData.set(WANT_ELEV, (float) Mth.clamp(Math.toDegrees(Math.atan2(p.y - base.y, h)), 15, 80));
+        }
         int salvo = t instanceof Missile m && m.kind() == Missile.Kind.BALLISTIC ? 2 : 1;
-        if (samCooldown == 0 && ammo() > 0 && !busyWith(t, now) && Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12) {
-            Vec3 dir = forward(getYRot() + samTurret.value, elevation.value);
+        boolean ready = vertical ? elevation.value > 80 : Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12;
+        if (samCooldown == 0 && ammo() > 0 && !busyWith(t, now) && ready) {
+            Vec3 dir = vertical ? new Vec3(0, 1, 0) : forward(getYRot() + samTurret.value, elevation.value);
             boolean left = shot++ % 2 == 0;
             double y = Math.toRadians(getYRot() + samTurret.value);
             Vec3 right = new Vec3(-Math.cos(y), 0, -Math.sin(y));
-            Vec3 muzzle = kind() == Kind.SAM_POST ? base.add(dir.scale(1.6)).add(right.scale(left ? -0.35 : 0.35))
+            Vec3 muzzle = vertical ? base.add(0, 6.6, 0).add(right.scale(left ? -0.4 : 0.4))
+                    : kind() == Kind.SAM_POST ? base.add(dir.scale(1.6)).add(right.scale(left ? -0.35 : 0.35))
                     : base.add(dir.scale(2.4)).add(right.scale(left ? -1.1 : 1.1));
             Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(speed), p, this).hunt(t)
                     .owner(owner).bonus(kind() == Kind.PATRIOT && t instanceof Missile ? 0.6f : kind() == Kind.NASAMS ? 0.05f : 0f)
@@ -1314,6 +1415,10 @@ public class Launcher extends Vehicle implements Threat {
             long eta = (long) (t.distanceTo(this) / (speed * 2.0)) + 30;
             if (n % salvo == 0) {
                 inFlight.put(t.getId(), now + eta);
+                claims().put(t.getId(), now + eta);
+                if (claims().size() > 128) {
+                    claims().values().removeIf(u -> u < now);
+                }
             }
             samCooldown = n % salvo == 0 ? samRate() : 8;
             com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, muzzle.x, muzzle.y, muzzle.z, 20, 0.5, 0.5, 0.5, 0.1);

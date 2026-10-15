@@ -134,6 +134,17 @@ public final class ModItems {
     public static final RegistryObject<Item> GERBERA = item("gerbera", AmmoItem::new, p -> p.stacksTo(5));
     public static final RegistryObject<Item> GERAN5 = item("geran5", AmmoItem::new, p -> p.stacksTo(5).rarity(Rarity.UNCOMMON));
     public static final RegistryObject<Item> BANDEROL = item("banderol", AmmoItem::new, p -> p.stacksTo(5));
+    public static final RegistryObject<Item> KUB = item("kub_drone", p -> new DroneItem(p, Drone.Kind.KUB), p -> p.stacksTo(2));
+    public static final RegistryObject<Item> MOLNIYA = item("molniya", p -> new DroneItem(p, Drone.Kind.MOLNIYA), p -> p.stacksTo(2));
+    public static final RegistryObject<Item> BABA_YAGA = item("baba_yaga", p -> new DroneItem(p, Drone.Kind.BABA_YAGA), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> TOCHKA = item("tochka_launcher", p -> new LauncherItem(p, Launcher.Kind.TOCHKA), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> SMERCH = item("smerch_launcher", p -> new LauncherItem(p, Launcher.Kind.SMERCH), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> URAGAN = item("uragan_launcher", p -> new LauncherItem(p, Launcher.Kind.URAGAN), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> KALIBR = item("kalibr_launcher", p -> new LauncherItem(p, Launcher.Kind.KALIBR), p -> p.stacksTo(1));
+    public static final RegistryObject<Item> TOCHKA_MISSILE = item("tochka_missile", AmmoItem::new, p -> p.stacksTo(1));
+    public static final RegistryObject<Item> SMERCH_ROCKET = item("smerch_rocket", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> URAGAN_ROCKET = item("uragan_rocket", AmmoItem::new, p -> p.stacksTo(16));
+    public static final RegistryObject<Item> KALIBR_MISSILE = item("kalibr_missile", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> S400_MISSILE = item("s400_missile", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> SHAHED_DRONE = item("shahed_drone", AmmoItem::new, p -> p.stacksTo(5));
     public static final RegistryObject<Item> INTERCEPTOR = item("interceptor_drone", p -> new DroneItem(p, Drone.Kind.INTERCEPTOR),

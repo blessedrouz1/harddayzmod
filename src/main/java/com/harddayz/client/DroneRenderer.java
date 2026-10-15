@@ -54,7 +54,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
             if (prop != null) {
                 prop.zRot += s.rotor;
             }
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 6; i++) {
                 ModelPart p = geo.parts.get("prop" + i);
                 if (p != null) {
                     p.yRot += s.rotor * 3f * (i == 0 || i == 3 ? 1 : -1);
@@ -128,6 +128,10 @@ public class DroneRenderer extends EntityRenderer<Drone> {
         geo.put(Drone.Kind.WING_RECON, new GeoDroneModel("wing_recon", wings));
         geo.put(Drone.Kind.RECON, new GeoDroneModel("recon", frame));
         geo.put(Drone.Kind.GERAN5, new GeoDroneModel("shahed238", wings));
+        geo.put(Drone.Kind.KUB, new GeoDroneModel("kub", wings));
+        geo.put(Drone.Kind.MOLNIYA, new GeoDroneModel("molniya", wings));
+        geo.put(Drone.Kind.BABA_YAGA, new GeoDroneModel("baba_yaga", frame));
+        geo.put(Drone.Kind.CRUISE, new GeoDroneModel("m_s400", null));
         geo.put(Drone.Kind.BANDEROL, new GeoDroneModel("m_gmlrs", null));
         this.shadowRadius = 0.4f;
     }
