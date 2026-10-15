@@ -356,5 +356,10 @@
   "block.harddayz.gabion": "Gabion",
   "block.harddayz.log_roof": "Log roof",
   "block.harddayz.steel_beam": "Steel I-beam",
-  "message.harddayz.link_lost": "Drone link lost."
+  "message.harddayz.link_lost": "Drone link lost.",
+  "item.harddayz.s400_missile": "S-400 missile (48N6)",
+  "item.harddayz.geran5": "Geran-5 (jet)",
+  "item.harddayz.banderol": "Banderol",
+  "message.harddayz.reloading_launcher": "Launcher reloading: %s s",
+  "message.harddayz.out_of_range_h": "Out of reach: %s blocks, height difference %s (max %s on flat ground)."
 }

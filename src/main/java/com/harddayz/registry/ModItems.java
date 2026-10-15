@@ -132,6 +132,9 @@ public final class ModItems {
     public static final RegistryObject<Item> SHAHED_238 = item("shahed_238", AmmoItem::new, p -> p.stacksTo(5).rarity(Rarity.UNCOMMON));
     public static final RegistryObject<Item> SHAHED_131 = item("shahed_131", AmmoItem::new, p -> p.stacksTo(5));
     public static final RegistryObject<Item> GERBERA = item("gerbera", AmmoItem::new, p -> p.stacksTo(5));
+    public static final RegistryObject<Item> GERAN5 = item("geran5", AmmoItem::new, p -> p.stacksTo(5).rarity(Rarity.UNCOMMON));
+    public static final RegistryObject<Item> BANDEROL = item("banderol", AmmoItem::new, p -> p.stacksTo(5));
+    public static final RegistryObject<Item> S400_MISSILE = item("s400_missile", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> SHAHED_DRONE = item("shahed_drone", AmmoItem::new, p -> p.stacksTo(5));
     public static final RegistryObject<Item> INTERCEPTOR = item("interceptor_drone", p -> new DroneItem(p, Drone.Kind.INTERCEPTOR),
             p -> p.stacksTo(4));

@@ -144,6 +144,8 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
                 case SHAHED_238 -> "shahed238";
                 case SHAHED_131 -> "geran2";
                 case GERBERA -> "gerbera";
+                case GERAN5 -> "shahed238";
+                case BANDEROL -> "m_gmlrs";
                 default -> "shahed136";
             };
             GeoModel g = GeoModel.get(n, new GeoModel.Marks("wing", GeoModel.Mode.WINGS));

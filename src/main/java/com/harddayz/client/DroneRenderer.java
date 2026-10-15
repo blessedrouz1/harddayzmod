@@ -127,6 +127,8 @@ public class DroneRenderer extends EntityRenderer<Drone> {
         geo.put(Drone.Kind.LANCET, new GeoDroneModel("lancet", wings));
         geo.put(Drone.Kind.WING_RECON, new GeoDroneModel("wing_recon", wings));
         geo.put(Drone.Kind.RECON, new GeoDroneModel("recon", frame));
+        geo.put(Drone.Kind.GERAN5, new GeoDroneModel("shahed238", wings));
+        geo.put(Drone.Kind.BANDEROL, new GeoDroneModel("m_gmlrs", null));
         this.shadowRadius = 0.4f;
     }
 
@@ -173,6 +175,8 @@ public class DroneRenderer extends EntityRenderer<Drone> {
             pose.mulPose(Axis.XP.rotationDegrees(-pitch));
             float k = switch (s.kind) {
                 case SHAHED_131 -> 0.72f;
+                case GERAN5 -> 0.85f;
+                case BANDEROL -> 1.6f;
                 default -> 1f;
             };
             pose.scale(k, k, k);

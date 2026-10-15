@@ -157,7 +157,7 @@ public class Launcher extends Vehicle implements Threat {
                 case SAM_MANUAL -> ModItems.SAM_MISSILE.get();
                 case MG -> ModItems.MG_BELT.get();
                 case RADAR -> ModItems.DESIGNATOR.get();
-                case S400 -> ModItems.SAM_MISSILE.get();
+                case S400 -> ModItems.S400_MISSILE.get();
                 case TOS -> ModItems.TOS_ROCKET.get();
                 case HIMARS -> ModItems.HIMARS_ROCKET.get();
                 case PATRIOT -> ModItems.PATRIOT_MISSILE.get();
@@ -218,6 +218,12 @@ public class Launcher extends Vehicle implements Threat {
         if (s.is(ModItems.GERBERA.get())) {
             return Drone.Kind.GERBERA;
         }
+        if (s.is(ModItems.GERAN5.get())) {
+            return Drone.Kind.GERAN5;
+        }
+        if (s.is(ModItems.BANDEROL.get())) {
+            return Drone.Kind.BANDEROL;
+        }
         return null;
     }
 
@@ -226,6 +232,8 @@ public class Launcher extends Vehicle implements Threat {
             case SHAHED_238 -> ModItems.SHAHED_238.get();
             case SHAHED_131 -> ModItems.SHAHED_131.get();
             case GERBERA -> ModItems.GERBERA.get();
+            case GERAN5 -> ModItems.GERAN5.get();
+            case BANDEROL -> ModItems.BANDEROL.get();
             default -> ModItems.SHAHED_DRONE.get();
         };
     }
@@ -341,7 +349,6 @@ public class Launcher extends Vehicle implements Threat {
     private @Nullable UUID controlOp;
     private int samCooldown;
     private int samTarget = -1;
-    private final Set<Integer> engaged = new HashSet<>();
 
     public Launcher(EntityType<? extends Launcher> type, Level level) {
         super(type, level);
@@ -648,6 +655,11 @@ public class Launcher extends Vehicle implements Threat {
             player.displayClientMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
+        if (tickCount < reloadUntil) {
+            player.displayClientMessage(Component.translatable("message.harddayz.reloading_launcher", (reloadUntil - tickCount) / 20 + 1)
+                    .withStyle(ChatFormatting.YELLOW), true);
+            return;
+        }
         if (!stationary()) {
             player.displayClientMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW), true);
             return;
@@ -667,7 +679,10 @@ public class Launcher extends Vehicle implements Threat {
             case GRAD, GRAD_P, TOS -> {
                 Double elev = gradElevation(tv);
                 if (elev == null) {
-                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, (int) maxGradRange()).withStyle(ChatFormatting.RED), true);
+                    int dy = (int) (tv.y - muzzleBase().y);
+                    player.displayClientMessage((Math.abs(dy) > 8 && dist <= maxGradRange()
+                            ? Component.translatable("message.harddayz.out_of_range_h", (int) dist, dy, (int) maxGradRange())
+                            : Component.translatable("message.harddayz.out_of_range", (int) dist, (int) maxGradRange())).withStyle(ChatFormatting.RED), true);
                     return;
                 }
                 entityData.set(WANT_ELEV, elev.floatValue());
@@ -704,7 +719,7 @@ public class Launcher extends Vehicle implements Threat {
 
     /** Скорость неуправляемых ракет: у «Солнцепёка» меньше — и дальность меньше. */
     private double rocketSpeed() {
-        return kind() == Kind.TOS ? Missile.GRAD_SPEED * 0.72 : Missile.GRAD_SPEED;
+        return kind() == Kind.TOS ? Missile.GRAD_SPEED * 0.92 : Missile.GRAD_SPEED;
     }
 
     private double maxGradRange() {
@@ -874,7 +889,19 @@ public class Launcher extends Vehicle implements Threat {
     private void stow() {
         state = State.STOW;
         timer = 0;
+        reloadUntil = tickCount + switch (kind()) {
+            case ISKANDER -> 1200;
+            case GRAD, TOS -> 600;
+            case HIMARS, S400 -> 400;
+            case GRAD_P -> 200;
+            case SHAHED, RAMP -> 200;
+            case MORTAR -> 100;
+            default -> 200;
+        };
     }
+
+    /** До какого тика пусковая перезаряжается после залпа. */
+    private int reloadUntil;
 
     private void fireGrad(ServerLevel level) {
         if (timer++ % 2 != 0) {
@@ -1185,16 +1212,64 @@ public class Launcher extends Vehicle implements Threat {
         };
     }
 
+    /** Цель → до какого тика по ней уже летит ракета (повторный пуск только если промах). */
+    private final java.util.Map<Integer, Long> inFlight = new java.util.HashMap<>();
+    /** Цель → сколько ракет уже выпущено (по баллистике можно две). */
+    private final java.util.Map<Integer, Integer> fired = new java.util.HashMap<>();
+
+    private int samRate() {
+        return switch (kind()) {
+            case S400 -> 50;
+            case PATRIOT -> 60;
+            case NASAMS -> 35;
+            default -> 30;
+        };
+    }
+
+    private boolean busyWith(Entity e, long now) {
+        Long until = inFlight.get(e.getId());
+        return until != null && until > now;
+    }
+
+    /** Чем меньше, тем важнее цель: баллистика и ракеты — первыми, дальше «Шахеды», потом мелкие дроны. */
+    private double priority(Entity e) {
+        double d = Math.sqrt(e.distanceToSqr(this));
+        if (e instanceof Missile m) {
+            return d * (m.kind() == Missile.Kind.BALLISTIC ? 0.15 : 0.7);
+        }
+        if (e instanceof Drone dr) {
+            return d * switch (dr.kind()) {
+                case GERAN5, BANDEROL, SHAHED_238 -> 0.4;
+                case SHAHED, SHAHED_131, GERBERA, LANCET -> 0.6;
+                case WING_RECON -> 0.8;
+                default -> 1.2;
+            };
+        }
+        return d * 0.8; // вертолёты
+    }
+
+    private boolean canEngage(Entity e) {
+        if (!(e instanceof Threat th) || !th.isThreat() || !e.isAlive() || com.harddayz.war.War.allied(owner, th.owner())) {
+            return false;
+        }
+        if (kind() == Kind.PATRIOT && !(e instanceof Missile)) {
+            return false; // ПРО не тратит ракеты на дроны
+        }
+        double d = e.distanceTo(this);
+        return d >= 18 && d <= samRange() && e.getY() > getY() + 6; // слишком близко ракета не успеет взвестись
+    }
+
     private void tickSam(ServerLevel level) {
         if (samCooldown > 0) {
             samCooldown--;
         }
+        long now = level.getGameTime();
         Entity t = samTarget >= 0 ? level.getEntity(samTarget) : null;
-        if (t == null || !t.isAlive() || t.distanceTo(this) > samRange()) {
+        if (t == null || !canEngage(t) || busyWith(t, now) && tickCount % 10 == 0) {
             samTarget = -1;
             t = null;
             if (tickCount % 5 == 0) {
-                t = findThreat(level);
+                t = findThreat(level, now);
                 if (t != null) {
                     samTarget = t.getId();
                     level.playSound(null, blockPosition(), SoundEvents.NOTE_BLOCK_PLING.value(), SoundSource.HOSTILE, 2f, 2f);
@@ -1205,66 +1280,66 @@ public class Launcher extends Vehicle implements Threat {
             entityData.set(WANT_ELEV, 12f);
             return;
         }
-        Vec3 p = t.position();
+        // упреждение: куда цель придёт к моменту встречи
+        double speed = kind() == Kind.S400 || kind() == Kind.PATRIOT ? 2.0 : 1.4;
+        Vec3 p = t.position().add(t.getDeltaMovement().scale(t.distanceTo(this) / (speed * 2.2)));
         entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(p) - getYRot()));
         Vec3 base = muzzleBase();
         double h = Math.sqrt((p.x - base.x) * (p.x - base.x) + (p.z - base.z) * (p.z - base.z));
         entityData.set(WANT_ELEV, (float) Mth.clamp(Math.toDegrees(Math.atan2(p.y - base.y, h)), 15, 80));
-        if (samCooldown == 0 && ammo() > 0 && !engaged.contains(t.getId())
-                && Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12) {
+        int salvo = t instanceof Missile m && m.kind() == Missile.Kind.BALLISTIC ? 2 : 1;
+        if (samCooldown == 0 && ammo() > 0 && !busyWith(t, now) && Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12) {
             Vec3 dir = forward(getYRot() + samTurret.value, elevation.value);
             boolean left = shot++ % 2 == 0;
             double y = Math.toRadians(getYRot() + samTurret.value);
             Vec3 right = new Vec3(-Math.cos(y), 0, -Math.sin(y));
             Vec3 muzzle = kind() == Kind.SAM_POST ? base.add(dir.scale(1.6)).add(right.scale(left ? -0.35 : 0.35))
                     : base.add(dir.scale(2.4)).add(right.scale(left ? -1.1 : 1.1));
-            Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(kind() == Kind.S400 || kind() == Kind.PATRIOT ? 2.0 : 1.4), p, this).hunt(t)
+            Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(speed), p, this).hunt(t)
                     .owner(owner).bonus(kind() == Kind.PATRIOT && t instanceof Missile ? 0.6f : kind() == Kind.NASAMS ? 0.05f : 0f)
                     .look(kind() == Kind.S400 ? 2 : kind() == Kind.PATRIOT ? 3 : kind() == Kind.NASAMS ? 4 : 0);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 4);
-            engaged.add(t.getId());
-            samCooldown = 20;
+            int n = fired.merge(t.getId(), 1, Integer::sum);
+            // ракета долетит примерно за столько тиков; до этого по цели не стреляем (кроме залпа по баллистике)
+            long eta = (long) (t.distanceTo(this) / (speed * 2.0)) + 30;
+            if (n % salvo == 0) {
+                inFlight.put(t.getId(), now + eta);
+            }
+            samCooldown = n % salvo == 0 ? samRate() : 8;
             com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, muzzle.x, muzzle.y, muzzle.z, 20, 0.5, 0.5, 0.5, 0.1);
         }
-        if (engaged.size() > 64) {
-            engaged.clear();
+        if (inFlight.size() > 64) {
+            inFlight.entrySet().removeIf(e -> e.getValue() < now);
+            fired.keySet().retainAll(inFlight.keySet());
         }
     }
 
-    private @Nullable Entity findThreat(ServerLevel level) {
+    private @Nullable Entity findThreat(ServerLevel level, long now) {
         Entity best = null;
-        double bestD = Double.MAX_VALUE;
-        for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(250, 300, 250), e -> e instanceof Threat)) {
-            Threat th = (Threat) e;
-            UUID o = th.owner();
-            if (!th.isThreat() || engaged.contains(e.getId()) || com.harddayz.war.War.allied(owner, o) || e.getY() < getY() + 6) {
+        double bestP = Double.MAX_VALUE;
+        int r = samRange();
+        for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r, 300, r), e -> e instanceof Threat)) {
+            if (!canEngage(e) || busyWith(e, now)) {
                 continue;
             }
-            if (kind() == Kind.PATRIOT && !(e instanceof Missile)) {
-                continue; // ПРО не тратит ракеты на дроны
-            }
-            double d = e.distanceToSqr(this);
-            if (kind() == Kind.PATRIOT && e instanceof Missile mm && mm.kind() == Missile.Kind.BALLISTIC) {
-                d *= 0.1; // баллистика — в первую очередь
-            }
-            if (d < bestD) {
-                bestD = d;
+            double pr = priority(e);
+            if (pr < bestP) {
+                bestP = pr;
                 best = e;
             }
         }
         if (best == null) {
             // цель видит РЛС сети — ЗРК бьёт дальше своей станции
             String key = com.harddayz.war.RadarNet.key(owner);
-            long now = level.getGameTime();
             for (var c : com.harddayz.war.RadarNet.contacts(key, now)) {
                 Entity e = level.getEntity(c.id);
-                if (e == null || !e.isAlive() || engaged.contains(e.getId()) || !com.harddayz.war.RadarNet.tracked(key, e, now)) {
+                if (e == null || busyWith(e, now) || !com.harddayz.war.RadarNet.tracked(key, e, now) || !canEngage(e)) {
                     continue;
                 }
-                double d = e.distanceToSqr(this);
-                if (d < 450 * 450 && d < bestD) {
-                    bestD = d;
+                double pr = priority(e);
+                if (pr < bestP) {
+                    bestP = pr;
                     best = e;
                 }
             }

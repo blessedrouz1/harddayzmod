@@ -356,5 +356,10 @@
   "block.harddayz.gabion": "Габион",
   "block.harddayz.log_roof": "Бревенчатый накат",
   "block.harddayz.steel_beam": "Стальной двутавр",
-  "message.harddayz.link_lost": "Связь с дроном потеряна."
+  "message.harddayz.link_lost": "Связь с дроном потеряна.",
+  "item.harddayz.s400_missile": "Ракета С-400 (48Н6)",
+  "item.harddayz.geran5": "«Герань-5» (реактивная)",
+  "item.harddayz.banderol": "«Бандероль»",
+  "message.harddayz.reloading_launcher": "Перезарядка пусковой: %s с",
+  "message.harddayz.out_of_range_h": "Не долетит: %s блоков, перепад высоты %s (на ровной местности максимум %s)."
 }

@@ -27,6 +27,10 @@ public class OperatorTerminalItem extends Item {
 
     @Override
     public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
+        if (player.getCooldowns().isOnCooldown(this)) {
+            return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
+        }
+        player.getCooldowns().addCooldown(this, 20);
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
             // сначала — свой квадрокоптер поблизости (FPV / разведчик)
             Drone quad = null;

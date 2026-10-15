@@ -155,7 +155,7 @@ public class Missile extends Entity implements Threat {
                 detonate(level, position());
                 return;
             }
-            if (kind() != Kind.SAM) {
+            {
                 if (chunks == null) {
                     chunks = new FlightChunks(getUUID());
                 }
@@ -291,6 +291,8 @@ public class Missile extends Entity implements Threat {
                 case SHAHED, SHAHED_131 -> 0.95f;
                 case GERBERA -> 0.97f;
                 case SHAHED_238 -> 0.55f;
+                case GERAN5 -> 0.4f;
+                case BANDEROL -> 0.5f;
                 case RECON, WING_RECON -> 0.9f;
                 case INTERCEPTOR -> 0.5f;
                 case LANCET -> 0.85f;

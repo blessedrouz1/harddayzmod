@@ -12,14 +12,14 @@ public class DroneSound extends AbstractTickableSoundInstance {
     private final Drone drone;
 
     public DroneSound(Drone drone) {
-        super(drone.kind() == Drone.Kind.SHAHED_238 ? com.harddayz.registry.ModSounds.JET_LOOP.get()
+        super((drone.kind() == Drone.Kind.SHAHED_238 || drone.kind() == Drone.Kind.GERAN5 || drone.kind() == Drone.Kind.BANDEROL) ? com.harddayz.registry.ModSounds.JET_LOOP.get()
                 : drone.kind().autonomous ? com.harddayz.registry.ModSounds.ENGINE_LOOP.get() : SoundEvents.BEE_LOOP_AGGRESSIVE,
                 SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
         this.drone = drone;
         this.looping = true;
         this.delay = 0;
         boolean shahed = drone.kind().autonomous;
-        boolean jet = drone.kind() == Drone.Kind.SHAHED_238;
+        boolean jet = drone.kind() == Drone.Kind.SHAHED_238 || drone.kind() == Drone.Kind.GERAN5 || drone.kind() == Drone.Kind.BANDEROL;
         this.volume = 0;
         this.pitch = jet ? 1.0f : shahed ? (drone.kind() == Drone.Kind.SHAHED_131 ? 1.25f : drone.kind() == Drone.Kind.GERBERA ? 1.15f : 1.0f) : 1.6f;
         this.x = drone.getX();

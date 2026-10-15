@@ -62,9 +62,13 @@ public class Drone extends Entity implements Threat {
         /** Дрон-перехватчик: сам догоняет вражеский дрон и пытается его сбить (не наверняка). */
         INTERCEPTOR(3, 0, 2.2f, 2.6, 0, true),
         /** «Ланцет»: летит к точке сам, в конце оператор выбирает цель вручную. */
-        LANCET(5, 1800, 5f, 1.6, 40, true),
+        LANCET(5, 3600, 5f, 1.6, 40, true),
         /** Самолётный разведчик: кружит над точкой и передаёт найденных врагов в сеть РЛС фракции. */
-        WING_RECON(6, 0, 0f, 1.0, 60, true);
+        WING_RECON(6, 0, 0f, 1.0, 60, true),
+        /** «Герань-5»: реактивная, летит почти как крылатая ракета — быстро и высоко, ПВО её сбивает тяжело. */
+        GERAN5(8, 1800, 9f, 3.6, 90, true),
+        /** «Бандероль»: малая крылатая ракета, быстрая и низковысотная. */
+        BANDEROL(6, 1800, 6f, 3.0, 35, true);
 
         public final float health;
         /** Заряд АКБ в тиках (у «Шахедов» — запас ручного управления, дальше летит сам). */
@@ -397,7 +401,7 @@ public class Drone extends Entity implements Threat {
                 break;
             }
         }
-        manualClimb = aim == null && kind() == Kind.LANCET;
+        manualClimb = kind() == Kind.LANCET; // «Ланцет» сам не летает: взлёт и сразу к оператору
         if (aim == null || kind() == Kind.INTERCEPTOR) {
             var hit = level.clip(new ClipContext(p.getEyePosition(), p.getEyePosition().add(p.getLookAngle().scale(600)), ClipContext.Block.COLLIDER,
                     ClipContext.Fluid.NONE, p));
@@ -454,6 +458,36 @@ public class Drone extends Entity implements Threat {
     }
 
     private @Nullable Vec3 home;
+    private @Nullable Vec3 loiterAt;
+
+    /** «Ланцет» без оператора: кружит над точкой, тратит заряд; кончился — падает. К нему можно вернуться пультом. */
+    private void loiter(ServerLevel level) {
+        if (loiterAt == null) {
+            loiterAt = position();
+        }
+        entityData.set(BATTERY, Math.max(0, battery() - 1));
+        if (battery() <= 0) {
+            Vec3 v = getDeltaMovement().add(0, -0.08, 0);
+            setDeltaMovement(v);
+            Vec3 to = position().add(v);
+            var hit = level.clip(new ClipContext(position(), to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
+            if (hit.getType() != HitResult.Type.MISS) {
+                setPos(hit.getLocation());
+                detonate(level);
+                return;
+            }
+            setPos(to);
+            return;
+        }
+        Vec3 off = new Vec3(getX() - loiterAt.x, 0, getZ() - loiterAt.z);
+        Vec3 tangent = off.lengthSqr() < 1 ? new Vec3(1, 0, 0) : new Vec3(-off.z, 0, off.x).normalize();
+        Vec3 pull = off.lengthSqr() < 1 ? Vec3.ZERO : off.normalize().scale((25 - off.length()) * 0.04);
+        Vec3 desired = tangent.add(pull).add(0, Mth.clamp((loiterAt.y - getY()) * 0.05, -0.3, 0.3), 0).normalize();
+        Vec3 v = steer(getDeltaMovement(), desired, kind().cruise * 0.6, 0.1);
+        setDeltaMovement(v);
+        face(v);
+        setPos(position().add(v));
+    }
 
     /**
      * Перехватчик: набирает высоту патрулирования и кружит над точкой пуска, ищет ближайший чужой дрон или ракету
@@ -599,6 +633,10 @@ public class Drone extends Entity implements Threat {
         }
         if (kind() == Kind.WING_RECON) {
             tickWingRecon(level);
+            return;
+        }
+        if (kind() == Kind.LANCET && !manualClimb && pilotId() < 0) {
+            loiter(level); // оператор отключился — кружит на месте и ждёт
             return;
         }
         if (kind() == Kind.LANCET && !offered && owner != null && flight() > 80
@@ -769,6 +807,7 @@ public class Drone extends Entity implements Threat {
     }
 
     public void release() {
+        loiterAt = null;
         if (pilotId() >= 0 && level().getEntity(pilotId()) instanceof ServerPlayer sp) {
             PilotView.restore(sp);
         }
