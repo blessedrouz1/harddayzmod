@@ -61,6 +61,7 @@ public final class DronePilot {
         drone = d;
         body = mc.player.position();
         mc.player.setNoGravity(true);
+        mc.gameRenderer.setRenderHand(false); // никаких автоматов в кадре камеры дрона
         vel = Vec3.ZERO;
         zoom = 1f;
         savedInput = mc.player.input;
@@ -94,6 +95,7 @@ public final class DronePilot {
                 mc.options.setCameraType(savedCamera);
             }
             ignoreUntil = mc.player.tickCount + 20;
+            mc.gameRenderer.setRenderHand(true);
             freeze = 200; // держать тело, пока вокруг него не прогрузятся чанки
         }
         savedInput = null;
@@ -102,7 +104,10 @@ public final class DronePilot {
         }
     }
 
+    private static float prevRoll;
+
     static void onTick() {
+        prevRoll = roll;
         Minecraft mc = Minecraft.getInstance();
         Drone d = drone;
         if (mc.player != null && body != null && (d != null || freeze > 0)) {
@@ -220,7 +225,7 @@ public final class DronePilot {
         d.setDeltaMovement(d.position().subtract(before));
         float turn = Mth.wrapDegrees(yaw - lastYaw);
         lastYaw = yaw;
-        roll += (Mth.clamp(-turn * 3, -35, 35) - roll) * 0.15f;
+        roll += (Mth.clamp(-turn * 2.2f, -30, 30) - roll) * 0.1f;
         com.harddayz.network.Net.toServer(new Net.DroneMove(d.getId(), d.getX(), d.getY(), d.getZ(), yaw, pitch));
     }
 
@@ -278,7 +283,7 @@ public final class DronePilot {
             float pt = (float) event.getPartialTick();
             event.setYaw(mc.player.getViewYRot(pt));
             event.setPitch(mc.player.getViewXRot(pt));
-            event.setRoll(roll);
+            event.setRoll(Mth.lerp(pt, prevRoll, roll));
         }
     }
 

@@ -279,8 +279,9 @@ public final class ClientBlasts {
         if (d < 160) {
             // ванильный удар + свой взрыв поверх
             mc.level.playLocalSound(at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, vol, 0.55f + R.nextFloat() * 0.1f, false);
-            mc.level.playLocalSound(at.x, at.y, at.z, com.harddayz.registry.ModSounds.EXPLODE_NEAR.get(), SoundSource.BLOCKS, vol * 0.7f,
-                    0.85f + R.nextFloat() * 0.25f, false);
+            var kindSound = a.power < 2.5f ? com.harddayz.registry.ModSounds.EXP_SMALL.get()
+                    : a.power < 7f ? com.harddayz.registry.ModSounds.EXP_MEDIUM.get() : com.harddayz.registry.ModSounds.EXP_LARGE.get();
+            mc.level.playLocalSound(at.x, at.y, at.z, kindSound, SoundSource.BLOCKS, vol, 0.9f + R.nextFloat() * 0.2f, false);
             if (a.power >= 6) {
                 mc.level.playLocalSound(at.x, at.y, at.z, com.harddayz.registry.ModSounds.EXPLODE_BIG.get(), SoundSource.BLOCKS, vol * 0.7f, 0.7f, false);
             }

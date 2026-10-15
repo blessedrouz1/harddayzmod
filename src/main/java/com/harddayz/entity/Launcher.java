@@ -890,13 +890,13 @@ public class Launcher extends Vehicle implements Threat {
         state = State.STOW;
         timer = 0;
         reloadUntil = tickCount + switch (kind()) {
-            case ISKANDER -> 1200;
-            case GRAD, TOS -> 600;
-            case HIMARS, S400 -> 400;
-            case GRAD_P -> 200;
-            case SHAHED, RAMP -> 200;
-            case MORTAR -> 100;
-            default -> 200;
+            case ISKANDER -> 2400;
+            case GRAD, TOS -> 1200;
+            case HIMARS, S400 -> 800;
+            case GRAD_P -> 400;
+            case SHAHED, RAMP -> 400;
+            case MORTAR -> 200;
+            default -> 400;
         };
     }
 
@@ -1219,10 +1219,10 @@ public class Launcher extends Vehicle implements Threat {
 
     private int samRate() {
         return switch (kind()) {
-            case S400 -> 50;
-            case PATRIOT -> 60;
-            case NASAMS -> 35;
-            default -> 30;
+            case S400 -> 80;
+            case PATRIOT -> 100;
+            case NASAMS -> 55;
+            default -> 45;
         };
     }
 

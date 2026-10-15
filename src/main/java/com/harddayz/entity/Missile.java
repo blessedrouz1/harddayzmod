@@ -181,6 +181,10 @@ public class Missile extends Entity implements Threat {
             lerp.tick(this);
             trail(v);
             whistle(v);
+            if (!flySound && tickCount > 1) {
+                flySound = true;
+                com.harddayz.client.ClientAccess.missileSound(this);
+            }
         }
     }
 
@@ -357,7 +361,7 @@ public class Missile extends Entity implements Threat {
             }
             if (tickCount > 8) {
                 AABB box = new AABB(from, to).inflate(1.0);
-                for (Entity e : level.getEntities(this, box, e -> (e instanceof LivingEntity || e instanceof Launcher) && e.getId() != launcherId)) {
+                for (Entity e : level.getEntities(this, box, e -> (e instanceof LivingEntity || e instanceof Launcher || e instanceof Drone d && !d.isParked()) && e.getId() != launcherId)) {
                     var clip = e.getBoundingBox().inflate(0.4).clip(from, to);
                     if (clip.isPresent()) {
                         detonate(level, clip.get());
@@ -456,6 +460,8 @@ public class Missile extends Entity implements Threat {
     // ------------------------------------------------------------------ след на клиенте
 
     private boolean whistled;
+    /** Клиент: звук полёта уже запущен. */
+    private boolean flySound;
 
     /** Свист снаряда на излёте — слышно, что сейчас прилетит. */
     private void whistle(Vec3 v) {

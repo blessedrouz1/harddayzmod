@@ -20,6 +20,12 @@ public final class ClientAccess {
         Minecraft.getInstance().getSoundManager().play(new VehicleSound(l));
     }
 
+    public static void missileSound(com.harddayz.entity.Missile m) {
+        if (MissileSound.wants(m)) {
+            Minecraft.getInstance().getSoundManager().play(new MissileSound(m));
+        }
+    }
+
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {
         var p = Minecraft.getInstance().player;
         return p == null ? null : p.position();

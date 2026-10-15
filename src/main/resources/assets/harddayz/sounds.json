@@ -180,5 +180,53 @@
         "name": "harddayz:mortar_fire"
       }
     ]
+  },
+  "exp_small": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small1"
+      },
+      {
+        "name": "harddayz:exp_small2"
+      }
+    ]
+  },
+  "exp_medium": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_medium1"
+      },
+      {
+        "name": "harddayz:exp_medium2"
+      }
+    ]
+  },
+  "exp_large": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_large"
+      }
+    ]
+  },
+  "fly_rocket": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_rocket"
+      }
+    ]
+  },
+  "fly_missile": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_missile"
+      }
+    ]
+  },
+  "fly_jet": {
+    "sounds": [
+      {
+        "name": "harddayz:fly_jet"
+      }
+    ]
   }
 }

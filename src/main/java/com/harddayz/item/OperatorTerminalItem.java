@@ -30,7 +30,7 @@ public class OperatorTerminalItem extends Item {
         if (player.getCooldowns().isOnCooldown(this)) {
             return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
         }
-        player.getCooldowns().addCooldown(this, 20);
+        player.getCooldowns().addCooldown(this, 40);
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
             // сначала — свой квадрокоптер поблизости (FPV / разведчик)
             Drone quad = null;

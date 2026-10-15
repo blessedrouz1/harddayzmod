@@ -369,6 +369,10 @@ public class Drone extends Entity implements Threat {
     private boolean parked;
     private int launchedAt;
 
+    public boolean isParked() {
+        return parked;
+    }
+
     public boolean parkable() {
         return kind() == Kind.INTERCEPTOR || kind() == Kind.LANCET || kind() == Kind.WING_RECON;
     }
@@ -698,6 +702,9 @@ public class Drone extends Entity implements Threat {
                 detonate(level);
                 return;
             }
+            if (rammed(level, pos, to, null)) {
+                return;
+            }
             for (Entity e : level.getEntities(this, new AABB(pos, to).inflate(1), e -> (e instanceof LivingEntity || e instanceof Vehicle)
                     && !(e instanceof Vehicle vh && (flight() < 60 || com.harddayz.war.War.allied(owner, vh.owner()))))) {
                 if (e.getBoundingBox().inflate(0.5).clip(pos, to).isPresent()) {
@@ -740,10 +747,44 @@ public class Drone extends Entity implements Threat {
                 return;
             }
         }
+        if (level() instanceof ServerLevel sl && rammed(sl, position(), pos, from)) {
+            return;
+        }
         setDeltaMovement(pos.subtract(position()));
         setPos(pos);
         setYRot(yaw);
         setXRot(pitch);
+    }
+
+    /**
+     * Столкновение в воздухе с другим дроном или ракетой: обоих сбивает (у кого есть БЧ — взрыв).
+     * Возвращает true, если этот дрон погиб.
+     */
+    private boolean rammed(ServerLevel level, Vec3 from, Vec3 to, @Nullable Entity ignore) {
+        if (flight() < 10 && kind().autonomous) {
+            return false; // только что стартовал с пусковой
+        }
+        for (Entity e : level.getEntities(this, new AABB(from, to).inflate(1.2), e -> (e instanceof Drone || e instanceof Missile) && e != ignore)) {
+            if (e instanceof Drone d && d.parked) {
+                continue;
+            }
+            if (!e.getBoundingBox().inflate(0.5).clip(from, to).isPresent() && !e.getBoundingBox().inflate(0.5).contains(to)) {
+                continue;
+            }
+            setPos(e.position());
+            if (e instanceof Drone d) {
+                d.shotDown(level);
+            } else if (e instanceof Missile m) {
+                m.intercepted(level);
+            }
+            if (kind().warhead > 0) {
+                detonate(level);
+            } else {
+                shotDown(level);
+            }
+            return true;
+        }
+        return false;
     }
 
     /** ЛКМ пилота: FPV — подрыв, разведчик — сброс гранаты. */

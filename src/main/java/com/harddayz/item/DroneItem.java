@@ -30,7 +30,7 @@ public class DroneItem extends Item {
         if (player.getCooldowns().isOnCooldown(this)) {
             return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
         }
-        player.getCooldowns().addCooldown(this, 40);
+        player.getCooldowns().addCooldown(this, 100);
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
             if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON) {
                 // ставится на землю; пуск — ПКМ по нему

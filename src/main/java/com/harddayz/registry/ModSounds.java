@@ -26,6 +26,13 @@ public final class ModSounds {
     public static final RegistryObject<SoundEvent> JET_LOOP = reg("jet_loop");
     public static final RegistryObject<SoundEvent> ENGINE_LOOP = reg("engine_loop");
     public static final RegistryObject<SoundEvent> SIREN = reg("siren");
+    public static final RegistryObject<SoundEvent> EXP_SMALL = reg("exp_small");
+    public static final RegistryObject<SoundEvent> EXP_MEDIUM = reg("exp_medium");
+    public static final RegistryObject<SoundEvent> EXP_LARGE = reg("exp_large");
+    public static final RegistryObject<SoundEvent> FLY_ROCKET = reg("fly_rocket");
+    public static final RegistryObject<SoundEvent> FLY_MISSILE = reg("fly_missile");
+    public static final RegistryObject<SoundEvent> FLY_JET = reg("fly_jet");
+
 
     private static RegistryObject<SoundEvent> reg(String name) {
         return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, name)));
