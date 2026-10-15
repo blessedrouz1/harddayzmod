@@ -43,7 +43,7 @@ import net.minecraft.world.phys.Vec3;
  * <ul>
  * <li>SHAHED — ударный дрон-камикадзе: летит сам над рельефом к цели и пикирует; его слышно издалека и можно сбить;</li>
  * <li>FPV — пилотируемый с камеры дрон-камикадзе: подрыв по ЛКМ или при ударе на скорости;</li>
- * <li>RECON — разведывательный: камера с зумом, сбрасывает гранаты (ЛКМ).</li>
+ * <li>RECON — разведывательный: камера с зумом и метка цели, без взрывчатки.</li>
  * </ul>
  * Пилотируемыми дронами управляет клиент пилота (плавно, без задержки), сервер принимает позицию.
  */
@@ -239,7 +239,7 @@ public class Drone extends Entity implements Threat {
     public void setKind(Kind k) {
         entityData.set(KIND, k.ordinal());
         entityData.set(BATTERY, k.battery);
-        entityData.set(GRENADES, k == Kind.RECON ? 3 : k == Kind.BABA_YAGA ? 2 : 0);
+        entityData.set(GRENADES, k == Kind.BABA_YAGA ? 2 : 0);
         health = k.health;
     }
 
@@ -299,6 +299,7 @@ public class Drone extends Entity implements Threat {
                 lerp.tick(this);
             }
             com.harddayz.client.ClientAccess.droneClientTick(this);
+            com.harddayz.client.ClientAccess.droneIncoming(this);
             return;
         }
         ServerLevel level = (ServerLevel) level();
@@ -389,8 +390,11 @@ public class Drone extends Entity implements Threat {
 
     /** Самолётные камикадзе под оператором: сами не летают. */
     private boolean wingFpv() {
-        return kind() == Kind.LANCET || kind() == Kind.MOLNIYA;
+        return kind() == Kind.LANCET || kind() == Kind.MOLNIYA || kind() == Kind.KUB;
     }
+
+    /** Клиент: звук пикирования уже звучал. */
+    public boolean incomingPlayed;
 
     public boolean isParked() {
         return parked;
@@ -450,7 +454,7 @@ public class Drone extends Entity implements Threat {
         Vec3 dir = (flat.lengthSqr() < 1 ? p.getLookAngle().multiply(1, 0, 1) : flat).normalize().add(0, 1.2, 0).normalize();
         setDeltaMovement(dir.scale(0.6));
         face(dir);
-        level.playSound(null, getX(), getY(), getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 2f, 1.1f);
+        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 3f, 1.15f);
         com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
     }
 
@@ -817,7 +821,7 @@ public class Drone extends Entity implements Threat {
         }
         if (kind() == Kind.FPV || kind().autonomous) {
             detonate(level);
-        } else if ((kind() == Kind.RECON || kind() == Kind.BABA_YAGA) && grenades() > 0) {
+        } else if (kind() == Kind.BABA_YAGA && grenades() > 0) {
             entityData.set(GRENADES, grenades() - 1);
             Missile.launch(level, Missile.Kind.BOMB, position().add(0, -0.4, 0), getDeltaMovement().scale(0.5), position(), this).owner(owner)
                     .powerMul(kind() == Kind.BABA_YAGA ? 1.6f : 1f);
@@ -943,6 +947,7 @@ public class Drone extends Entity implements Threat {
                 case LANCET -> ModItems.LANCET.get();
                 case WING_RECON -> ModItems.WING_RECON.get();
                 case MOLNIYA -> ModItems.MOLNIYA.get();
+                case KUB -> ModItems.KUB.get();
                 case BABA_YAGA -> ModItems.BABA_YAGA.get();
                 default -> ModItems.RECON_DRONE.get();
             }));
@@ -965,7 +970,12 @@ public class Drone extends Entity implements Threat {
         remove(RemovalReason.KILLED);
         com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.EXPLOSION, at.x, at.y, at.z, 3, 0.4, 0.4, 0.4, 0);
         com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, 20, 0.5, 0.5, 0.5, 0.05);
-        // сбитый дрон взрывается: боевая часть — сильнее, разведчик — батарея и обломки
+        if (kind().warhead <= 0 && grenades() <= 0) {
+            // без взрывчатки: просто разваливается
+            level.playSound(null, at.x, at.y, at.z, net.minecraft.sounds.SoundEvents.ITEM_BREAK, net.minecraft.sounds.SoundSource.HOSTILE, 1.5f, 0.7f);
+            return;
+        }
+        // сбитый дрон с боевой частью взрывается в воздухе слабее
         Blast.detonate(level, at, Math.max(2.2f, kind().warhead * 0.6f), false, this);
     }
 
@@ -1028,7 +1038,7 @@ public class Drone extends Entity implements Threat {
     protected void readAdditionalSaveData(CompoundTag input) {
         entityData.set(KIND, com.harddayz.Compat.getInt(input, "kind", 1));
         entityData.set(BATTERY, com.harddayz.Compat.getInt(input, "battery", 0));
-        entityData.set(GRENADES, com.harddayz.Compat.getInt(input, "grenades", 0));
+        entityData.set(GRENADES, kind() == Kind.BABA_YAGA ? com.harddayz.Compat.getInt(input, "grenades", 0) : 0);
         entityData.set(ENGINE, com.harddayz.Compat.getBoolean(input, "engine", false));
         parked = com.harddayz.Compat.getBoolean(input, "parked", false);
         entityData.set(PARKED, parked);

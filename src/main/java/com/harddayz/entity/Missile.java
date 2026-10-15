@@ -66,6 +66,10 @@ public class Missile extends Entity implements Threat {
         return this;
     }
 
+    public boolean isThermo() {
+        return thermo;
+    }
+
     public int look() {
         return entityData.get(LOOK);
     }
@@ -174,10 +178,12 @@ public class Missile extends Entity implements Threat {
             if (collide(level, v)) {
                 return;
             }
-            if (tickCount == 1 && kind() != Kind.BOMB) {
-                level.playSound(null, getX(), getY(), getZ(), kind() == Kind.GRAD ? com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get()
-                        : com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, kind() == Kind.BALLISTIC ? 8f : 4f,
-                        0.9f + random.nextFloat() * 0.2f);
+            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7) {
+                level.playSound(null, getX(), getY(), getZ(), switch (kind()) {
+                            case GRAD -> com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get();
+                            case SAM -> com.harddayz.registry.ModSounds.SAM_LAUNCH.get();
+                            default -> com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get();
+                        }, SoundSource.HOSTILE, kind() == Kind.BALLISTIC ? 8f : 4f, 0.9f + random.nextFloat() * 0.2f);
             }
             if (tickCount % 50 == 25 && kind() != Kind.BOMB && kind() != Kind.GRAD) {
                 level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.WHOOSH.get(), SoundSource.HOSTILE,
@@ -509,15 +515,29 @@ public class Missile extends Entity implements Threat {
 
     /** Свист снаряда на излёте — слышно, что сейчас прилетит. */
     private void whistle(Vec3 v) {
-        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB && look() != 7 || v.y > -0.4) {
+        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB || v.y > -0.2) {
             return;
         }
         var me = com.harddayz.client.ClientAccess.localPlayerPos();
-        if (me != null && me.distanceTo(position()) < 140) {
-            whistled = true;
-            level().playLocalSound(getX(), getY(), getZ(), com.harddayz.registry.ModSounds.SHELL_WHISTLE.get(), SoundSource.HOSTILE,
-                    kind() == Kind.BALLISTIC ? 6f : 3f, kind() == Kind.BALLISTIC ? 0.7f : 1f, false);
+        if (me == null) {
+            return;
         }
+        boolean heavy = kind() == Kind.BALLISTIC;
+        var sound = heavy ? com.harddayz.registry.ModSounds.INCOMING_BALLISTIC.get()
+                : look() == 7 ? com.harddayz.registry.ModSounds.INCOMING_MORTAR.get()
+                : look() == 6 ? com.harddayz.registry.ModSounds.SHELL_WHISTLE.get() : com.harddayz.registry.ModSounds.INCOMING_ROCKET.get();
+        double len = heavy ? 2.6 : look() == 7 ? 2.8 : 2.2;
+        int top = level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, getBlockX(), getBlockZ());
+        double ticks = (getY() - top) / -v.y;
+        if (ticks > len * 20) {
+            return;
+        }
+        Vec3 hit = new Vec3(getX() + v.x * ticks, top, getZ() + v.z * ticks);
+        if (hit.distanceTo(me) > (heavy ? 260 : 140)) {
+            return;
+        }
+        whistled = true;
+        level().playLocalSound(hit.x, hit.y + 2, hit.z, sound, SoundSource.HOSTILE, heavy ? 7f : 3.5f, 1f, false);
     }
 
     private void trail(Vec3 v) {

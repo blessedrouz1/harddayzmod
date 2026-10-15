@@ -69,7 +69,7 @@ public class JavelinItem extends GunItem {
         Vec3 look = sp.getLookAngle();
         Missile.launch(sl, Missile.Kind.SAM, eye.add(look.scale(1.2)), look.scale(0.8).add(0, 0.9, 0), best.position(), sp).hunt(best)
                 .owner(sp.getUUID()).powerMul(3f).bonus(1f).look(5);
-        sl.playSound(null, sp.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 2f, 0.8f);
+        sl.playSound(null, sp.blockPosition(), com.harddayz.registry.ModSounds.SAM_LAUNCH.get(), SoundSource.PLAYERS, 3f, 0.9f);
     }
 
     @Override

@@ -93,6 +93,8 @@ public final class ClientSetup {
     }
 
     public static void init(IEventBus modBus) {
+        net.minecraftforge.fml.ModLoadingContext.get().registerExtensionPoint(net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory.class,
+                () -> new net.minecraftforge.client.ConfigScreenHandler.ConfigScreenFactory((mc, parent) -> new HdConfigScreen(parent)));
         modBus.addListener(com.harddayz.client.model.GeoGpu::registerShaders);
         allowFarRendering();
         allowEntityCulling();

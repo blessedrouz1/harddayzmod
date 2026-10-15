@@ -44,6 +44,8 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         int[] drones = new int[0];
         float rotor;
         float tilt;
+        /** Сколько тиков назад отлетела крышка контейнера i; -1 — крышка на месте. */
+        float[] capAge = new float[8];
     }
 
     /** Модели друга (geo.json): кости с теми же именами, что и в HdModels. */
@@ -107,18 +109,30 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             each("erector", b -> b.xRot += (float) Math.toRadians(s.erect * 90));
             // Solve after rack/erector animation, in each cylinder's own parent frame.
             for (var lift : lifts) lift.animate();
-            // Крышки пусковых шахт: при flash > 0 отлетают вверх (Калибр, С-400, Patriot, NASAMS)
-            if (s.flash > 0 && (s.kind == Launcher.Kind.KALIBR || s.kind == Launcher.Kind.S400
-                    || s.kind == Launcher.Kind.PATRIOT || s.kind == Launcher.Kind.NASAMS)) {
-                float capFly = s.flash * 0.22f; // чем свежее выстрел — тем дальше крышка
-                for (var entry : geo.parts.entrySet()) {
-                    if (entry.getKey().endsWith("_cap")) {
-                        ModelPart cap = entry.getValue();
-                        cap.y -= capFly;
-                        cap.xRot += capFly * 0.4f;
-                        cap.zRot += capFly * 0.25f;
-                    }
+            // крышки контейнеров: выбивает при пуске, летят вверх и в сторону, кувыркаются и пропадают
+            for (var entry : geo.parts.entrySet()) {
+                String n = entry.getKey();
+                int at = n.lastIndexOf("cap");
+                if (at < 0 || at + 3 >= n.length() || !Character.isDigit(n.charAt(at + 3))) {
+                    continue;
                 }
+                int idx = n.charAt(at + 3) - '0';
+                float age = idx < s.capAge.length ? s.capAge[idx] : -1;
+                if (age < 0) {
+                    continue;
+                }
+                ModelPart cap = entry.getValue();
+                if (age > 26) {
+                    cap.visible = false;
+                    continue;
+                }
+                float up = 1.1f * age - 0.07f * age * age; // блоков, баллистическая дуга
+                float side = 0.12f * age * (idx % 2 == 0 ? 1 : -1);
+                cap.y -= up * 16;
+                cap.x += side * 16;
+                cap.z -= 0.08f * age * 16;
+                cap.xRot += age * 0.45f;
+                cap.zRot += age * 0.3f * (idx % 2 == 0 ? 1 : -1);
             }
         }
 
@@ -371,6 +385,23 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         s.ammo = e.ammo();
         s.time = e.tickCount + pt;
         s.flash = e.flash();
+        // крышки контейнеров: каждый пуск сбивает следующую, после перезарядки все на месте
+        int ammo = e.ammo();
+        if (e.capLastAmmo >= 0 && ammo < e.capLastAmmo) {
+            int fired = e.kind().capacity - ammo;
+            for (int i = Math.max(0, fired - (e.capLastAmmo - ammo)); i < Math.min(fired, e.capLaunched.length); i++) {
+                e.capLaunched[i] = e.tickCount + pt;
+            }
+        } else if (ammo > e.capLastAmmo) {
+            java.util.Arrays.fill(e.capLaunched, -1);
+            for (int i = 0; i < Math.min(e.kind().capacity - ammo, e.capLaunched.length); i++) {
+                e.capLaunched[i] = -1000; // уже стреляные (загрузка мира): крышек нет
+            }
+        }
+        e.capLastAmmo = ammo;
+        for (int i = 0; i < s.capAge.length; i++) {
+            s.capAge[i] = e.capLaunched[i] < -500 ? 1000 : e.capLaunched[i] < 0 ? -1 : e.tickCount + pt - e.capLaunched[i];
+        }
         s.faction = e.faction();
         s.hp = e.health() / Math.max(1f, e.kind().health);
         s.drones = e.droneKinds();

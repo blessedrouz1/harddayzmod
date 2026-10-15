@@ -60,7 +60,7 @@
   "hud.harddayz.signal": "СИГНАЛ %s%%",
   "hud.harddayz.grenades": "ГРАНАТЫ %s",
   "hud.harddayz.help_fpv": "ЛКМ — подрыв   V — выйти",
-  "hud.harddayz.help_recon": "ПКМ — записать точку   ЛКМ — сброс   колесо — зум   V — выйти",
+  "hud.harddayz.help_recon": "ПКМ — записать точку   колесо — зум   V — выйти",
   "screen.harddayz.shahed": "Пусковая «Шахедов» — пульт",
   "screen.harddayz.drive_hint": "ПКМ — сесть за руль, Shift+ПКМ — пульт, V — пульт из кабины",
   "item.harddayz.shahed_238": "«Шахед-238» (реактивный)",
@@ -375,5 +375,14 @@
   "screen.harddayz.smerch": "РСЗО «Смерч»",
   "screen.harddayz.uragan": "РСЗО «Ураган»",
   "screen.harddayz.kalibr": "Комплекс «Калибр»",
-  "itemGroup.harddayz.ammo": "HardDayz: ракеты и боеприпасы"
+  "itemGroup.harddayz.ammo": "HardDayz: ракеты и боеприпасы",
+  "message.harddayz.mortar_manual": "Миномёт наводится вручную: встань за ним, посмотри в сторону цели и подними взгляд (45..85°), ПКМ пустой рукой — навести, ПКМ миной — выстрел. Смотри куда упало и поправляй.",
+  "message.harddayz.mortar_aim": "Миномёт: азимут %s°, угол %s°",
+  "message.harddayz.mortar_shot": "Выстрел! Азимут %s°, угол %s°",
+  "screen.harddayz.config": "Настройки HardDayz",
+  "config.harddayz.blast_particles": "Частицы взрывов",
+  "config.harddayz.blast_sounds": "Звуки взрывов",
+  "config.harddayz.screen_shake": "Тряска камеры",
+  "config.harddayz.sky_flash": "Вспышка и зарево неба",
+  "hud.harddayz.help_bomber": "ПКМ — записать точку   ЛКМ — сброс   колесо — зум   V — выйти"
 }

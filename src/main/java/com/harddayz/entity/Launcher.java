@@ -263,6 +263,11 @@ public class Launcher extends Vehicle {
     private static final EntityDataAccessor<Float> WANT_TURRET = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> WANT_ELEV = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> WANT_ERECT = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
+    /** Клиент: когда отлетела крышка каждого контейнера (тик), -1 — на месте. */
+    public final float[] capLaunched = {-1, -1, -1, -1, -1, -1, -1, -1};
+    /** Клиент: боезапас на прошлом кадре — по убыли видно, что был пуск. */
+    public int capLastAmmo = -1;
+
     private static final EntityDataAccessor<Integer> FLASH = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
     /** Сохранённые цели пульта: 5 слотов «x,y,z» через «;» (пустой — нет цели). */
     private static final EntityDataAccessor<String> SLOTS = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.STRING);
@@ -554,6 +559,16 @@ public class Launcher extends Vehicle {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (kind() == Kind.MORTAR && !player.isSecondaryUseActive() && (stack.isEmpty() || kind().accepts(stack))) {
+            if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && player instanceof ServerPlayer sp) {
+                if (stack.isEmpty()) {
+                    mortarAim(sp);
+                } else {
+                    mortarDrop(sp, stack);
+                }
+            }
+            return InteractionResult.SUCCESS;
+        }
         if (kind().accepts(stack)) {
             if (!level().isClientSide()) {
                 int n = Math.min(kind().capacity - ammo(), stack.getCount());
@@ -675,13 +690,8 @@ public class Launcher extends Vehicle {
         double dist = Math.sqrt(tv.distanceToSqr(getX(), tv.y, getZ()));
         switch (kind()) {
             case MORTAR -> {
-                Double elev = mortarElevation(tv);
-                if (elev == null) {
-                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, MORTAR_RANGE).withStyle(ChatFormatting.RED), true);
-                    return;
-                }
-                entityData.set(WANT_ELEV, elev.floatValue());
-                entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
+                player.displayClientMessage(Component.translatable("message.harddayz.mortar_manual").withStyle(ChatFormatting.YELLOW), false);
+                return;
             }
             case KALIBR -> {
                 if (dist < 150 || dist > Drone.SHAHED_RANGE) {
@@ -890,7 +900,7 @@ public class Launcher extends Vehicle {
                     level.playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.0f, 0.35f);
                 }
                 prep++;
-                if (prep >= (kind() == Kind.MORTAR ? 100 : 300) && aimed()) { // ~15 с подготовки к пуску
+                if (prep >= (kind() == Kind.MORTAR ? 20 : 60) && aimed()) { // ~3 с подготовки к пуску
                     state = State.FIRING;
                     timer = 0;
                 }
@@ -1027,6 +1037,48 @@ public class Launcher extends Vehicle {
         level.playSound(null, g.x, g.y, g.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 5f, 1.1f);
     }
 
+    /** Миномёт: следующий выстрел не раньше этого тика. */
+    private int mortarNext;
+
+    private static String deg(float v) {
+        return String.format(java.util.Locale.ROOT, "%.1f", v);
+    }
+
+    /** Наводка по взгляду: куда смотришь — туда азимут, насколько поднял голову — такой угол ствола (45..85°). */
+    private void mortarAim(ServerPlayer sp) {
+        float elev = Mth.clamp(-sp.getXRot(), 45f, 85f);
+        entityData.set(WANT_ELEV, elev);
+        entityData.set(WANT_TURRET, Mth.wrapDegrees(sp.getYRot() - getYRot()));
+        level().playSound(null, blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 0.8f, 0.7f);
+        sp.displayClientMessage(Component.translatable("message.harddayz.mortar_aim", deg(Mth.positiveModulo(sp.getYRot() + 180f, 360f)), deg(elev))
+                .withStyle(ChatFormatting.GREEN), true);
+    }
+
+    /** Опустить мину в ствол: выстрел сразу, по текущей наводке. */
+    private void mortarDrop(ServerPlayer sp, ItemStack stack) {
+        if (tickCount < mortarNext) {
+            return;
+        }
+        mortarNext = tickCount + 40;
+        ServerLevel level = (ServerLevel) level();
+        float yawSet = getYRot() + entityData.get(WANT_TURRET);
+        float elevSet = entityData.get(WANT_ELEV);
+        float yaw = yawSet + (float) random.nextGaussian() * 0.5f;
+        Vec3 dir = forward(yaw, elevSet + (float) random.nextGaussian() * 0.35f);
+        Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
+        Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED * (1 + random.nextGaussian() * 0.008)), muzzle.add(dir.scale(80)), this)
+                .owner(owner != null ? owner : sp.getUUID()).powerMul(0.7f).look(7);
+        if (!sp.isCreative()) {
+            stack.shrink(1);
+        }
+        entityData.set(FLASH, 4);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
+        com.harddayz.Compat.particles(level, ParticleTypes.POOF, muzzle.x, muzzle.y, muzzle.z, 8, 0.2, 0.2, 0.2, 0.05);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 5f, 0.95f + random.nextFloat() * 0.1f);
+        sp.displayClientMessage(Component.translatable("message.harddayz.mortar_shot", deg(Mth.positiveModulo(yawSet + 180f, 360f)), deg(elevSet))
+                .withStyle(ChatFormatting.GOLD), true);
+    }
+
     public static final double MORTAR_SPEED = 2.4;
     public static final int MORTAR_RANGE = 115;
 
@@ -1087,7 +1139,7 @@ public class Launcher extends Vehicle {
         entityData.set(FLASH, 8); // крышка отлетает при flash>0 (рендерер)
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, muzzle.x, muzzle.y, muzzle.z, 30, 0.8, 0.4, 0.8, 0.05);
         com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 20, 0.3, 0.2, 0.3, 0.12);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 6f, 0.85f);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_CRUISE.get(), SoundSource.HOSTILE, 6f, 1f);
     }
 
     private void fireIskander(ServerLevel level) {
@@ -1110,7 +1162,6 @@ public class Launcher extends Vehicle {
             com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 50, 3.0, 0.5, 3.0, 0.06);
             com.harddayz.Compat.particles(level, ParticleTypes.EXPLOSION, g.x, g.y, g.z, 8, 1.8, 0.3, 1.8, 0);
             com.harddayz.Compat.particles(level, ParticleTypes.FLAME, g.x, g.y, g.z, 80, 2.4, 0.3, 2.4, 0.18);
-            level.playSound(null, g.x, g.y, g.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 4f, 0.5f);
         }
         stow();
     }
@@ -1141,7 +1192,7 @@ public class Launcher extends Vehicle {
             entityData.set(FLASH, 6);
             com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
             com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 3f, 0.6f);
+            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 5f, 1f);
             stow();
             return;
         }
@@ -1150,7 +1201,7 @@ public class Launcher extends Vehicle {
         entityData.set(FLASH, 6);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
         com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 3f, 0.6f);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(), SoundSource.HOSTILE, 5f, 1f);
     }
 
     /** Пульт оператора по пусковой: дрон стартует и сразу переходит под ручное управление. */

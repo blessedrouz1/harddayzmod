@@ -18,6 +18,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -27,6 +28,36 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class Blast {
     private Blast() {
+    }
+
+    /** Звук взрыва: тип оружия 1..7 (см. ModSounds.BLAST_TYPES), +16 — подрыв в воздухе. 0 — по силе. */
+    private static int soundOf(@Nullable Entity source, boolean breakBlocks) {
+        int air = breakBlocks ? 0 : 16;
+        if (source instanceof com.harddayz.entity.Missile m) {
+            if (m.kind() == com.harddayz.entity.Missile.Kind.SAM) {
+                return 3 | 16;
+            }
+            if (m.look() == 7) {
+                return 2 | air;
+            }
+            if (m.isThermo()) {
+                return 4 | air;
+            }
+            return switch (m.kind()) {
+                case GRAD -> 3;
+                case BALLISTIC -> 5;
+                default -> 1;
+            } | air;
+        }
+        if (source instanceof com.harddayz.entity.Drone d) {
+            return switch (d.kind()) {
+                case CRUISE, BANDEROL -> 7;
+                case SHAHED, SHAHED_131, SHAHED_238, GERAN5, GERBERA -> 6;
+                case LANCET -> 3;
+                default -> 1;
+            } | air;
+        }
+        return 0;
     }
 
     public static void detonate(ServerLevel level, Vec3 at, float power, boolean breakBlocks, @Nullable Entity source) {
@@ -40,7 +71,24 @@ public final class Blast {
         if (blocks && nearGround) {
             debris(level, at, p, r);
         }
-        level.explode(source, at.x, at.y, at.z, Math.min(p, 16f), false, blocks ? Level.ExplosionInteraction.TNT : Level.ExplosionInteraction.NONE);
+        // свой взрыв без ванильного звука и частиц: всё это рисует ClientBlasts
+        var near = new java.util.HashMap<ServerPlayer, Vec3>();
+        for (ServerPlayer pl : level.players()) {
+            if (pl.position().distanceTo(at) < p * 4 + 8) {
+                near.put(pl, pl.getDeltaMovement());
+            }
+        }
+        var ex = new net.minecraft.world.level.Explosion(level, source, null, null, at.x, at.y, at.z, Math.min(p, 16f), false,
+                blocks ? net.minecraft.world.level.Explosion.BlockInteraction.DESTROY_WITH_DECAY : net.minecraft.world.level.Explosion.BlockInteraction.KEEP);
+        if (!net.minecraftforge.event.ForgeEventFactory.onExplosionStart(level, ex)) {
+            ex.explode();
+            ex.finalizeExplosion(false);
+        }
+        // игрока отбрасывает слабее, чем ванильный взрыв
+        near.forEach((pl, before) -> {
+            Vec3 now = pl.getDeltaMovement();
+            pl.setDeltaMovement(before.add(now.subtract(before).scale(0.3)));
+        });
         if (blocks && nearGround) {
             scorch(level, at, p, r);
         }
@@ -54,7 +102,8 @@ public final class Blast {
             }
             double f = 1 - d / radius;
             if (!(e instanceof com.harddayz.entity.Vehicle) && !(e instanceof com.harddayz.entity.Drone)) {
-                Vec3 push = e.position().subtract(at).normalize().scale(f * (0.6 + p * 0.12)).add(0, f * 0.5, 0);
+                double k = e instanceof Player ? 0.3 : 1;
+                Vec3 push = e.position().subtract(at).normalize().scale(f * (0.6 + p * 0.12) * k).add(0, f * 0.5 * k, 0);
                 e.push(push.x, push.y, push.z);
             }
             if (e instanceof ServerPlayer sp) {
@@ -70,7 +119,7 @@ public final class Blast {
             }
         }
 
-        Net.BlastFx fx = new Net.BlastFx(at.x, at.y, at.z, p);
+        Net.BlastFx fx = new Net.BlastFx(at.x, at.y, at.z, p, soundOf(source, breakBlocks));
         for (ServerPlayer pl : level.players()) {
             if (pl.position().distanceTo(at) < 900) {
                 Net.toPlayer(pl, fx);

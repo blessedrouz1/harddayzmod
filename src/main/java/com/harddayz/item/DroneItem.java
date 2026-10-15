@@ -32,7 +32,7 @@ public class DroneItem extends Item {
         }
         player.getCooldowns().addCooldown(this, 100);
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
-            if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON || kind == Drone.Kind.MOLNIYA) {
+            if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON || kind == Drone.Kind.MOLNIYA || kind == Drone.Kind.KUB) {
                 // ставится на землю; пуск — ПКМ по нему
                 Drone.park(sl, sp, kind);
                 com.harddayz.Compat.consume(player.getItemInHand(hand), player);
@@ -59,7 +59,7 @@ public class DroneItem extends Item {
                 }
                 net.minecraft.world.phys.Vec3 dir = look.add(0, 0.35, 0).normalize();
                 Drone.launchShahed(sl, sp.getEyePosition().add(look.scale(1.5)), dir, aim, sp.getUUID(), kind);
-                sl.playSound(null, sp.blockPosition(), net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_LAUNCH,
+                sl.playSound(null, sp.blockPosition(), com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get(),
                         net.minecraft.sounds.SoundSource.PLAYERS, 1.5f, 1.2f);
                 com.harddayz.Compat.consume(player.getItemInHand(hand), player);
                 return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));

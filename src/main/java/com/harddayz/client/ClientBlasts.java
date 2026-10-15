@@ -14,6 +14,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -44,6 +45,8 @@ public final class ClientBlasts {
     private static final class Active {
         final Vec3 pos;
         final float power;
+        /** Тип звука (Net.BlastFx.sound). */
+        int sound;
         final double dist;
         final double ground;
         final BlockState groundBlock;
@@ -53,6 +56,10 @@ public final class ClientBlasts {
         boolean minor;
         /** Множитель количества частиц (когда взрывов много — меньше). */
         float density = 1f;
+        /** Свои частицы включены в настройках. */
+        boolean fx = com.harddayz.ClientConfig.particles();
+        /** Горящие обломки: x, y, z, vx, vy, vz. Летят по дуге и тянут дымный хвост. */
+        final List<double[]> debris = new ArrayList<>();
 
         Active(Vec3 pos, float power, double dist, double ground, BlockState groundBlock) {
             this.pos = pos;
@@ -80,6 +87,7 @@ public final class ClientBlasts {
         double ground = Math.min(pos.y, top);
         BlockState below = level.getBlockState(BlockPos.containing(pos.x, ground - 1, pos.z));
         Active a = new Active(pos, fx.power(), dist, ground, below);
+        a.sound = fx.sound();
         int near = 0;
         for (Active o : ACTIVE) {
             double r = 3 + Math.max(o.power, fx.power()) * 1.2;
@@ -90,9 +98,14 @@ public final class ClientBlasts {
         a.minor = near > 0;
         a.density = (float) Mth.clamp(1.0 / (1 + near * 0.6 + ACTIVE.size() * 0.08), 0.15, 1.0);
         ACTIVE.add(a);
-        flash = Math.max(flash, (float) Mth.clamp(fx.power() * 0.09 / (1 + dist / 40), 0, 0.9));
-        // зарево: видно издалека, небо и туман окрашиваются
-        glow = Math.max(glow, (float) Mth.clamp(fx.power() * 0.06 / (1 + dist / 250), 0, 0.85));
+        if (com.harddayz.ClientConfig.flash()) {
+            flash = Math.max(flash, (float) Mth.clamp(fx.power() * 0.09 / (1 + dist / 40), 0, 0.9));
+            // зарево: видно издалека, небо и туман окрашиваются
+            glow = Math.max(glow, (float) Mth.clamp(fx.power() * 0.06 / (1 + dist / 250), 0, 0.85));
+        }
+        if (!a.fx) {
+            return; // частицы рисует другой мод
+        }
         if (!a.minor) {
             float p = fx.power();
             put(level, ModParticles.FLASH.get(), pos.x, Math.max(pos.y, ground) + p * 0.6, pos.z, 0, 0, 0);
@@ -101,6 +114,16 @@ public final class ClientBlasts {
             }
         }
         fireball(level, a);
+        if (!a.minor && fx.power() >= 2) {
+            float p = fx.power();
+            int n = (int) (Math.min(16, 3 + p * 1.1) * a.density);
+            for (int i = 0; i < n; i++) {
+                double out = 0.25 + R.nextDouble() * (0.25 + p * 0.025);
+                double ang = R.nextDouble() * Math.PI * 2;
+                a.debris.add(new double[] {pos.x, Math.max(pos.y, ground) + 0.5, pos.z, Math.cos(ang) * out, 0.55 + R.nextDouble() * (0.5 + p * 0.03),
+                        Math.sin(ang) * out});
+            }
+        }
     }
 
     // ------------------------------------------------------------------ мгновенно: огненный шар, искры, обломки
@@ -155,7 +178,9 @@ public final class ClientBlasts {
             if (e instanceof com.harddayz.entity.Missile m && m.kind() == com.harddayz.entity.Missile.Kind.BALLISTIC
                     && m.getDeltaMovement().y < -1) {
                 double d = m.distanceTo(mc.player);
-                glow = Math.max(glow, (float) Mth.clamp(0.5 / (1 + d / 220), 0, 0.5));
+                if (com.harddayz.ClientConfig.flash()) {
+                    glow = Math.max(glow, (float) Mth.clamp(0.5 / (1 + d / 220), 0, 0.5));
+                }
             }
         }
         Iterator<Active> it = ACTIVE.iterator();
@@ -172,6 +197,13 @@ public final class ClientBlasts {
         float p = a.power;
         int t = a.age;
         Vec3 c = a.pos;
+        if (!a.fx) {
+            if (!a.heard && t >= a.dist / SOUND_SPEED) {
+                a.heard = true;
+                hear(mc, a);
+            }
+            return;
+        }
         if (a.minor) {
             if (t < 12 && t % 2 == 0) {
                 put(level, ModParticles.FIRE.get(), c.x + R.nextGaussian() * p * 0.2, a.ground + 0.3, c.z + R.nextGaussian() * p * 0.2, 0, 0.05, 0);
@@ -185,9 +217,44 @@ public final class ClientBlasts {
             }
             return;
         }
+        int type = a.sound & 15;
+        boolean air = (a.sound & 16) != 0 || a.pos.y - a.ground > 6;
+        style(level, a, t, type, air);
+        // горящие обломки с дымным хвостом
+        for (var it = a.debris.iterator(); it.hasNext(); ) {
+            double[] d = it.next();
+            d[4] -= 0.055;
+            d[3] *= 0.985;
+            d[5] *= 0.985;
+            for (int k = 0; k < 2; k++) {
+                d[0] += d[3] * 0.5;
+                d[1] += d[4] * 0.5;
+                d[2] += d[5] * 0.5;
+                put(level, ParticleTypes.SMOKE, d[0], d[1], d[2], 0, 0.01, 0);
+                if (t < 14) {
+                    put(level, ParticleTypes.FLAME, d[0], d[1], d[2], 0, 0, 0);
+                }
+            }
+            if (d[1] < a.ground || t > 60) {
+                if (d[1] < a.ground && t < 40) {
+                    put(level, ParticleTypes.LARGE_SMOKE, d[0], a.ground + 0.2, d[2], 0, 0.05, 0);
+                }
+                it.remove();
+            }
+        }
+        // фонтан грунта вверх в первые тики
+        if (!air && t < 5 && !a.groundBlock.isAir() && a.pos.y - a.ground < 3) {
+            ParticleOptions dirt = new BlockParticleOption(ParticleTypes.BLOCK, a.groundBlock);
+            int n = (int) ((8 + p * 4) * a.density);
+            for (int i = 0; i < n; i++) {
+                double sx = R.nextGaussian() * 0.12, sz = R.nextGaussian() * 0.12;
+                double up = 0.9 + R.nextDouble() * (0.6 + p * 0.06);
+                put(level, dirt, c.x + R.nextGaussian() * 0.6, a.ground + 0.3, c.z + R.nextGaussian() * 0.6, sx, up, sz);
+            }
+        }
         // пыльная ударная волна по земле
         int waveTicks = (int) (8 + p * 0.7f);
-        if (t < waveTicks) {
+        if (!air && t < waveTicks) {
             double speed = 0.9 + p * 0.14;
             double r = 1 + t * speed;
             int n = (int) (Math.min(90, 16 + p * 5) * a.density);
@@ -219,28 +286,28 @@ public final class ClientBlasts {
         if (t >= 2 && t < cloudEnd) {
             double k = t / (double) cloudEnd;
             double radius = Math.min(p * 1.1, 1 + t * (0.25 + p * 0.03));
-            double cy = a.ground + 1 + t * (0.06 + p * 0.012);
+            double cy = (air ? c.y : a.ground + 1) + t * (0.06 + p * 0.012);
             int n = Math.max(1, (int) ((4 + p * 1.1) * (1 - k * 0.5) * a.density));
             for (int i = 0; i < n; i++) {
                 Vec3 d = randomDir();
                 double rr = radius * Math.cbrt(R.nextDouble());
                 double out = 0.03 + p * 0.004;
-                var type = p >= 8 && R.nextFloat() < 0.4f ? ModParticles.SMOKE_HUGE.get() : ModParticles.SMOKE.get();
-                put(level, type, c.x + d.x * rr, cy + Math.abs(d.y) * rr * 0.7, c.z + d.z * rr, d.x * out, 0.03 + R.nextDouble() * 0.04, d.z * out);
+                var puff = p >= 8 && R.nextFloat() < 0.4f ? ModParticles.SMOKE_HUGE.get() : ModParticles.SMOKE.get();
+                put(level, puff, c.x + d.x * rr, cy + Math.abs(d.y) * rr * 0.7, c.z + d.z * rr, d.x * out, 0.03 + R.nextDouble() * 0.04, d.z * out);
                 if (k < 0.4 && i % 2 == 0) {
                     put(level, ModParticles.FIRE.get(), c.x + d.x * rr * 0.5, cy + Math.abs(d.y) * rr * 0.4, c.z + d.z * rr * 0.5, 0, 0.05, 0);
                 }
             }
         }
         // огонь в воронке
-        if (t < 25 + p * 3 && t % 2 == 0) {
+        if (!air && t < 25 + p * 3 && t % 2 == 0) {
             for (int i = 0; i < 1 + p / 5; i++) {
                 put(level, ModParticles.FIRE.get(), c.x + R.nextGaussian() * p * 0.3, a.ground + 0.3, c.z + R.nextGaussian() * p * 0.3, 0, 0.04, 0);
             }
         }
         // столб дыма от воронки
         int smokeEnd = (int) (50 + p * 9);
-        if (t > 6 && t < smokeEnd && t % 2 == 0) {
+        if (!air && t > 6 && t < smokeEnd && t % 2 == 0) {
             double spread = 0.4 + p * 0.15;
             for (int i = 0; i < 1 + p / 5; i++) {
                 put(level, ModParticles.SMOKE.get(), c.x + R.nextGaussian() * spread, a.ground + 0.5 + R.nextDouble(), c.z + R.nextGaussian() * spread,
@@ -275,27 +342,28 @@ public final class ClientBlasts {
         }
         float fade = (float) (1 - d / hearRange);
         float vol = (float) Mth.clamp(a.power * 0.6 / (1 + d / 110), 0.15, 4) * (a.minor ? 0.45f : 1f) * (0.25f + 0.75f * fade);
-        var S = com.harddayz.registry.ModSounds.class;
-        if (d < 160) {
-            // ванильный удар + свой взрыв поверх
-            mc.level.playLocalSound(at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, vol, 0.55f + R.nextFloat() * 0.1f, false);
-            var kindSound = a.power < 2.5f ? com.harddayz.registry.ModSounds.EXP_SMALL.get()
-                    : a.power < 7f ? com.harddayz.registry.ModSounds.EXP_MEDIUM.get() : com.harddayz.registry.ModSounds.EXP_LARGE.get();
-            mc.level.playLocalSound(at.x, at.y, at.z, kindSound, SoundSource.BLOCKS, vol, 0.9f + R.nextFloat() * 0.2f, false);
-            if (a.power >= 6) {
-                mc.level.playLocalSound(at.x, at.y, at.z, com.harddayz.registry.ModSounds.EXPLODE_BIG.get(), SoundSource.BLOCKS, vol * 0.7f, 0.7f, false);
-            }
+        if (!com.harddayz.ClientConfig.sounds()) {
+            // без звуков: только тряска
         } else {
-            mc.level.playLocalSound(at.x, at.y, at.z, com.harddayz.registry.ModSounds.EXPLODE_FAR.get(), SoundSource.BLOCKS,
-                    (float) Mth.clamp(vol * 1.2, 0.05, 4), 0.9f + R.nextFloat() * 0.15f, false);
-        }
-        if (a.power >= 6 || d >= 160) {
-            mc.level.playLocalSound(at.x, at.y, at.z, SoundEvents.LIGHTNING_BOLT_THUNDER, SoundSource.BLOCKS,
-                    (float) Mth.clamp(vol * 1.1, 0.05, 6), d < 160 ? 0.5f : 0.7f, false);
+            int tier = d < 60 ? 0 : d < 160 ? 1 : 2;
+            int type = a.sound & 15;
+            SoundEvent snd;
+            if (type >= 1 && type <= 7) {
+                // в воздухе: сбито ПВО или рвануло высоко над землёй
+                boolean air = (a.sound & 16) != 0 || a.pos.y - a.ground > 6;
+                snd = com.harddayz.registry.ModSounds.blast(type - 1, air, tier);
+            } else if (tier == 2) {
+                snd = com.harddayz.registry.ModSounds.EXPLODE_FAR.get();
+            } else {
+                snd = a.power < 2.5f ? com.harddayz.registry.ModSounds.blast(0, false, tier)
+                        : a.power < 7f ? com.harddayz.registry.ModSounds.EXP_MEDIUM.get() : com.harddayz.registry.ModSounds.EXP_LARGE.get();
+            }
+            mc.level.playLocalSound(at.x, at.y, at.z, snd, SoundSource.BLOCKS, tier == 2 ? (float) Mth.clamp(vol * 1.2, 0.05, 4) : vol,
+                    0.95f + R.nextFloat() * 0.1f, false);
         }
         double shakeRange = 12 + a.power * 7; // трясёт только вблизи
         float s = d > shakeRange ? 0 : (float) Mth.clamp(a.power * 1.6 / (1 + d / 10) * (1 - d / shakeRange), 0, 7);
-        if (s > 0.15f) {
+        if (s > 0.15f && com.harddayz.ClientConfig.shake()) {
             shake = Math.max(shake * shakeTicks / Math.max(1, shakeDuration), s);
             shakeTicks = shakeDuration = (int) (10 + Math.min(25, a.power * 1.5));
         }
@@ -345,6 +413,161 @@ public final class ClientBlasts {
     private static Vec3 randomDir() {
         return new Vec3(R.nextGaussian(), R.nextGaussian(), R.nextGaussian()).normalize();
     }
+
+    // ------------------------------------------------------------------ свой почерк у каждого боеприпаса
+
+    private static void style(ClientLevel level, Active a, int t, int type, boolean air) {
+        float p = a.power;
+        Vec3 c = a.pos;
+        double g = a.ground;
+        float dn = a.density;
+        if (air) {
+            // подрыв в воздухе: чёрный шар дыма висит, вниз сыплются горящие осколки
+            if (t < 4) {
+                double r = 0.8 + t * (0.5 + p * 0.06);
+                for (int i = 0; i < 30 * dn; i++) {
+                    Vec3 d = randomDir();
+                    put(level, ModParticles.SMOKE.get(), c.x + d.x * r, c.y + d.y * r, c.z + d.z * r, d.x * 0.05, d.y * 0.05, d.z * 0.05);
+                }
+            }
+            if (t == 0) {
+                for (int i = 0; i < (20 + p * 6) * dn; i++) {
+                    Vec3 d = randomDir();
+                    put(level, ParticleTypes.LAVA, c.x, c.y, c.z, d.x * 0.6, d.y * 0.4, d.z * 0.6);
+                    put(level, ParticleTypes.FIREWORK, c.x, c.y, c.z, d.x * 0.7, d.y * 0.7, d.z * 0.7);
+                }
+            }
+            if (t > 4 && t < 40 && t % 3 == 0) {
+                put(level, ParticleTypes.FALLING_LAVA, c.x + R.nextGaussian() * p * 0.5, c.y, c.z + R.nextGaussian() * p * 0.5, 0, 0, 0);
+            }
+            return;
+        }
+        switch (type) {
+            case 2 -> { // мина: высокий узкий столб земли и тёмного дыма
+                if (t < 4 && !a.groundBlock.isAir()) {
+                    ParticleOptions dirt = new BlockParticleOption(ParticleTypes.BLOCK, a.groundBlock);
+                    for (int i = 0; i < 40 * dn; i++) {
+                        put(level, dirt, c.x + R.nextGaussian() * 0.3, g + 0.3, c.z + R.nextGaussian() * 0.3,
+                                R.nextGaussian() * 0.06, 1.1 + R.nextDouble() * 0.9, R.nextGaussian() * 0.06);
+                    }
+                }
+                if (t < 12) {
+                    for (int i = 0; i < 4 * dn; i++) {
+                        put(level, ModParticles.SMOKE.get(), c.x + R.nextGaussian() * 0.4, g + 0.5 + t * 0.9 + R.nextDouble() * 2, c.z + R.nextGaussian() * 0.4,
+                                R.nextGaussian() * 0.02, 0.25, R.nextGaussian() * 0.02);
+                    }
+                }
+            }
+            case 3 -> { // РСЗО: веер осколков-трассеров и рыжая пыль
+                if (t == 0) {
+                    for (int i = 0; i < (40 + p * 8) * dn; i++) {
+                        double ang = R.nextDouble() * Math.PI * 2;
+                        double sp = 0.8 + R.nextDouble() * 1.2;
+                        put(level, ParticleTypes.CRIT, c.x, g + 0.6, c.z, Math.cos(ang) * sp, 0.1 + R.nextDouble() * 0.4, Math.sin(ang) * sp);
+                        if (i % 3 == 0) {
+                            put(level, ParticleTypes.LAVA, c.x, g + 0.6, c.z, Math.cos(ang) * sp * 0.4, 0.4, Math.sin(ang) * sp * 0.4);
+                        }
+                    }
+                }
+                if (t > 2 && t < 20 && t % 2 == 0) {
+                    for (int i = 0; i < 3 * dn; i++) {
+                        put(level, ModParticles.DUST.get(), c.x + R.nextGaussian() * p * 0.4, g + 1 + R.nextDouble() * 2, c.z + R.nextGaussian() * p * 0.4,
+                                0, 0.05, 0);
+                    }
+                }
+            }
+            case 4 -> { // ТОС: огненное облако разрастается, вторая вспышка, плотный чёрный дым
+                if (t < 22) {
+                    double r = Math.min(p * 1.6, 1.5 + t * (0.35 + p * 0.05));
+                    for (int i = 0; i < (18 + p * 2) * dn; i++) {
+                        Vec3 d = randomDir();
+                        double rr = r * Math.cbrt(R.nextDouble());
+                        put(level, ModParticles.FIRE.get(), c.x + d.x * rr, g + 1 + Math.abs(d.y) * rr * 0.8, c.z + d.z * rr, d.x * 0.08, 0.06, d.z * 0.08);
+                    }
+                }
+                if (t == 6) {
+                    put(level, ModParticles.FLASH.get(), c.x, g + p * 0.8, c.z, 0, 0, 0);
+                    if (com.harddayz.ClientConfig.flash()) {
+                        glow = Math.max(glow, (float) Mth.clamp(p * 0.07 / (1 + a.dist / 200), 0, 0.9));
+                    }
+                }
+                if (t > 14 && t < 70 && t % 2 == 0) {
+                    for (int i = 0; i < 3 * dn; i++) {
+                        put(level, ModParticles.SMOKE_HUGE.get(), c.x + R.nextGaussian() * p * 0.5, g + 2 + R.nextDouble() * p * 0.8,
+                                c.z + R.nextGaussian() * p * 0.5, 0, 0.06, 0);
+                    }
+                }
+            }
+            case 5 -> { // баллистика: белая ударная волна по земле, вспышки, высокий огненный столб
+                if (t < 3) {
+                    put(level, ModParticles.FLASH.get(), c.x + R.nextGaussian() * 2, g + 2 + t * 4, c.z + R.nextGaussian() * 2, 0, 0, 0);
+                }
+                if (t < 14) {
+                    double r = 2 + t * (2.4 + p * 0.06);
+                    int n = (int) (110 * dn);
+                    for (int i = 0; i < n; i++) {
+                        double ang = (i + R.nextDouble()) / n * Math.PI * 2;
+                        put(level, ModParticles.SMOKE_WHITE.get(), c.x + Math.cos(ang) * r, g + 0.6 + R.nextDouble() * 1.5, c.z + Math.sin(ang) * r,
+                                Math.cos(ang) * 0.5, 0.02, Math.sin(ang) * 0.5);
+                    }
+                }
+                if (t > 3 && t < 40) {
+                    for (int i = 0; i < 4 * dn; i++) {
+                        put(level, ModParticles.FIRE.get(), c.x + R.nextGaussian() * 1.2, g + 1 + t * 0.9 + R.nextDouble() * 3, c.z + R.nextGaussian() * 1.2,
+                                0, 0.35, 0);
+                        put(level, ModParticles.SMOKE_HUGE.get(), c.x + R.nextGaussian() * 2, g + t * 0.8 + R.nextDouble() * 4, c.z + R.nextGaussian() * 2,
+                                0, 0.25, 0);
+                    }
+                }
+            }
+            case 6 -> { // Шахед: шар осколков во все стороны, серо-белый дым, горящие куски
+                if (t == 0) {
+                    for (int i = 0; i < (60 + p * 6) * dn; i++) {
+                        Vec3 d = randomDir();
+                        put(level, ParticleTypes.CRIT, c.x, c.y + 0.5, c.z, d.x * 1.4, Math.abs(d.y) * 1.0, d.z * 1.4);
+                        if (i % 2 == 0) {
+                            put(level, ParticleTypes.LAVA, c.x, c.y + 0.5, c.z, d.x * 0.7, Math.abs(d.y) * 0.8, d.z * 0.7);
+                        }
+                    }
+                    for (int i = 0; i < 8 * dn; i++) {
+                        double ang = R.nextDouble() * Math.PI * 2;
+                        double out = 0.4 + R.nextDouble() * 0.5;
+                        a.debris.add(new double[] {c.x, c.y + 0.5, c.z, Math.cos(ang) * out, 0.7 + R.nextDouble() * 0.6, Math.sin(ang) * out});
+                    }
+                }
+                if (t > 2 && t < 30 && t % 2 == 0) {
+                    for (int i = 0; i < 3 * dn; i++) {
+                        put(level, ModParticles.SMOKE_WHITE.get(), c.x + R.nextGaussian() * p * 0.3, g + 1 + R.nextDouble() * p * 0.4,
+                                c.z + R.nextGaussian() * p * 0.3, 0, 0.05, 0);
+                    }
+                }
+            }
+            case 7 -> { // крылатая: огненный гриб поднимается, жирный чёрный столб
+                if (t < 18) {
+                    for (int i = 0; i < 10 * dn; i++) {
+                        double rr = 0.8 + t * 0.15;
+                        put(level, ModParticles.FIRE.get(), c.x + R.nextGaussian() * rr, g + 1 + t * 0.6 + R.nextDouble() * 2, c.z + R.nextGaussian() * rr,
+                                0, 0.2, 0);
+                    }
+                }
+                if (t > 8 && t < 90 && t % 2 == 0) {
+                    for (int i = 0; i < 2 * dn; i++) {
+                        put(level, ModParticles.SMOKE_HUGE.get(), c.x + R.nextGaussian() * 1.5, g + 2 + R.nextDouble() * 3, c.z + R.nextGaussian() * 1.5,
+                                R.nextGaussian() * 0.01, 0.2, R.nextGaussian() * 0.01);
+                    }
+                }
+            }
+            default -> { // FPV, граната: короткий хлопок и серое облачко
+                if (t == 1) {
+                    for (int i = 0; i < 14 * dn; i++) {
+                        Vec3 d = randomDir();
+                        put(level, ParticleTypes.POOF, c.x, c.y + 0.4, c.z, d.x * 0.2, Math.abs(d.y) * 0.2, d.z * 0.2);
+                    }
+                }
+            }
+        }
+    }
+
 
     private static void put(ClientLevel level, ParticleOptions type, double x, double y, double z, double dx, double dy, double dz) {
         level.addAlwaysVisibleParticle(type, true, x, y, z, dx, dy, dz);

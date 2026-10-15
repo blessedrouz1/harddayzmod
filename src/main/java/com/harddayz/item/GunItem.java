@@ -132,7 +132,7 @@ public class GunItem extends Item {
         if (spec.rocket()) {
             Missile.launch(level, Missile.Kind.BOMB, eye.add(dir.scale(1.2)), dir.scale(2.6), eye.add(dir.scale(300)), p).owner(p.getUUID())
                     .powerMul(1.7f).look(6);
-            level.playSound(null, p.blockPosition(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.PLAYERS, 3f, 0.6f);
+            level.playSound(null, p.blockPosition(), com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get(), SoundSource.PLAYERS, 3f, 1.1f);
             com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CLOUD, eye.x - dir.x * 1.5, eye.y - 0.3, eye.z - dir.z * 1.5, 15, 0.3, 0.3, 0.3, 0.05);
             return;
         }

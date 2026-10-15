@@ -18,12 +18,13 @@
   "explode_far": {
     "sounds": [
       {
-        "name": "harddayz:explode_far",
-        "stream": false
+        "name": "harddayz:explode_far_1"
       },
       {
-        "name": "harddayz:explode_far2",
-        "stream": false
+        "name": "harddayz:explode_far_2"
+      },
+      {
+        "name": "harddayz:explode_far_3"
       }
     ]
   },
@@ -174,30 +175,29 @@
       }
     ]
   },
-  "exp_small": {
-    "sounds": [
-      {
-        "name": "harddayz:exp_small1"
-      },
-      {
-        "name": "harddayz:exp_small2"
-      }
-    ]
-  },
   "exp_medium": {
     "sounds": [
       {
-        "name": "harddayz:exp_medium1"
+        "name": "harddayz:exp_medium_1"
       },
       {
-        "name": "harddayz:exp_medium2"
+        "name": "harddayz:exp_medium_2"
+      },
+      {
+        "name": "harddayz:exp_medium_3"
       }
     ]
   },
   "exp_large": {
     "sounds": [
       {
-        "name": "harddayz:exp_large"
+        "name": "harddayz:exp_large_1"
+      },
+      {
+        "name": "harddayz:exp_large_2"
+      },
+      {
+        "name": "harddayz:exp_large_3"
       }
     ]
   },
@@ -219,6 +219,615 @@
     "sounds": [
       {
         "name": "harddayz:fly_jet"
+      }
+    ]
+  },
+  "launch_cruise": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_cruise"
+      }
+    ]
+  },
+  "launch_shahed": {
+    "sounds": [
+      {
+        "name": "harddayz:launch_shahed"
+      }
+    ]
+  },
+  "sam_launch": {
+    "sounds": [
+      {
+        "name": "harddayz:sam_launch"
+      }
+    ]
+  },
+  "fpv_loop": {
+    "sounds": [
+      {
+        "name": "harddayz:fpv_loop"
+      }
+    ]
+  },
+  "incoming_mortar": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_mortar"
+      }
+    ]
+  },
+  "incoming_rocket": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_rocket"
+      }
+    ]
+  },
+  "incoming_ballistic": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_ballistic"
+      }
+    ]
+  },
+  "incoming_shahed": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_shahed"
+      }
+    ]
+  },
+  "incoming_cruise": {
+    "sounds": [
+      {
+        "name": "harddayz:incoming_cruise"
+      }
+    ]
+  },
+  "exp_small_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_near_1"
+      },
+      {
+        "name": "harddayz:exp_small_near_2"
+      },
+      {
+        "name": "harddayz:exp_small_near_3"
+      }
+    ]
+  },
+  "exp_small_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_mid_1"
+      },
+      {
+        "name": "harddayz:exp_small_mid_2"
+      },
+      {
+        "name": "harddayz:exp_small_mid_3"
+      }
+    ]
+  },
+  "exp_small_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_far_1"
+      },
+      {
+        "name": "harddayz:exp_small_far_2"
+      },
+      {
+        "name": "harddayz:exp_small_far_3"
+      }
+    ]
+  },
+  "exp_small_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_near_3"
+      }
+    ]
+  },
+  "exp_small_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_mid_3"
+      }
+    ]
+  },
+  "exp_small_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_small_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_small_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_small_air_far_3"
+      }
+    ]
+  },
+  "exp_mortar_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_near_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_near_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_near_3"
+      }
+    ]
+  },
+  "exp_mortar_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_mid_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_mid_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_mid_3"
+      }
+    ]
+  },
+  "exp_mortar_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_far_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_far_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_far_3"
+      }
+    ]
+  },
+  "exp_mortar_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_near_3"
+      }
+    ]
+  },
+  "exp_mortar_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_mid_3"
+      }
+    ]
+  },
+  "exp_mortar_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_mortar_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_mortar_air_far_3"
+      }
+    ]
+  },
+  "exp_rocket_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_near_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_near_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_near_3"
+      }
+    ]
+  },
+  "exp_rocket_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_mid_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_mid_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_mid_3"
+      }
+    ]
+  },
+  "exp_rocket_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_far_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_far_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_far_3"
+      }
+    ]
+  },
+  "exp_rocket_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_near_3"
+      }
+    ]
+  },
+  "exp_rocket_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_mid_3"
+      }
+    ]
+  },
+  "exp_rocket_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_rocket_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_rocket_air_far_3"
+      }
+    ]
+  },
+  "exp_shahed_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_near_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_near_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_near_3"
+      }
+    ]
+  },
+  "exp_shahed_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_mid_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_mid_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_mid_3"
+      }
+    ]
+  },
+  "exp_shahed_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_far_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_far_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_far_3"
+      }
+    ]
+  },
+  "exp_shahed_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_near_3"
+      }
+    ]
+  },
+  "exp_shahed_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_mid_3"
+      }
+    ]
+  },
+  "exp_shahed_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_shahed_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_shahed_air_far_3"
+      }
+    ]
+  },
+  "exp_cruise_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_near_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_near_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_near_3"
+      }
+    ]
+  },
+  "exp_cruise_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_mid_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_mid_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_mid_3"
+      }
+    ]
+  },
+  "exp_cruise_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_far_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_far_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_far_3"
+      }
+    ]
+  },
+  "exp_cruise_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_near_3"
+      }
+    ]
+  },
+  "exp_cruise_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_mid_3"
+      }
+    ]
+  },
+  "exp_cruise_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_cruise_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_cruise_air_far_3"
+      }
+    ]
+  },
+  "exp_ballistic_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_near_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_near_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_near_3"
+      }
+    ]
+  },
+  "exp_ballistic_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_mid_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_mid_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_mid_3"
+      }
+    ]
+  },
+  "exp_ballistic_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_far_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_far_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_far_3"
+      }
+    ]
+  },
+  "exp_ballistic_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_near_3"
+      }
+    ]
+  },
+  "exp_ballistic_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_mid_3"
+      }
+    ]
+  },
+  "exp_ballistic_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_ballistic_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_ballistic_air_far_3"
+      }
+    ]
+  },
+  "exp_thermo_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_near_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_near_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_near_3"
+      }
+    ]
+  },
+  "exp_thermo_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_mid_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_mid_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_mid_3"
+      }
+    ]
+  },
+  "exp_thermo_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_far_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_far_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_far_3"
+      }
+    ]
+  },
+  "exp_thermo_air_near": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_air_near_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_near_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_near_3"
+      }
+    ]
+  },
+  "exp_thermo_air_mid": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_air_mid_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_mid_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_mid_3"
+      }
+    ]
+  },
+  "exp_thermo_air_far": {
+    "sounds": [
+      {
+        "name": "harddayz:exp_thermo_air_far_1"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_far_2"
+      },
+      {
+        "name": "harddayz:exp_thermo_air_far_3"
       }
     ]
   }

@@ -60,7 +60,7 @@
   "hud.harddayz.signal": "SIGNAL %s%%",
   "hud.harddayz.grenades": "GRENADES %s",
   "hud.harddayz.help_fpv": "LMB detonate   V exit",
-  "hud.harddayz.help_recon": "RMB mark point   LMB drop   wheel zoom   V exit",
+  "hud.harddayz.help_recon": "RMB mark point   wheel zoom   V exit",
   "screen.harddayz.shahed": "Shahed launcher - control",
   "screen.harddayz.drive_hint": "RMB to drive, Shift+RMB panel, V panel from the cab",
   "item.harddayz.shahed_238": "Shahed-238 (jet)",
@@ -375,5 +375,14 @@
   "screen.harddayz.smerch": "Smerch MLRS",
   "screen.harddayz.uragan": "Uragan MLRS",
   "screen.harddayz.kalibr": "Kalibr launcher",
-  "itemGroup.harddayz.ammo": "HardDayz: missiles & ammo"
+  "itemGroup.harddayz.ammo": "HardDayz: missiles & ammo",
+  "message.harddayz.mortar_manual": "The mortar is aimed by hand: stand behind it, look toward the target and raise your view (45..85°), RMB with empty hand to aim, RMB with a round to fire. Watch the impact and correct.",
+  "message.harddayz.mortar_aim": "Mortar: bearing %s°, elevation %s°",
+  "message.harddayz.mortar_shot": "Fire! Bearing %s°, elevation %s°",
+  "screen.harddayz.config": "HardDayz settings",
+  "config.harddayz.blast_particles": "Explosion particles",
+  "config.harddayz.blast_sounds": "Explosion sounds",
+  "config.harddayz.screen_shake": "Camera shake",
+  "config.harddayz.sky_flash": "Sky flash and glow",
+  "hud.harddayz.help_bomber": "RMB mark point   LMB drop   wheel zoom   V exit"
 }

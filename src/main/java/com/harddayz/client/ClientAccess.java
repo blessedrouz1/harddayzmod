@@ -26,6 +26,35 @@ public final class ClientAccess {
         }
     }
 
+    /** «Шахед» или крылатая пикирует рядом: нарастающий вой, который кончается к взрыву. */
+    public static void droneIncoming(com.harddayz.entity.Drone d) {
+        var k = d.kind();
+        if (d.incomingPlayed || !k.autonomous || k.warhead < 2 || k == com.harddayz.entity.Drone.Kind.INTERCEPTOR) {
+            return;
+        }
+        var mc = Minecraft.getInstance();
+        if (mc.player == null || mc.level == null) {
+            return;
+        }
+        var v = d.position().subtract(d.xo, d.yo, d.zo);
+        if (v.y > -0.25) {
+            return;
+        }
+        double len = k.jet() ? 3.0 : 3.2;
+        int top = mc.level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, d.getBlockX(), d.getBlockZ());
+        double ticks = (d.getY() - top) / -v.y;
+        if (ticks > len * 20) {
+            return;
+        }
+        var hit = new net.minecraft.world.phys.Vec3(d.getX() + v.x * ticks, top, d.getZ() + v.z * ticks);
+        if (hit.distanceTo(mc.player.position()) > 160) {
+            return;
+        }
+        d.incomingPlayed = true;
+        mc.level.playLocalSound(hit.x, hit.y + 2, hit.z, k.jet() ? com.harddayz.registry.ModSounds.INCOMING_CRUISE.get()
+                : com.harddayz.registry.ModSounds.INCOMING_SHAHED.get(), net.minecraft.sounds.SoundSource.HOSTILE, 5f, 1f, false);
+    }
+
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {
         var p = Minecraft.getInstance().player;
         return p == null ? null : p.position();

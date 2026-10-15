@@ -30,6 +30,7 @@ public final class HardDayz {
         com.harddayz.registry.ModEffects.EFFECTS.register(bus);
         com.harddayz.war.Medic.init();
         context.registerConfig(ModConfig.Type.SERVER, Config.SPEC);
+        context.registerConfig(ModConfig.Type.CLIENT, ClientConfig.SPEC);
         com.harddayz.network.Net.init();
         com.harddayz.war.WarEvents.init();
         if (FMLEnvironment.dist.isClient()) {

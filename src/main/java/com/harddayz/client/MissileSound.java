@@ -24,7 +24,7 @@ public class MissileSound extends AbstractTickableSoundInstance {
     }
 
     public static boolean wants(Missile m) {
-        return m.kind() != Missile.Kind.BOMB || m.look() == 6; // гранаты молчат, выстрел РПГ шипит
+        return m.look() != 7 && (m.kind() != Missile.Kind.BOMB || m.look() == 6); // мина летит молча, её слышно на подлёте // гранаты молчат, выстрел РПГ шипит
     }
 
     public MissileSound(Missile m) {

@@ -121,7 +121,7 @@ public class HdParticle extends TextureSheetParticle {
         }
         this.quadSize = baseSize * 0.5f;
         setColor(r0, g0, b0);
-        setAlpha(1f);
+        setAlpha(kind == Kind.FIRE || kind == Kind.JET_FIRE ? 1f : 0.92f);
     }
 
     @Override
@@ -151,20 +151,20 @@ public class HdParticle extends TextureSheetParticle {
                 quadSize = baseSize * (0.6f + k * 0.8f);
                 // бело-жёлтый -> оранжевый -> тёмно-красный
                 setColor(1f, Mth.lerp(k, 0.92f, 0.25f), Mth.lerp(k, 0.6f, 0.05f));
-                setAlpha(k < 0.75f ? 1 : (1 - k) / 0.25f);
+                setAlpha(1 - k * k);
                 yd += 0.004;
             }
             case DUST -> {
                 quadSize = baseSize * (0.5f + k * 1.2f);
                 yd -= 0.002;
-                setAlpha(k < 0.65f ? 1 : (1 - k) / 0.35f);
+                setAlpha(0.8f * (1 - k));
             }
             default -> {
                 // дым растёт, всплывает, к концу тает
                 quadSize = baseSize * (0.5f + (float) Math.sqrt(k) * 1.3f);
                 yd += kind == Kind.SMOKE_WHITE || kind == Kind.JET_SMOKE ? 0.0006 : 0.0012;
                 float fade = k < 0.6f ? 1 : 1 - (k - 0.6f) / 0.4f;
-                setAlpha(fade);
+                setAlpha(0.92f * fade);
                 // свежий дым подсвечен огнём снизу
                 if (kind != Kind.SMOKE_WHITE && kind != Kind.JET_SMOKE && age < 8) {
                     float glow = 1 - age / 8f;
@@ -192,9 +192,8 @@ public class HdParticle extends TextureSheetParticle {
     }
 
     static ParticleRenderType renderType(Kind kind) {
-        // Solid smoke/fire silhouettes, like vanilla smoke. Only light flashes blend with the background.
-        return kind == Kind.FLASH || kind == Kind.GLOW ? ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT
-                : ParticleRenderType.PARTICLE_SHEET_OPAQUE;
+        // Мягкие края и плавное таяние нужны всем: в непрозрачном режиме дым и огонь рисуются рваными квадратами.
+        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {

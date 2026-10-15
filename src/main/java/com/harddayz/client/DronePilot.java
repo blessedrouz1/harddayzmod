@@ -399,11 +399,10 @@ public final class DronePilot {
                     d.engineOn() ? col : 0xFFFFB040, true);
         }
         if (d.kind() == Drone.Kind.RECON) {
-            g.text(font, Component.translatable("hud.harddayz.grenades", d.grenades()), w - 110, 48, col, true);
             g.text(font, Component.literal(String.format("x%.1f", zoom)), w - 110, 60, col, true);
         }
         g.text(font, Component.translatable(d.kind().autonomous ? "hud.harddayz.help_shahed" : d.kind() == Drone.Kind.FPV ? "hud.harddayz.help_fpv"
-                : "hud.harddayz.help_recon"), 24, h - 34, 0xB0FFFFFF, true);
+                : d.kind() == Drone.Kind.RECON ? "hud.harddayz.help_recon" : "hud.harddayz.help_bomber"), 24, h - 34, 0xB0FFFFFF, true);
         if (mc.player.tickCount % 20 < 10) {
             g.fill(w - 40, h - 36, w - 34, h - 30, 0xFFFF3030);
         }

@@ -60,7 +60,8 @@ public final class Net {
     }
 
     /** Сервер → клиент: эффекты взрыва. */
-    public record BlastFx(double x, double y, double z, float power) {
+    /** sound: 0 — по силе, 1 малый, 2 мина, 3 РСЗО, 4 термобарический, 5 баллистика, 6 Шахед, 7 крылатая; +16 — в воздухе. */
+    public record BlastFx(double x, double y, double z, float power, int sound) {
     }
 
     /** Клиент → сервер: приказ пусковой из окна управления. */
@@ -293,10 +294,11 @@ public final class Net {
         b.writeDouble(m.y());
         b.writeDouble(m.z());
         b.writeFloat(m.power());
+        b.writeByte(m.sound());
     }
 
     private static BlastFx decBlastFx(FriendlyByteBuf b) {
-        return new BlastFx(b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat());
+        return new BlastFx(b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat(), b.readByte());
     }
 
     private static void encFireOrder(FireOrder m, FriendlyByteBuf b) {
