@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/gabion"
+  },
+  "facing=east": {
+   "model": "harddayz:block/gabion"
+  },
+  "facing=south": {
+   "model": "harddayz:block/gabion"
+  },
+  "facing=west": {
+   "model": "harddayz:block/gabion"
+  }
+ }
+}

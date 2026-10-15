@@ -357,6 +357,30 @@ public class Launcher extends Vehicle implements Threat {
         entityData.set(KIND, k.ordinal());
         entityData.set(HEALTH, k.health);
         entityData.set(FUEL, tank());
+        refreshDimensions();
+    }
+
+    /** Хитбокс по размеру техники: пулемёт и ПЗРК маленькие, танки и ТОС крупнее. */
+    @Override
+    public net.minecraft.world.entity.EntityDimensions getDimensions(net.minecraft.world.entity.Pose pose) {
+        return switch (kind()) {
+            case MG, SAM_MANUAL, GRAD_P, MORTAR -> net.minecraft.world.entity.EntityDimensions.scalable(1.1f, 1.3f);
+            case RELAY -> net.minecraft.world.entity.EntityDimensions.scalable(1.4f, 3.5f);
+            case SAM_POST -> net.minecraft.world.entity.EntityDimensions.scalable(1.6f, 1.6f);
+            case PICKUP_MG, PICKUP_SAM -> net.minecraft.world.entity.EntityDimensions.scalable(2.0f, 2.0f);
+            case RAMP -> net.minecraft.world.entity.EntityDimensions.scalable(2.4f, 1.6f);
+            case KA52, MI8 -> net.minecraft.world.entity.EntityDimensions.scalable(3.0f, 2.6f);
+            case BMP2, BRADLEY, T72, ABRAMS, TOS -> net.minecraft.world.entity.EntityDimensions.scalable(3.2f, 2.3f);
+            default -> net.minecraft.world.entity.EntityDimensions.scalable(3.0f, 2.6f);
+        };
+    }
+
+    @Override
+    public void onSyncedDataUpdated(EntityDataAccessor<?> key) {
+        super.onSyncedDataUpdated(key);
+        if (KIND.equals(key)) {
+            refreshDimensions();
+        }
     }
 
     @Override

@@ -346,5 +346,14 @@
   "message.harddayz.refueled": "Заправлено: %s / %s л",
   "message.harddayz.lancet_manual": "«Ланцет» набрал высоту — управление у тебя. ЛКМ — подрыв.",
   "message.harddayz.drone_busy": "Дроном уже кто-то управляет.",
-  "message.harddayz.drone_foreign": "Это чужой дрон."
+  "message.harddayz.drone_foreign": "Это чужой дрон.",
+  "block.harddayz.bunker_concrete": "Бункерный бетон",
+  "block.harddayz.bunker_concrete_slab": "Плита бункерного бетона",
+  "block.harddayz.bunker_concrete_stairs": "Ступени из бункерного бетона",
+  "block.harddayz.embrasure": "Бойница",
+  "block.harddayz.armor_plate": "Броневая плита",
+  "block.harddayz.bunker_door": "Гермодверь",
+  "block.harddayz.gabion": "Габион",
+  "block.harddayz.log_roof": "Бревенчатый накат",
+  "block.harddayz.steel_beam": "Стальной двутавр"
 }

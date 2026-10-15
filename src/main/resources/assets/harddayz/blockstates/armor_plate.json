@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/armor_plate"
+  },
+  "facing=east": {
+   "model": "harddayz:block/armor_plate"
+  },
+  "facing=south": {
+   "model": "harddayz:block/armor_plate"
+  },
+  "facing=west": {
+   "model": "harddayz:block/armor_plate"
+  }
+ }
+}

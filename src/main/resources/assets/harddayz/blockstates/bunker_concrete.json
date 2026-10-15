@@ -1,0 +1,16 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/bunker_concrete"
+  },
+  "facing=east": {
+   "model": "harddayz:block/bunker_concrete"
+  },
+  "facing=south": {
+   "model": "harddayz:block/bunker_concrete"
+  },
+  "facing=west": {
+   "model": "harddayz:block/bunker_concrete"
+  }
+ }
+}

@@ -1,6 +1,14 @@
 {
-  "values": [
-    "harddayz:hq",
-    "harddayz:siren"
-  ]
+ "values": [
+  "harddayz:hq",
+  "harddayz:siren",
+  "harddayz:bunker_concrete",
+  "harddayz:bunker_concrete_slab",
+  "harddayz:bunker_concrete_stairs",
+  "harddayz:embrasure",
+  "harddayz:armor_plate",
+  "harddayz:steel_beam",
+  "harddayz:bunker_door",
+  "harddayz:gabion"
+ ]
 }

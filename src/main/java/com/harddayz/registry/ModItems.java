@@ -196,7 +196,8 @@ public final class ModItems {
 
     static boolean eng(Item i) {
         return i instanceof com.harddayz.item.MedItem || i instanceof com.harddayz.item.FieldShovelItem
-                || i instanceof net.minecraft.world.item.BlockItem b && b.getBlock() instanceof com.harddayz.war.EngBlock;
+                || i instanceof net.minecraft.world.item.BlockItem b && (b.getBlock() instanceof com.harddayz.war.EngBlock
+                        || ModBlocks.isBuild(b.getBlock()));
     }
 
     private static boolean weapon(Item i) {

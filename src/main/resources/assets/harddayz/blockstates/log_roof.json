@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/log_roof"
+  },
+  "facing=east": {
+   "model": "harddayz:block/log_roof",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "harddayz:block/log_roof",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "harddayz:block/log_roof",
+   "y": 270
+  }
+ }
+}

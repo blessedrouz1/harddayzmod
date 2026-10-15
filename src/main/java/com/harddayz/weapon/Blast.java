@@ -86,6 +86,7 @@ public final class Blast {
             BlockPos pos = BlockPos.containing(at.x + r.nextGaussian() * rad * 0.6, at.y + r.nextGaussian() * rad * 0.4, at.z + r.nextGaussian() * rad * 0.6);
             BlockState st = level.getBlockState(pos);
             if (st.isAir() || st.getDestroySpeed(level, pos) < 0 || st.getDestroySpeed(level, pos) > 50 || !st.getFluidState().isEmpty()
+                    || st.getBlock().getExplosionResistance() > p * 4
                     || level.getBlockEntity(pos) != null) {
                 continue;
             }

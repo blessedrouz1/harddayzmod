@@ -1,0 +1,19 @@
+{
+ "variants": {
+  "facing=north": {
+   "model": "harddayz:block/steel_beam"
+  },
+  "facing=east": {
+   "model": "harddayz:block/steel_beam",
+   "y": 90
+  },
+  "facing=south": {
+   "model": "harddayz:block/steel_beam",
+   "y": 180
+  },
+  "facing=west": {
+   "model": "harddayz:block/steel_beam",
+   "y": 270
+  }
+ }
+}

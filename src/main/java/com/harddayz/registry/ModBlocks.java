@@ -120,6 +120,67 @@ public final class ModBlocks {
     public static final RegistryObject<Item> REVETMENT_ITEM = ModItems.ITEMS.register("revetment",
             () -> new BlockItem(REVETMENT.get(), new Item.Properties()));
 
+
+    // ------------------------------------------------------------------ строительство: бункеры и укрепления
+    /** Бункерный бетон: держит баллистику. */
+    public static final RegistryObject<Block> BUNKER_CONCRETE = BLOCKS.register("bunker_concrete", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(25f, 150f).sound(SoundType.STONE).requiresCorrectToolForDrops(),
+            com.harddayz.war.EngBlock.Type.SOLID, 0, 0, 0, 16, 16, 16));
+    public static final RegistryObject<Block> BUNKER_SLAB = BLOCKS.register("bunker_concrete_slab", () -> new net.minecraft.world.level.block.SlabBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(25f, 150f).sound(SoundType.STONE).requiresCorrectToolForDrops()));
+    public static final RegistryObject<Block> BUNKER_STAIRS = BLOCKS.register("bunker_concrete_stairs", () -> new net.minecraft.world.level.block.StairBlock(
+            () -> BUNKER_CONCRETE.get().defaultBlockState(),
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(25f, 150f).sound(SoundType.STONE).requiresCorrectToolForDrops()));
+    /** Бойница: бетон с горизонтальной щелью для стрельбы. */
+    public static final RegistryObject<Block> EMBRASURE = BLOCKS.register("embrasure", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GRAY).strength(25f, 150f).sound(SoundType.STONE).noOcclusion().requiresCorrectToolForDrops(),
+            com.harddayz.war.EngBlock.Type.SOLID, new double[][] {{0, 0, 0, 16, 7, 16}, {0, 10, 0, 16, 16, 16}, {0, 7, 0, 4, 10, 16}, {12, 7, 0, 16, 10, 16}}));
+    /** Броневая плита: самый прочный блок. */
+    public static final RegistryObject<Block> ARMOR_PLATE = BLOCKS.register("armor_plate", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(40f, 400f).sound(SoundType.NETHERITE_BLOCK).requiresCorrectToolForDrops(),
+            com.harddayz.war.EngBlock.Type.SOLID, 0, 0, 0, 16, 16, 16));
+    public static final RegistryObject<Block> BUNKER_DOOR = BLOCKS.register("bunker_door", () -> new net.minecraft.world.level.block.DoorBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(20f, 150f).sound(SoundType.METAL).noOcclusion(),
+            net.minecraft.world.level.block.state.properties.BlockSetType.IRON) {
+        @Override
+        public net.minecraft.world.InteractionResult use(net.minecraft.world.level.block.state.BlockState s, net.minecraft.world.level.Level level,
+                net.minecraft.core.BlockPos pos, net.minecraft.world.entity.player.Player p, net.minecraft.world.InteractionHand hand,
+                net.minecraft.world.phys.BlockHitResult hit) {
+            // гермодверь открывается рукой
+            boolean open = !s.getValue(OPEN);
+            setOpen(p, level, s, pos, open);
+            return net.minecraft.world.InteractionResult.sidedSuccess(level.isClientSide());
+        }
+    });
+    /** Габион: сетка с камнями. */
+    public static final RegistryObject<Block> GABION = BLOCKS.register("gabion", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(4f, 40f).sound(SoundType.STONE),
+            com.harddayz.war.EngBlock.Type.SOLID, 0, 0, 0, 16, 16, 16));
+    /** Бревенчатый накат для блиндажа. */
+    public static final RegistryObject<Block> LOG_ROOF = BLOCKS.register("log_roof", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(3f, 18f).sound(SoundType.WOOD),
+            com.harddayz.war.EngBlock.Type.SOLID, 0, 0, 0, 16, 16, 16));
+    /** Стальной двутавр — опора. */
+    public static final RegistryObject<Block> STEEL_BEAM = BLOCKS.register("steel_beam", () -> new com.harddayz.war.EngBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(12f, 200f).sound(SoundType.METAL).noOcclusion(),
+            com.harddayz.war.EngBlock.Type.SOLID, new double[][] {{3, 0, 5, 13, 16, 7}, {7, 0, 7, 9, 16, 9}, {3, 0, 9, 13, 16, 11}}));
+
+    public static final RegistryObject<Item> BUNKER_CONCRETE_ITEM = ModItems.ITEMS.register("bunker_concrete", () -> new BlockItem(BUNKER_CONCRETE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> BUNKER_SLAB_ITEM = ModItems.ITEMS.register("bunker_concrete_slab", () -> new BlockItem(BUNKER_SLAB.get(), new Item.Properties()));
+    public static final RegistryObject<Item> BUNKER_STAIRS_ITEM = ModItems.ITEMS.register("bunker_concrete_stairs", () -> new BlockItem(BUNKER_STAIRS.get(), new Item.Properties()));
+    public static final RegistryObject<Item> EMBRASURE_ITEM = ModItems.ITEMS.register("embrasure", () -> new BlockItem(EMBRASURE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> ARMOR_PLATE_ITEM = ModItems.ITEMS.register("armor_plate", () -> new BlockItem(ARMOR_PLATE.get(), new Item.Properties()));
+    public static final RegistryObject<Item> BUNKER_DOOR_ITEM = ModItems.ITEMS.register("bunker_door",
+            () -> new net.minecraft.world.item.DoubleHighBlockItem(BUNKER_DOOR.get(), new Item.Properties()));
+    public static final RegistryObject<Item> GABION_ITEM = ModItems.ITEMS.register("gabion", () -> new BlockItem(GABION.get(), new Item.Properties()));
+    public static final RegistryObject<Item> LOG_ROOF_ITEM = ModItems.ITEMS.register("log_roof", () -> new BlockItem(LOG_ROOF.get(), new Item.Properties()));
+    public static final RegistryObject<Item> STEEL_BEAM_ITEM = ModItems.ITEMS.register("steel_beam", () -> new BlockItem(STEEL_BEAM.get(), new Item.Properties()));
+
+    /** Строительные блоки, которые не EngBlock (для вкладки инженерки). */
+    public static boolean isBuild(Block b) {
+        return b == BUNKER_SLAB.get() || b == BUNKER_STAIRS.get() || b == BUNKER_DOOR.get();
+    }
+
     public static void init() {
     }
 

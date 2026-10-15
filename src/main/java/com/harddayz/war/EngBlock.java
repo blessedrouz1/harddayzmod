@@ -11,6 +11,8 @@ import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Mirror;
+import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
@@ -21,8 +23,9 @@ import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
- * Инженерный блок позиции: форма по направлению (задаётся для севера), без коллизии (маскировочная сеть),
- * колючая проволока — замедляет и ранит.
+ * Инженерный блок позиции. Форма задаётся набором коробок для направления «север» (px 0..16) и поворачивается
+ * так же, как модель в blockstate (y = 90/180/270), поэтому коллизия совпадает с тем, что видно.
+ * NET — без коллизии (сеть), WIRE — колючка: замедляет и ранит.
  */
 public class EngBlock extends Block {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -31,16 +34,35 @@ public class EngBlock extends Block {
         SOLID, NET, WIRE
     }
 
-    private final VoxelShape north;
-    private final VoxelShape east;
+    private final VoxelShape[] shapes = new VoxelShape[4]; // север, восток, юг, запад
     private final Type type;
 
     public EngBlock(Properties properties, Type type, double x0, double y0, double z0, double x1, double y1, double z1) {
+        this(properties, type, new double[][] {{x0, y0, z0, x1, y1, z1}});
+    }
+
+    public EngBlock(Properties properties, Type type, double[][] boxes) {
         super(properties);
         this.type = type;
-        this.north = Block.box(x0, y0, z0, x1, y1, z1);
-        this.east = Block.box(16 - z1, y0, x0, 16 - z0, y1, x1);
+        for (int r = 0; r < 4; r++) {
+            VoxelShape s = Shapes.empty();
+            for (double[] b : boxes) {
+                s = Shapes.or(s, rotated(b, r));
+            }
+            shapes[r] = s.optimize();
+        }
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH));
+    }
+
+    /** Повернуть коробку на r×90° по часовой (вид сверху), как blockstate «y». */
+    private static VoxelShape rotated(double[] b, int r) {
+        double x0 = b[0], y0 = b[1], z0 = b[2], x1 = b[3], y1 = b[4], z1 = b[5];
+        return switch (r) {
+            case 1 -> Block.box(16 - z1, y0, x0, 16 - z0, y1, x1);
+            case 2 -> Block.box(16 - x1, y0, 16 - z1, 16 - x0, y1, 16 - z0);
+            case 3 -> Block.box(z0, y0, 16 - x1, z1, y1, 16 - x0);
+            default -> Block.box(x0, y0, z0, x1, y1, z1);
+        };
     }
 
     @Override
@@ -54,14 +76,33 @@ public class EngBlock extends Block {
     }
 
     @Override
+    public BlockState rotate(BlockState s, Rotation rot) {
+        return s.setValue(FACING, rot.rotate(s.getValue(FACING)));
+    }
+
+    @Override
+    public BlockState mirror(BlockState s, Mirror m) {
+        return s.rotate(m.getRotation(s.getValue(FACING)));
+    }
+
+    @Override
     public VoxelShape getShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
-        Direction d = s.getValue(FACING);
-        return d.getAxis() == Direction.Axis.Z ? north : east;
+        return shapes[switch (s.getValue(FACING)) {
+            case EAST -> 1;
+            case SOUTH -> 2;
+            case WEST -> 3;
+            default -> 0;
+        }];
     }
 
     @Override
     public VoxelShape getCollisionShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         return type == Type.SOLID ? getShape(s, level, pos, ctx) : Shapes.empty();
+    }
+
+    @Override
+    public boolean propagatesSkylightDown(BlockState s, BlockGetter level, BlockPos pos) {
+        return type != Type.SOLID;
     }
 
     @Override

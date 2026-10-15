@@ -346,5 +346,14 @@
   "message.harddayz.refueled": "Refueled: %s / %s L",
   "message.harddayz.lancet_manual": "Lancet climbed - you have control. LMB - detonate.",
   "message.harddayz.drone_busy": "Someone is already piloting this drone.",
-  "message.harddayz.drone_foreign": "This drone belongs to someone else."
+  "message.harddayz.drone_foreign": "This drone belongs to someone else.",
+  "block.harddayz.bunker_concrete": "Bunker concrete",
+  "block.harddayz.bunker_concrete_slab": "Bunker concrete slab",
+  "block.harddayz.bunker_concrete_stairs": "Bunker concrete stairs",
+  "block.harddayz.embrasure": "Embrasure",
+  "block.harddayz.armor_plate": "Armor plate",
+  "block.harddayz.bunker_door": "Blast door",
+  "block.harddayz.gabion": "Gabion",
+  "block.harddayz.log_roof": "Log roof",
+  "block.harddayz.steel_beam": "Steel I-beam"
 }

@@ -1,0 +1,13 @@
+{
+ "variants": {
+  "type=bottom": {
+   "model": "harddayz:block/bunker_concrete_slab"
+  },
+  "type=top": {
+   "model": "harddayz:block/bunker_concrete_slab_top"
+  },
+  "type=double": {
+   "model": "harddayz:block/bunker_concrete"
+  }
+ }
+}

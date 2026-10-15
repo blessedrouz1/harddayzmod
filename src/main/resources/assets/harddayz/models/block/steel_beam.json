@@ -1,0 +1,104 @@
+{
+ "textures": {
+  "t": "harddayz:block/armor_plate",
+  "particle": "harddayz:block/armor_plate"
+ },
+ "elements": [
+  {
+   "from": [
+    3,
+    0,
+    5
+   ],
+   "to": [
+    13,
+    16,
+    7
+   ],
+   "faces": {
+    "north": {
+     "texture": "#t"
+    },
+    "south": {
+     "texture": "#t"
+    },
+    "east": {
+     "texture": "#t"
+    },
+    "west": {
+     "texture": "#t"
+    },
+    "up": {
+     "texture": "#t"
+    },
+    "down": {
+     "texture": "#t"
+    }
+   }
+  },
+  {
+   "from": [
+    7,
+    0,
+    7
+   ],
+   "to": [
+    9,
+    16,
+    9
+   ],
+   "faces": {
+    "north": {
+     "texture": "#t"
+    },
+    "south": {
+     "texture": "#t"
+    },
+    "east": {
+     "texture": "#t"
+    },
+    "west": {
+     "texture": "#t"
+    },
+    "up": {
+     "texture": "#t"
+    },
+    "down": {
+     "texture": "#t"
+    }
+   }
+  },
+  {
+   "from": [
+    3,
+    0,
+    9
+   ],
+   "to": [
+    13,
+    16,
+    11
+   ],
+   "faces": {
+    "north": {
+     "texture": "#t"
+    },
+    "south": {
+     "texture": "#t"
+    },
+    "east": {
+     "texture": "#t"
+    },
+    "west": {
+     "texture": "#t"
+    },
+    "up": {
+     "texture": "#t"
+    },
+    "down": {
+     "texture": "#t"
+    }
+   }
+  }
+ ]
+}
