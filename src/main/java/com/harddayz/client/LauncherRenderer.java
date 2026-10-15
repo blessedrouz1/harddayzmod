@@ -170,7 +170,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             pose.translate(((box[0] + box[3]) / 2 - pv[0]) / 16f, ((box[1] + box[4]) / 2 - pv[1]) / 16f, ((box[2] + box[5]) / 2 - pv[2]) / 16f);
             pose.scale(k, k, k);
             pose.translate(-(db[0] + db[3]) / 32f, -(db[1] + db[4]) / 32f, -(db[2] + db[5]) / 32f);
-            p.model().render(null, pose, buffers, RenderType.entityTranslucent(p.texture()), s.lightCoords);
+            p.model().render(null, pose, buffers, HdRender.body(p.texture()), s.lightCoords);
             pose.popPose();
         }
     }
@@ -392,7 +392,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
                 pose.mulPose(Axis.XP.rotationDegrees(-s.tilt)); // в полёте нос опущен
             }
             int tint = -1;
-            g.render(s, pose, buffers, RenderType.entityTranslucent(g.texture(s)), s.lightCoords);
+            g.render(s, pose, buffers, HdRender.body(g.texture(s)), s.lightCoords);
             submitPayloads(g, s, pose, buffers);
             g.render(s, pose, buffers, RenderType.eyes(g.glow(s)), s.lightCoords);
             submitMarks(g.geo, s.faction, pose, buffers, s.lightCoords);
@@ -403,7 +403,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         pose.mulPose(Axis.YP.rotationDegrees(-s.bodyYaw));
         pose.scale(-1, -1, 1);
         pose.translate(0, -1.501f, 0);
-        models.get(s.kind).render(s, pose, buffers, RenderType.entityTranslucent(PALETTE), s.lightCoords);
+        models.get(s.kind).render(s, pose, buffers, HdRender.body(PALETTE), s.lightCoords);
         pose.popPose();
     }
 }

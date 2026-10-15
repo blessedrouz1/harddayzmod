@@ -177,7 +177,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
             };
             pose.scale(k, k, k);
             int tint = -1;
-            g.render(s, pose, buffers, RenderType.entityTranslucent(g.texture), s.lightCoords);
+            g.render(s, pose, buffers, HdRender.body(g.texture), s.lightCoords);
             LauncherRenderer.submitMarks(g.geo, s.faction, pose, buffers, s.lightCoords);
             pose.popPose();
             return;

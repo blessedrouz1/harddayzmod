@@ -133,12 +133,45 @@ public class Drone extends Entity implements Threat {
     }
 
     /** РЭБ рядом: помехи растут, сильные — срыв связи / курса. */
+    /** РЭБ: помехи нарастают постепенно — сначала сильный «снег» и рывки, потом связь рвётся. */
     public void interfere(ServerLevel level, float k) {
-        float v = Math.max(interference(), k);
+        float v = Math.min(1f, Math.max(interference(), k * 0.5f) + k * 0.03f);
         entityData.set(INTERFERENCE, v);
-        if (v > 0.55f) {
+        if (v >= 0.95f) {
             jam(level);
         }
+    }
+
+    /** Качество связи 0..1 (синхронизируется пилоту для экрана). */
+    private static final EntityDataAccessor<Float> LINK = SynchedEntityData.defineId(Drone.class, EntityDataSerializers.FLOAT);
+
+    public float link() {
+        return entityData.get(LINK);
+    }
+
+    /** Связь с оператором: квадрокоптер — напрямую, «Шахед»/«Ланцет» — напрямую или через ближайший свой ретранслятор. */
+    private float linkQuality(ServerPlayer op) {
+        if (!kind().autonomous) {
+            return (float) Mth.clamp(1 - op.distanceTo(this) / SIGNAL_RANGE, 0, 1);
+        }
+        double q = 1 - op.distanceTo(this) / SHAHED_LINK_RANGE;
+        for (Launcher l : level().getEntitiesOfClass(Launcher.class, getBoundingBox().inflate(RELAY_RANGE, 400, RELAY_RANGE),
+                l -> l.kind() == Launcher.Kind.RELAY && l.health() > 0 && com.harddayz.war.War.allied(op.getUUID(), l.owner()))) {
+            q = Math.max(q, 1 - l.distanceTo(this) / RELAY_RANGE);
+        }
+        return (float) Mth.clamp(q, 0, 1);
+    }
+
+    /** Обновить связь; false — связь потеряна (пилот отключён). */
+    private boolean keepLink(ServerPlayer op) {
+        float q = linkQuality(op);
+        entityData.set(LINK, q);
+        if (q <= 0) {
+            op.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.link_lost").withStyle(net.minecraft.ChatFormatting.RED), true);
+            release();
+            return false;
+        }
+        return true;
     }
 
     private float health = 8;
@@ -255,7 +288,7 @@ public class Drone extends Entity implements Threat {
         }
         if (kind().autonomous && pilotId() >= 0) {
             Entity op = level.getEntity(pilotId());
-            if (!(op instanceof ServerPlayer sop) || !op.isAlive() || !linked(sop)) {
+            if (!(op instanceof ServerPlayer sop) || !op.isAlive() || !keepLink(sop)) {
                 release(); // связь потеряна — дальше летит сам
             } else if (battery() <= 0) {
                 ((ServerPlayer) op).displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED), true);
@@ -285,7 +318,7 @@ public class Drone extends Entity implements Threat {
             }
         }
         Entity pilot = pilotId() >= 0 ? level.getEntity(pilotId()) : null;
-        if (pilotId() >= 0 && (!(pilot instanceof ServerPlayer) || !pilot.isAlive() || pilot.distanceTo(this) > SIGNAL_RANGE)) {
+        if (pilotId() >= 0 && (!(pilot instanceof ServerPlayer sp0) || !pilot.isAlive() || !keepLink(sp0))) {
             release(); // потеря связи
         } else if (pilot instanceof ServerPlayer sp) {
             PilotView.follow(sp, this);
@@ -881,6 +914,7 @@ public class Drone extends Entity implements Threat {
         entityData.define(INTERFERENCE, 0f);
         entityData.define(ENGINE, false);
         entityData.define(FACTION, -1);
+        entityData.define(LINK, 1f);
         entityData.define(PARKED, false);
     }
 

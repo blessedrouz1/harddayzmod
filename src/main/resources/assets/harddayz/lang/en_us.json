@@ -355,5 +355,6 @@
   "block.harddayz.bunker_door": "Blast door",
   "block.harddayz.gabion": "Gabion",
   "block.harddayz.log_roof": "Log roof",
-  "block.harddayz.steel_beam": "Steel I-beam"
+  "block.harddayz.steel_beam": "Steel I-beam",
+  "message.harddayz.link_lost": "Drone link lost."
 }

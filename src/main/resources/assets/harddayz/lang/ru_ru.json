@@ -355,5 +355,6 @@
   "block.harddayz.bunker_door": "Гермодверь",
   "block.harddayz.gabion": "Габион",
   "block.harddayz.log_roof": "Бревенчатый накат",
-  "block.harddayz.steel_beam": "Стальной двутавр"
+  "block.harddayz.steel_beam": "Стальной двутавр",
+  "message.harddayz.link_lost": "Связь с дроном потеряна."
 }

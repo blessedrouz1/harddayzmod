@@ -43,12 +43,24 @@ public final class DronePilot {
         return drone == d;
     }
 
+    /** Где стоит тело пилота: пока ведём дрон, чанки вокруг тела у клиента могут выгрузиться — держим тело на месте. */
+    private static @org.jetbrains.annotations.Nullable Vec3 body;
+    private static int freeze;
+
+    /** Насколько помехи мешают сейчас (0..1): слабая связь + РЭБ. */
+    static float noise(Drone d) {
+        float s = d.link();
+        return Math.max(Math.max(0.35f - s, 0) / 0.35f * 0.85f, d.interference());
+    }
+
     static void start(Drone d) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || drone != null || mc.player.tickCount < ignoreUntil) {
             return;
         }
         drone = d;
+        body = mc.player.position();
+        mc.player.setNoGravity(true);
         vel = Vec3.ZERO;
         zoom = 1f;
         savedInput = mc.player.input;
@@ -82,6 +94,7 @@ public final class DronePilot {
                 mc.options.setCameraType(savedCamera);
             }
             ignoreUntil = mc.player.tickCount + 20;
+            freeze = 200; // держать тело, пока вокруг него не прогрузятся чанки
         }
         savedInput = null;
         if (release && d != null && !d.isRemoved()) {
@@ -92,6 +105,17 @@ public final class DronePilot {
     static void onTick() {
         Minecraft mc = Minecraft.getInstance();
         Drone d = drone;
+        if (mc.player != null && body != null && (d != null || freeze > 0)) {
+            mc.player.setDeltaMovement(Vec3.ZERO);
+            mc.player.setPos(body.x, body.y, body.z);
+            mc.player.fallDistance = 0;
+            if (d == null && (--freeze <= 0 || mc.level != null && mc.level.hasChunkAt(net.minecraft.core.BlockPos.containing(body))
+                    && mc.level.hasChunkAt(net.minecraft.core.BlockPos.containing(body).below(2)) && freeze < 190)) {
+                freeze = 0;
+                body = null;
+                mc.player.setNoGravity(false);
+            }
+        }
         if (d == null) {
             return;
         }
@@ -121,8 +145,14 @@ public final class DronePilot {
         boolean fpv = d.kind() == Drone.Kind.FPV;
         double max = fpv ? 1.5 : 0.65;
         double acc = fpv ? 0.12 : 0.06;
-        float f = (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
-        float s = (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);
+        float nz = noise(d);
+        boolean drop = mc.player.getRandom().nextFloat() < nz * 0.45f; // пакет управления потерялся
+        float f = drop ? 0 : (mc.options.keyUp.isDown() ? 1 : 0) - (mc.options.keyDown.isDown() ? 1 : 0);
+        float s = drop ? 0 : (mc.options.keyLeft.isDown() ? 1 : 0) - (mc.options.keyRight.isDown() ? 1 : 0);
+        if (nz > 0.2f) {
+            var rr = mc.player.getRandom();
+            vel = vel.add((rr.nextFloat() - 0.5f) * nz * 0.14, (rr.nextFloat() - 0.5f) * nz * 0.08, (rr.nextFloat() - 0.5f) * nz * 0.14);
+        }
         float u = (mc.options.keyJump.isDown() ? 1 : 0) - (mc.options.keyShift.isDown() ? 1 : 0);
         float yaw = mc.player.getYRot();
         float pitch = mc.player.getXRot();
@@ -168,9 +198,11 @@ public final class DronePilot {
 
     /** «Шахед» под управлением: летит вперёд с крейсерской скоростью, поворачивает плавно за взглядом. */
     private static void flyShahed(Minecraft mc, Drone d) {
-        float yaw = mc.player.getYRot();
-        float pitch = Mth.clamp(mc.player.getXRot(), -40, 70);
-        Vec3 want = Vec3.directionFromRotation(pitch, yaw);
+        float nz = noise(d);
+        var rr = mc.player.getRandom();
+        float yaw = mc.player.getYRot() + (rr.nextFloat() - 0.5f) * nz * 25;
+        float pitch = Mth.clamp(mc.player.getXRot() + (rr.nextFloat() - 0.5f) * nz * 18, -40, 70);
+        Vec3 want = rr.nextFloat() < nz * 0.45f && vel.lengthSqr() > 1.0E-4 ? vel.normalize() : Vec3.directionFromRotation(pitch, yaw);
         double speed = d.kind().cruise * (mc.options.keyUp.isDown() ? 1.25 : mc.options.keyDown.isDown() ? 0.75 : 1.0);
         Vec3 cur = vel.lengthSqr() < 1.0E-4 ? d.getDeltaMovement() : vel;
         if (cur.lengthSqr() < 1.0E-4) {
@@ -275,18 +307,18 @@ public final class DronePilot {
         int h = g.guiHeight();
         int col = 0xFFE8F0E0;
         double dist = d.distanceTo(mc.player);
-        float signal = (float) Mth.clamp(1 - dist / (d.kind().autonomous ? Drone.SHAHED_LINK_RANGE : Drone.SIGNAL_RANGE), 0, 1);
+        float signal = d.link();
         if (d.kind().autonomous) {
             g.fill(0, 0, w, h, 0x1830FF60); // зелёный оттенок ночной камеры
         }
         // помехи: слабый сигнал, РЭБ, аналоговая «картинка» FPV
-        float noise = Math.max(Math.max(0.3f - signal, 0) / 0.3f * 0.8f, d.interference());
+        float noise = noise(d);
         if (d.kind() == Drone.Kind.FPV) {
             noise = Math.max(noise, 0.07f);
         }
         if (noise > 0.01f) {
             var r = mc.player.getRandom();
-            int n = (int) (noise * 1400);
+            int n = (int) (noise * 2600);
             for (int i = 0; i < n; i++) {
                 int x = r.nextInt(w);
                 int y = r.nextInt(h);

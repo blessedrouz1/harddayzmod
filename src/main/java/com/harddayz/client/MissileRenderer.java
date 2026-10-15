@@ -128,14 +128,14 @@ public class MissileRenderer extends EntityRenderer<Missile> {
         if (gn != null) {
             pose.pushPose();
             pose.mulPose(Axis.YP.rotationDegrees(180));
-            geoBody(gn).render(s, pose, buffers, RenderType.entityTranslucent(new net.minecraft.resources.ResourceLocation(
+            geoBody(gn).render(s, pose, buffers, HdRender.body(new net.minecraft.resources.ResourceLocation(
                     com.harddayz.HardDayz.MODID, "textures/entity/" + gn + ".png")), s.lightCoords);
             pose.popPose();
         } else if (s.kind == Missile.Kind.BALLISTIC) {
             pose.pushPose();
             pose.mulPose(Axis.YP.rotationDegrees(180)); // у модели друга нос смотрит в -Z
             pose.translate(iskanderOffset[0], iskanderOffset[1], iskanderOffset[2]);
-            iskanderMissile.render(s, pose, buffers, RenderType.entityTranslucent(ISKANDER_TEX), s.lightCoords);
+            iskanderMissile.render(s, pose, buffers, HdRender.body(ISKANDER_TEX), s.lightCoords);
             pose.popPose();
         } else {
             bodies.get(s.kind).render(s, pose, buffers, RenderType.entityCutout(LauncherRenderer.PALETTE), s.lightCoords);
