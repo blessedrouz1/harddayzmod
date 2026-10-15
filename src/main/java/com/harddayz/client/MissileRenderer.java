@@ -8,20 +8,19 @@ import com.harddayz.entity.Missile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.world.phys.AABB;
 
 /** Ракета в полёте: корпус по направлению скорости и мерцающий факел двигателя. */
-public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.State> {
-    public static class State extends EntityRenderState {
+public class MissileRenderer extends EntityRenderer<Missile> {
+    public static class State {
+        int lightCoords;
         Missile.Kind kind = Missile.Kind.GRAD;
         float yaw;
         float pitch;
@@ -29,21 +28,21 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
         int look;
     }
 
-    static class Simple<S extends EntityRenderState> extends Model<S> {
+    static class Simple<S> extends HdModel<S> {
         Simple(ModelPart root) {
-            super(root, RenderTypes::entityCutout);
+            super(root);
         }
     }
 
     private final Map<Missile.Kind, Simple<State>> bodies = new EnumMap<>(Missile.Kind.class);
     private final Simple<State> flame;
     /** Ракета «Искандера» из модели друга — та же, что лежит на пусковой. */
-    private final Model<State> iskanderMissile;
+    private final HdModel<State> iskanderMissile;
     /** Свои модели ракет (geo): нос в -Z, центр в нуле. */
-    private final java.util.Map<String, Model<State>> geoBodies = new java.util.HashMap<>();
+    private final java.util.Map<String, HdModel<State>> geoBodies = new java.util.HashMap<>();
 
-    private Model<State> geoBody(String n) {
-        return geoBodies.computeIfAbsent(n, k -> new Model<>(com.harddayz.client.model.GeoModel.get(k, null).root, RenderTypes::entityTranslucent) {
+    private HdModel<State> geoBody(String n) {
+        return geoBodies.computeIfAbsent(n, k -> new HdModel<>(com.harddayz.client.model.GeoModel.get(k, null).root) {
         });
     }
 
@@ -65,7 +64,7 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
         };
     }
     private final float[] iskanderOffset;
-    private static final net.minecraft.resources.Identifier ISKANDER_TEX = net.minecraft.resources.Identifier.fromNamespaceAndPath(
+    private static final net.minecraft.resources.ResourceLocation ISKANDER_TEX = new net.minecraft.resources.ResourceLocation(
             com.harddayz.HardDayz.MODID, "textures/entity/iskander.png");
 
     public MissileRenderer(EntityRendererProvider.Context ctx) {
@@ -78,7 +77,7 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
         com.harddayz.client.model.GeoModel isk = com.harddayz.client.model.GeoModel.get("iskander",
                 new com.harddayz.client.model.GeoModel.Marks("cab", com.harddayz.client.model.GeoModel.Mode.SIDES_TOP));
         ModelPart m = isk.parts.get("missile");
-        iskanderMissile = new Model<>(m, RenderTypes::entityTranslucent) {
+        iskanderMissile = new HdModel<>(m) {
             @Override
             public void setupAnim(State s) {
                 super.setupAnim(s);
@@ -91,47 +90,55 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
     }
 
     @Override
-    protected AABB getBoundingBoxForCulling(Missile e, float pt) {
-        return e.getBoundingBox().inflate(8);
+    public boolean shouldRender(Missile e, Frustum frustum, double x, double y, double z) {
+        return e.shouldRender(x, y, z) && frustum.isVisible(e.getBoundingBox().inflate(8));
     }
 
-    @Override
     public State createRenderState() {
         return new State();
     }
 
-    @Override
-    public void extractRenderState(Missile e, State s, float pt) {
-        super.extractRenderState(e, s, pt);
+    private void extractRenderState(Missile e, State s, float pt) {
         s.kind = e.kind();
-        s.yaw = e.getYRot(pt);
-        s.pitch = e.getXRot(pt);
+        s.yaw = net.minecraft.util.Mth.rotLerp(pt, e.yRotO, e.getYRot());
+        s.pitch = net.minecraft.util.Mth.lerp(pt, e.xRotO, e.getXRot());
         s.time = e.tickCount + pt;
         s.look = e.look();
     }
 
     @Override
-    public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+    public ResourceLocation getTextureLocation(Missile e) {
+        return LauncherRenderer.PALETTE;
+    }
+
+    @Override
+    public void render(Missile e, float yaw, float pt, PoseStack pose, MultiBufferSource buffers, int light) {
+        State s = createRenderState();
+        extractRenderState(e, s, pt);
+        s.lightCoords = light;
+        draw(s, pose, buffers);
+        super.render(e, yaw, pt, pose, buffers, light);
+    }
+
+    private void draw(State s, PoseStack pose, MultiBufferSource buffers) {
         pose.pushPose();
-        pose.rotate(Axis.YP.rotationDegrees(s.yaw));
-        pose.rotate(Axis.XP.rotationDegrees(-s.pitch));
+        pose.mulPose(Axis.YP.rotationDegrees(s.yaw));
+        pose.mulPose(Axis.XP.rotationDegrees(-s.pitch));
         String gn = lookName(s);
         if (gn != null) {
             pose.pushPose();
-            pose.rotate(Axis.YP.rotationDegrees(180));
-            collector.submitModel(geoBody(gn), s, pose, RenderTypes.entityTranslucent(net.minecraft.resources.Identifier.fromNamespaceAndPath(
-                    com.harddayz.HardDayz.MODID, "textures/entity/" + gn + ".png")), s.lightCoords, OverlayTexture.NO_OVERLAY, s.outlineColor);
+            pose.mulPose(Axis.YP.rotationDegrees(180));
+            geoBody(gn).render(s, pose, buffers, RenderType.entityTranslucent(new net.minecraft.resources.ResourceLocation(
+                    com.harddayz.HardDayz.MODID, "textures/entity/" + gn + ".png")), s.lightCoords);
             pose.popPose();
         } else if (s.kind == Missile.Kind.BALLISTIC) {
             pose.pushPose();
-            pose.rotate(Axis.YP.rotationDegrees(180)); // у модели друга нос смотрит в -Z
+            pose.mulPose(Axis.YP.rotationDegrees(180)); // у модели друга нос смотрит в -Z
             pose.translate(iskanderOffset[0], iskanderOffset[1], iskanderOffset[2]);
-            collector.submitModel(iskanderMissile, s, pose, RenderTypes.entityTranslucent(ISKANDER_TEX), s.lightCoords, OverlayTexture.NO_OVERLAY,
-                    s.outlineColor);
+            iskanderMissile.render(s, pose, buffers, RenderType.entityTranslucent(ISKANDER_TEX), s.lightCoords);
             pose.popPose();
         } else {
-            collector.submitModel(bodies.get(s.kind), s, pose, RenderTypes.entityCutout(LauncherRenderer.PALETTE), s.lightCoords,
-                    OverlayTexture.NO_OVERLAY, s.outlineColor);
+            bodies.get(s.kind).render(s, pose, buffers, RenderType.entityCutout(LauncherRenderer.PALETTE), s.lightCoords);
         }
         if (s.kind != Missile.Kind.BOMB) {
             float tail = switch (s.kind) {
@@ -146,6 +153,5 @@ public class MissileRenderer extends EntityRenderer<Missile, MissileRenderer.Sta
             // факел — частицами (Missile.trail), модель пламени больше не рисуем
         }
         pose.popPose();
-        super.submit(s, pose, collector, camera);
     }
 }

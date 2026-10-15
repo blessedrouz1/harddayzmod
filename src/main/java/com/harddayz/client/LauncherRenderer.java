@@ -12,23 +12,21 @@ import com.harddayz.entity.Launcher;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelPart;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.phys.AABB;
+import net.minecraft.resources.ResourceLocation;
 
 /** Пусковые: колёса, руль, домкраты, башня, пакет, стрела с цилиндрами, радар. */
-public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.State> {
-    public static final Identifier PALETTE = Identifier.fromNamespaceAndPath(HardDayz.MODID, "textures/entity/palette.png");
+public class LauncherRenderer extends EntityRenderer<Launcher> {
+    public static final ResourceLocation PALETTE = new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/palette.png");
 
-    public static class State extends EntityRenderState {
+    public static class State {
+        int lightCoords;
         Launcher.Kind kind = Launcher.Kind.GRAD;
         float bodyYaw;
         float turret;
@@ -49,7 +47,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
     }
 
     /** Модели друга (geo.json): кости с теми же именами, что и в HdModels. */
-    static class GeoLauncherModel extends Model<State> {
+    static class GeoLauncherModel extends HdModel<State> {
         final GeoModel geo;
         final String name;
         final boolean variants;
@@ -59,7 +57,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         }
 
         private GeoLauncherModel(GeoModel geo, String name, boolean variants) {
-            super(geo.root, RenderTypes::entityCutout);
+            super(geo.root);
             this.geo = geo;
             this.name = name;
             this.variants = variants;
@@ -112,21 +110,21 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
             }
         }
 
-        Identifier texture(State s) {
+        ResourceLocation texture(State s) {
             return texture0(s);
         }
 
-        private Identifier texture0(State s) {
+        private ResourceLocation texture0(State s) {
             String t = name;
             if (variants) {
                 t += s.hp < 0.2f ? "_burnt" : s.hp < 0.5f ? "_damaged" : "";
             }
-            return Identifier.fromNamespaceAndPath(HardDayz.MODID, "textures/entity/" + t + ".png");
+            return new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/" + t + ".png");
         }
 
-        Identifier glow(State s) {
+        ResourceLocation glow(State s) {
             String t = texture(s).getPath();
-            return Identifier.fromNamespaceAndPath(HardDayz.MODID, t.replace(".png", "_glowmask.png"));
+            return new net.minecraft.resources.ResourceLocation(HardDayz.MODID, t.replace(".png", "_glowmask.png"));
         }
     }
 
@@ -135,7 +133,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         return i < s.drones.length && s.drones[i] != com.harddayz.entity.Drone.Kind.SHAHED.ordinal();
     }
 
-    private record Payload(Model.Simple model, GeoModel geo, Identifier texture) {
+    private record Payload(HdModel<Object> model, GeoModel geo, ResourceLocation texture) {
     }
 
     private static final Map<Integer, Payload> PAYLOADS = new java.util.HashMap<>();
@@ -149,12 +147,12 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
                 default -> "shahed136";
             };
             GeoModel g = GeoModel.get(n, new GeoModel.Marks("wing", GeoModel.Mode.WINGS));
-            return new Payload(new Model.Simple(g.root, RenderTypes::entityTranslucent), g,
-                    Identifier.fromNamespaceAndPath(HardDayz.MODID, "textures/entity/" + n + ".png"));
+            return new Payload(new HdModel<Object>(g.root), g,
+                    new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/" + n + ".png"));
         });
     }
 
-    private void submitPayloads(GeoLauncherModel g, State s, PoseStack pose, SubmitNodeCollector collector) {
+    private void submitPayloads(GeoLauncherModel g, State s, PoseStack pose, MultiBufferSource buffers) {
         g.setupAnim(s);
         for (int i = 0; i < Math.min(s.ammo, s.drones.length); i++) {
             String tip = "tip" + i;
@@ -172,25 +170,24 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
             pose.translate(((box[0] + box[3]) / 2 - pv[0]) / 16f, ((box[1] + box[4]) / 2 - pv[1]) / 16f, ((box[2] + box[5]) / 2 - pv[2]) / 16f);
             pose.scale(k, k, k);
             pose.translate(-(db[0] + db[3]) / 32f, -(db[1] + db[4]) / 32f, -(db[2] + db[5]) / 32f);
-            collector.submitModel(p.model(), net.minecraft.util.Unit.INSTANCE, pose, RenderTypes.entityTranslucent(p.texture()), s.lightCoords,
-                    OverlayTexture.NO_OVERLAY, s.outlineColor);
+            p.model().render(null, pose, buffers, RenderType.entityTranslucent(p.texture()), s.lightCoords);
             pose.popPose();
         }
     }
 
-    public static final Identifier MARKS = Identifier.fromNamespaceAndPath(HardDayz.MODID, "textures/entity/marks.png");
-    private static final java.util.Map<ModelPart, Model.Simple> MARK_MODELS = new java.util.IdentityHashMap<>();
+    public static final ResourceLocation MARKS = new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/marks.png");
+    private static final java.util.Map<ModelPart, HdModel<Object>> MARK_MODELS = new java.util.IdentityHashMap<>();
 
     /** Опознавательный знак фракции поверх модели. */
-    public static void submitMarks(GeoModel geo, int faction, PoseStack pose, SubmitNodeCollector collector, int light) {
+    public static void submitMarks(GeoModel geo, int faction, PoseStack pose, MultiBufferSource buffers, int light) {
         if (geo.marks == null || faction < 0 || faction >= geo.marks.length) {
             return;
         }
-        Model.Simple m = MARK_MODELS.computeIfAbsent(geo.marks[faction], p -> new Model.Simple(p, RenderTypes::entityCutout));
-        collector.submitModel(m, net.minecraft.util.Unit.INSTANCE, pose, RenderTypes.entityCutout(MARKS), light, OverlayTexture.NO_OVERLAY, 0);
+        HdModel<Object> m = MARK_MODELS.computeIfAbsent(geo.marks[faction], p -> new HdModel<Object>(p));
+        m.render(null, pose, buffers, RenderType.entityCutout(MARKS), light);
     }
 
-    static class LauncherModel extends Model<State> {
+    static class LauncherModel extends HdModel<State> {
         private final ModelPart turret;
         private final ModelPart rack;
         private final ModelPart erector;
@@ -204,7 +201,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
         private final List<ModelPart> tips = new ArrayList<>();
 
         LauncherModel(ModelPart root) {
-            super(root, RenderTypes::entityCutout);
+            super(root);
             turret = child(root, "turret");
             rack = turret != null ? child(turret, "rack") : null;
             erector = child(root, "erector");
@@ -340,20 +337,17 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
     }
 
     @Override
-    protected AABB getBoundingBoxForCulling(Launcher e, float pt) {
-        return e.getBoundingBox().inflate(6, 8, 6);
+    public boolean shouldRender(Launcher e, Frustum frustum, double x, double y, double z) {
+        return e.shouldRender(x, y, z) && frustum.isVisible(e.getBoundingBox().inflate(6, 8, 6));
     }
 
-    @Override
     public State createRenderState() {
         return new State();
     }
 
-    @Override
-    public void extractRenderState(Launcher e, State s, float pt) {
-        super.extractRenderState(e, s, pt);
+    private void extractRenderState(Launcher e, State s, float pt) {
         s.kind = e.kind();
-        s.bodyYaw = e.getYRot(pt);
+        s.bodyYaw = net.minecraft.util.Mth.rotLerp(pt, e.yRotO, e.getYRot());
         s.turret = e.turret(pt);
         s.elevation = e.elevation(pt);
         s.erect = e.erect(pt);
@@ -373,34 +367,43 @@ public class LauncherRenderer extends EntityRenderer<Launcher, LauncherRenderer.
     }
 
     @Override
-    public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+    public ResourceLocation getTextureLocation(Launcher e) {
+        return PALETTE;
+    }
+
+    @Override
+    public void render(Launcher e, float yaw, float pt, PoseStack pose, MultiBufferSource buffers, int light) {
+        State s = createRenderState();
+        extractRenderState(e, s, pt);
+        s.lightCoords = light;
+        draw(s, pose, buffers);
+        super.render(e, yaw, pt, pose, buffers, light);
+    }
+
+    private void draw(State s, PoseStack pose, MultiBufferSource buffers) {
         GeoLauncherModel g = geo.get(s.kind);
-        if (s.inside) {
-            super.submit(s, pose, collector, camera); // сидим внутри от первого лица — кабина не закрывает обзор
+        if (s.inside) { // сидим внутри от первого лица — кабина не закрывает обзор
             return;
         }
         if (g != null) {
             pose.pushPose();
-            pose.rotate(Axis.YP.rotationDegrees(180 - s.bodyYaw));
+            pose.mulPose(Axis.YP.rotationDegrees(180 - s.bodyYaw));
             if (s.tilt != 0) {
-                pose.rotate(Axis.XP.rotationDegrees(-s.tilt)); // в полёте нос опущен
+                pose.mulPose(Axis.XP.rotationDegrees(-s.tilt)); // в полёте нос опущен
             }
             int tint = -1;
-            collector.submitModel(g, s, pose, RenderTypes.entityTranslucent(g.texture(s)), s.lightCoords, OverlayTexture.NO_OVERLAY, tint, null,
-                    s.outlineColor);
-            submitPayloads(g, s, pose, collector);
-            collector.submitModel(g, s, pose, RenderTypes.eyes(g.glow(s)), s.lightCoords, OverlayTexture.NO_OVERLAY, 0);
-            submitMarks(g.geo, s.faction, pose, collector, s.lightCoords);
+            g.render(s, pose, buffers, RenderType.entityTranslucent(g.texture(s)), s.lightCoords);
+            submitPayloads(g, s, pose, buffers);
+            g.render(s, pose, buffers, RenderType.eyes(g.glow(s)), s.lightCoords);
+            submitMarks(g.geo, s.faction, pose, buffers, s.lightCoords);
             pose.popPose();
-            super.submit(s, pose, collector, camera);
             return;
         }
         pose.pushPose();
-        pose.rotate(Axis.YP.rotationDegrees(-s.bodyYaw));
+        pose.mulPose(Axis.YP.rotationDegrees(-s.bodyYaw));
         pose.scale(-1, -1, 1);
         pose.translate(0, -1.501f, 0);
-        collector.submitModel(models.get(s.kind), s, pose, RenderTypes.entityTranslucent(PALETTE), s.lightCoords, OverlayTexture.NO_OVERLAY, s.outlineColor);
+        models.get(s.kind).render(s, pose, buffers, RenderType.entityTranslucent(PALETTE), s.lightCoords);
         pose.popPose();
-        super.submit(s, pose, collector, camera);
     }
 }

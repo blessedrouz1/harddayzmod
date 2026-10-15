@@ -1,6 +1,6 @@
 package com.harddayz.client;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.HardDayz;
 import com.harddayz.entity.Drone;
@@ -8,10 +8,8 @@ import com.harddayz.network.Net;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.CameraType;
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.player.ClientInput;
+import net.minecraft.client.player.Input;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.MoverType;
@@ -25,7 +23,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class DronePilot {
     private static @Nullable Drone drone;
-    private static @Nullable ClientInput savedInput;
+    private static @Nullable Input savedInput;
     private static @Nullable CameraType savedCamera;
     private static Vec3 vel = Vec3.ZERO;
     private static float roll;
@@ -54,7 +52,7 @@ public final class DronePilot {
         vel = Vec3.ZERO;
         zoom = 1f;
         savedInput = mc.player.input;
-        mc.player.input = new ClientInput();
+        mc.player.input = new Input();
         savedCamera = mc.options.getCameraType();
         mc.options.setCameraType(CameraType.FIRST_PERSON);
         mc.setCameraEntity(d);
@@ -63,7 +61,7 @@ public final class DronePilot {
                     false, false));
             nightVision = true;
         }
-        mc.player.sendOverlayMessage(Component.translatable("message.harddayz.pilot_start").withStyle(ChatFormatting.GREEN));
+        mc.player.displayClientMessage(Component.translatable("message.harddayz.pilot_start").withStyle(ChatFormatting.GREEN), true);
     }
 
     /** Выйти из управления. {@code release} — сообщить серверу (дрон повиснет на месте). */
@@ -91,7 +89,7 @@ public final class DronePilot {
         }
     }
 
-    static void onTick(net.minecraftforge.event.TickEvent.ClientTickEvent.Pre event) {
+    static void onTick() {
         Minecraft mc = Minecraft.getInstance();
         Drone d = drone;
         if (d == null) {
@@ -101,7 +99,7 @@ public final class DronePilot {
             stop(false);
             return;
         }
-        if (mc.gui.screen() != null) {
+        if (mc.screen != null) {
             return;
         }
         stepReady = true;
@@ -198,7 +196,7 @@ public final class DronePilot {
 
     // ------------------------------------------------------------------ ввод
 
-    static boolean onAttack(net.minecraftforge.client.event.InputEvent.InteractionKeyMappingTriggered.Attack event) {
+    static boolean onAttack(net.minecraftforge.client.event.InputEvent.InteractionKeyMappingTriggered event) {
         if (drone == null) {
             return false;
         }
@@ -207,7 +205,7 @@ public final class DronePilot {
         return true;
     }
 
-    static boolean onUse(net.minecraftforge.client.event.InputEvent.InteractionKeyMappingTriggered.UseItem event) {
+    static boolean onUse(net.minecraftforge.client.event.InputEvent.InteractionKeyMappingTriggered event) {
         if (drone == null) {
             return false;
         }
@@ -232,7 +230,7 @@ public final class DronePilot {
 
     static boolean onScroll(net.minecraftforge.client.event.InputEvent.MouseScrollingEvent event) {
         if (drone != null && drone.kind() == Drone.Kind.RECON) {
-            zoom = Mth.clamp(zoom + (float) event.getDeltaY() * 0.5f, 1f, 8f);
+            zoom = Mth.clamp(zoom + (float) event.getScrollDelta() * 0.5f, 1f, 8f);
             return true;
         }
         return false;
@@ -245,7 +243,7 @@ public final class DronePilot {
     static void onCamera(net.minecraftforge.client.event.ViewportEvent.ComputeCameraAngles event) {
         Minecraft mc = Minecraft.getInstance();
         if (drone != null && mc.player != null) {
-            float pt = event.getPartialTick();
+            float pt = (float) event.getPartialTick();
             event.setYaw(mc.player.getViewYRot(pt));
             event.setPitch(mc.player.getViewXRot(pt));
             event.setRoll(roll);
@@ -267,7 +265,7 @@ public final class DronePilot {
         }
     }
 
-    public static void renderHud(GuiGraphicsExtractor g, DeltaTracker delta) {
+    public static void renderHud(Gfx g, float delta) {
         Drone d = drone;
         Minecraft mc = Minecraft.getInstance();
         if (d == null || mc.player == null) {

@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.registry.ModEntities;
 import com.harddayz.registry.ModItems;
@@ -24,8 +24,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.InterpolationHandler;
-import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
@@ -34,8 +32,7 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -228,9 +225,11 @@ public class Drone extends Entity implements Threat {
         setXRot((float) Math.toDegrees(-Math.atan2(v.y, h)));
     }
 
+    private final com.harddayz.Compat.Lerp lerp = new com.harddayz.Compat.Lerp(2);
+
     @Override
-    protected InterpolationHandler createInterpolationHandler() {
-        return LinearInterpolationHandler.create(this, 2);
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps, boolean teleport) {
+        lerp.set(x, y, z, yRot, xRot);
     }
 
     // ------------------------------------------------------------------ тик
@@ -242,7 +241,7 @@ public class Drone extends Entity implements Threat {
             rotor += kind().autonomous ? 2.2f : 1.6f;
             boolean mine = com.harddayz.client.ClientAccess.isPilotingLocally(this);
             if (!mine) {
-                getInterpolation().interpolate();
+                lerp.tick(this);
             }
             com.harddayz.client.ClientAccess.droneClientTick(this);
             return;
@@ -259,7 +258,7 @@ public class Drone extends Entity implements Threat {
             if (!(op instanceof ServerPlayer sop) || !op.isAlive() || !linked(sop)) {
                 release(); // связь потеряна — дальше летит сам
             } else if (battery() <= 0) {
-                ((ServerPlayer) op).sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED));
+                ((ServerPlayer) op).displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED), true);
                 release(); // заряд кончился — дальше по старому курсу
             } else {
                 entityData.set(BATTERY, battery() - 1);
@@ -323,8 +322,8 @@ public class Drone extends Entity implements Threat {
         }
         boolean on = !entityData.get(ENGINE) && battery() > 0;
         entityData.set(ENGINE, on);
-        from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable(on ? "message.harddayz.engine_on" : "message.harddayz.engine_off")
-                .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.YELLOW));
+        from.displayClientMessage(net.minecraft.network.chat.Component.translatable(on ? "message.harddayz.engine_on" : "message.harddayz.engine_off")
+                .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.YELLOW), true);
         level().playSound(null, getX(), getY(), getZ(), on ? SoundEvents.BEACON_ACTIVATE : SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 0.5f, 2f);
     }
 
@@ -359,7 +358,7 @@ public class Drone extends Entity implements Threat {
     private void launchFromGround(ServerPlayer p) {
         ServerLevel level = (ServerLevel) level();
         Vec3 aim = null;
-        for (ItemStack s : p.getInventory()) {
+        for (ItemStack s : p.getInventory().items) {
             if (s.is(ModItems.DESIGNATOR.get()) && com.harddayz.item.DesignatorItem.target(s) != null) {
                 aim = Vec3.atCenterOf(com.harddayz.item.DesignatorItem.target(s));
                 break;
@@ -380,7 +379,7 @@ public class Drone extends Entity implements Threat {
         setDeltaMovement(dir.scale(0.6));
         face(dir);
         level.playSound(null, getX(), getY(), getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 2f, 1.1f);
-        level.sendParticles(ParticleTypes.CLOUD, true, true, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
     }
 
     private void tickParked(ServerLevel level) {
@@ -507,7 +506,7 @@ public class Drone extends Entity implements Threat {
                 && level.getPlayerByUUID(owner) instanceof ServerPlayer op && linked(op)) {
             offered = true; // подлетел — оператор выбирает цель сам
             if (takeControl(op)) {
-                op.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.lancet_control").withStyle(net.minecraft.ChatFormatting.GOLD));
+                op.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.lancet_control").withStyle(net.minecraft.ChatFormatting.GOLD), true);
             }
         }
         Vec3 v = getDeltaMovement();
@@ -586,6 +585,10 @@ public class Drone extends Entity implements Threat {
         if (from.getId() != pilotId()) {
             return;
         }
+        if (!Double.isFinite(pos.x) || !Double.isFinite(pos.y) || !Double.isFinite(pos.z)
+                || !Float.isFinite(yaw) || !Float.isFinite(pitch)) {
+            return;
+        }
         if (pos.distanceTo(position()) > 12) {
             return; // слишком большой скачок — не принимаем
         }
@@ -628,13 +631,13 @@ public class Drone extends Entity implements Threat {
             ItemStack s = inv.getItem(i);
             if (s.is(ModItems.TARGET_LOG.get())) {
                 int n = com.harddayz.item.TargetLogItem.add(s, pos);
-                from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, pos.getX(), pos.getY(),
-                        pos.getZ()).withStyle(net.minecraft.ChatFormatting.GREEN));
+                from.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, pos.getX(), pos.getY(),
+                        pos.getZ()).withStyle(net.minecraft.ChatFormatting.GREEN), true);
                 from.level().playSound(null, from.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), SoundSource.PLAYERS, 0.8f, 1.8f);
                 return;
             }
         }
-        from.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log").withStyle(net.minecraft.ChatFormatting.RED));
+        from.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log").withStyle(net.minecraft.ChatFormatting.RED), true);
     }
 
     /** Подключиться к своему квадрокоптеру (ПКМ по нему или пульт). */
@@ -653,7 +656,7 @@ public class Drone extends Entity implements Threat {
             return false;
         }
         if (battery() <= 0) {
-            op.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED));
+            op.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.battery_out").withStyle(net.minecraft.ChatFormatting.RED), true);
             return false;
         }
         entityData.set(PILOT, op.getId());
@@ -685,16 +688,16 @@ public class Drone extends Entity implements Threat {
             release();
             entityData.set(BATTERY, 0);
         }
-        level.sendParticles(ParticleTypes.ELECTRIC_SPARK, true, true, getX(), getY(), getZ(), 15, 0.4, 0.4, 0.4, 0.2);
+        com.harddayz.Compat.particles(level, ParticleTypes.ELECTRIC_SPARK, getX(), getY(), getZ(), 15, 0.4, 0.4, 0.4, 0.2);
     }
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+    public InteractionResult interact(Player player, InteractionHand hand) {
         if (parked) {
             if (!level().isClientSide() && player instanceof ServerPlayer sp) {
                 if (!entityData.get(ENGINE)) {
                     entityData.set(ENGINE, true); // первый ПКМ — завести мотор
-                    sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.parked_engine").withStyle(net.minecraft.ChatFormatting.GOLD));
+                    sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.parked_engine").withStyle(net.minecraft.ChatFormatting.GOLD), true);
                     level().playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_ACTIVATE, SoundSource.HOSTILE, 0.6f, 2f);
                 } else {
                     launchFromGround(sp); // второй — пуск
@@ -706,8 +709,8 @@ public class Drone extends Entity implements Threat {
             return InteractionResult.PASS;
         }
         if (!level().isClientSide() && battery() <= 0) {
-            player.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.drone_dead")
-                    .withStyle(net.minecraft.ChatFormatting.RED));
+            player.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.drone_dead")
+                    .withStyle(net.minecraft.ChatFormatting.RED), true);
         }
         if (!level().isClientSide() && player instanceof ServerPlayer sp) {
             connect(sp);
@@ -718,11 +721,14 @@ public class Drone extends Entity implements Threat {
     // ------------------------------------------------------------------ урон
 
     @Override
-    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+    public boolean hurt(DamageSource source, float damage) {
+        if (!(level() instanceof ServerLevel level)) {
+            return true;
+        }
         // забрать дрон — только ударом рукой вплотную (а не очередью из пулемёта)
         if ((parked || !kind().autonomous) && pilotId() < 0 && source.getEntity() instanceof Player p && source.getDirectEntity() == p
                 && p.getVehicle() == null && p.distanceTo(this) < 5 && (p.isShiftKeyDown() || p.isCreative())) {
-            spawnAtLocation(level, new ItemStack(switch (kind()) {
+            spawnAtLocation(new ItemStack(switch (kind()) {
                 case FPV -> ModItems.FPV_DRONE.get();
                 case INTERCEPTOR -> ModItems.INTERCEPTOR.get();
                 case LANCET -> ModItems.LANCET.get();
@@ -746,8 +752,8 @@ public class Drone extends Entity implements Threat {
         }
         Vec3 at = position();
         remove(RemovalReason.KILLED);
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.EXPLOSION, true, true, at.x, at.y, at.z, 3, 0.4, 0.4, 0.4, 0);
-        level.sendParticles(net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, true, true, at.x, at.y, at.z, 20, 0.5, 0.5, 0.5, 0.05);
+        com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.EXPLOSION, at.x, at.y, at.z, 3, 0.4, 0.4, 0.4, 0);
+        com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.LARGE_SMOKE, at.x, at.y, at.z, 20, 0.5, 0.5, 0.5, 0.05);
         // сбитый дрон взрывается: боевая часть — сильнее, разведчик — батарея и обломки
         Blast.detonate(level, at, Math.max(2.2f, kind().warhead * 0.6f), false, this);
     }
@@ -758,9 +764,9 @@ public class Drone extends Entity implements Threat {
     }
 
     private void breakApart(ServerLevel level) {
-        level.sendParticles(ParticleTypes.SMOKE, true, true, getX(), getY(), getZ(), 20, 0.3, 0.3, 0.3, 0.05);
-        level.sendParticles(ParticleTypes.CRIT, true, true, getX(), getY(), getZ(), 15, 0.3, 0.3, 0.3, 0.2);
-        level.playSound(null, getX(), getY(), getZ(), SoundEvents.ITEM_BREAK.value(), SoundSource.HOSTILE, 1f, 0.7f);
+        com.harddayz.Compat.particles(level, ParticleTypes.SMOKE, getX(), getY(), getZ(), 20, 0.3, 0.3, 0.3, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.CRIT, getX(), getY(), getZ(), 15, 0.3, 0.3, 0.3, 0.2);
+        level.playSound(null, getX(), getY(), getZ(), SoundEvents.ITEM_BREAK, SoundSource.HOSTILE, 1f, 0.7f);
         remove(RemovalReason.KILLED);
     }
 
@@ -790,31 +796,31 @@ public class Drone extends Entity implements Threat {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(KIND, 0);
-        builder.define(PILOT, -1);
-        builder.define(BATTERY, 0);
-        builder.define(GRENADES, 0);
-        builder.define(INTERFERENCE, 0f);
-        builder.define(ENGINE, false);
-        builder.define(FACTION, -1);
-        builder.define(PARKED, false);
+    protected void defineSynchedData() {
+        entityData.define(KIND, 0);
+        entityData.define(PILOT, -1);
+        entityData.define(BATTERY, 0);
+        entityData.define(GRENADES, 0);
+        entityData.define(INTERFERENCE, 0f);
+        entityData.define(ENGINE, false);
+        entityData.define(FACTION, -1);
+        entityData.define(PARKED, false);
     }
 
     @Override
-    protected void readAdditionalSaveData(ValueInput input) {
-        entityData.set(KIND, input.getIntOr("kind", 1));
-        entityData.set(BATTERY, input.getIntOr("battery", 0));
-        entityData.set(GRENADES, input.getIntOr("grenades", 0));
-        entityData.set(ENGINE, input.getBooleanOr("engine", false));
-        parked = input.getBooleanOr("parked", false);
+    protected void readAdditionalSaveData(CompoundTag input) {
+        entityData.set(KIND, com.harddayz.Compat.getInt(input, "kind", 1));
+        entityData.set(BATTERY, com.harddayz.Compat.getInt(input, "battery", 0));
+        entityData.set(GRENADES, com.harddayz.Compat.getInt(input, "grenades", 0));
+        entityData.set(ENGINE, com.harddayz.Compat.getBoolean(input, "engine", false));
+        parked = com.harddayz.Compat.getBoolean(input, "parked", false);
         entityData.set(PARKED, parked);
-        health = input.getFloatOr("health", kind().health);
-        input.getString("owner").ifPresent(s -> owner = UUID.fromString(s));
+        health = com.harddayz.Compat.getFloat(input, "health", kind().health);
+        com.harddayz.Compat.optString(input, "owner").ifPresent(s -> owner = UUID.fromString(s));
     }
 
     @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
+    protected void addAdditionalSaveData(CompoundTag output) {
         output.putInt("kind", entityData.get(KIND));
         output.putInt("battery", battery());
         output.putInt("grenades", grenades());

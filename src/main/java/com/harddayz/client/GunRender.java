@@ -42,8 +42,7 @@ public final class GunRender implements IClientItemExtensions {
         // перезарядка: ствол наклоняется вниз и в сторону
         float reload = 0;
         if (Minecraft.getInstance().level != null) {
-            long next = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA) == null ? 0
-                    : stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA).copyTag().getLongOr("next", 0);
+            long next = com.harddayz.Compat.getLong(com.harddayz.Compat.data(stack), "next", 0);
             float left = next - Minecraft.getInstance().level.getGameTime() - pt;
             if (left > g.spec.cooldown() + 2) {
                 reload = Mth.clamp(left / 10f, 0, 1) * Mth.clamp((g.spec.reload() - left) / 8f, 0, 1);
@@ -53,9 +52,9 @@ public final class GunRender implements IClientItemExtensions {
         float y = Mth.lerp(aim, -0.40f, sightHeight(stack)) - equip * 0.6f - reload * 0.25f;
         float z = Mth.lerp(aim, -0.62f, -0.42f) + rec * 0.06f * (1 - aim * 0.5f);
         pose.translate(x, y, z);
-        pose.rotate(Axis.YP.rotationDegrees(Mth.lerp(aim, 6 * side, 0)));
-        pose.rotate(Axis.XP.rotationDegrees(rec * (aim > 0.5f ? 2.5f : 5f) - reload * 35f));
-        pose.rotate(Axis.ZP.rotationDegrees(reload * 25f * side));
+        pose.mulPose(Axis.YP.rotationDegrees(Mth.lerp(aim, 6 * side, 0)));
+        pose.mulPose(Axis.XP.rotationDegrees(rec * (aim > 0.5f ? 2.5f : 5f) - reload * 35f));
+        pose.mulPose(Axis.ZP.rotationDegrees(reload * 25f * side));
         return true;
     }
 

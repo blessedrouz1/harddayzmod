@@ -1,13 +1,11 @@
 package com.harddayz.client;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.entity.Launcher;
 import com.harddayz.network.Net;
 
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
 import net.minecraft.core.particles.ParticleTypes;
@@ -35,7 +33,7 @@ public final class ClientGunner {
         return mc.player != null && mc.player.getVehicle() instanceof Launcher l && l.kind().heli() && l.getControllingPassenger() == mc.player ? l : null;
     }
 
-    static boolean onUse(InputEvent.InteractionKeyMappingTriggered.UseItem event) {
+    static boolean onUse(InputEvent.InteractionKeyMappingTriggered event) {
         if (heli() == null) {
             return false;
         }
@@ -44,7 +42,7 @@ public final class ClientGunner {
     }
 
     /** ЛКМ на установке — не бить рукой. */
-    static boolean onAttack(InputEvent.InteractionKeyMappingTriggered.Attack event) {
+    static boolean onAttack(InputEvent.InteractionKeyMappingTriggered event) {
         if (heli() != null) {
             event.setSwingHand(false);
             return true;
@@ -56,10 +54,10 @@ public final class ClientGunner {
         return true;
     }
 
-    static void onTick(TickEvent.ClientTickEvent.Post event) {
+    static void onTick() {
         Minecraft mc = Minecraft.getInstance();
         Launcher h = heli();
-        if (h != null && mc.gui.screen() == null) {
+        if (h != null && mc.screen == null) {
             if (mc.options.keyAttack.isDown()) {
                 Net.toServer(new Net.HeliFire(h.getId(), 0));
             }
@@ -68,7 +66,7 @@ public final class ClientGunner {
             }
         }
         Launcher l = seat();
-        if (l == null || mc.gui.screen() != null) {
+        if (l == null || mc.screen != null) {
             lock = null;
             lockTicks = 0;
             return;
@@ -120,7 +118,7 @@ public final class ClientGunner {
         }
     }
 
-    public static void renderHud(GuiGraphicsExtractor g, DeltaTracker dt) {
+    public static void renderHud(Gfx g, float dt) {
         Minecraft mc = Minecraft.getInstance();
         Launcher l = seat();
         if (l == null) {

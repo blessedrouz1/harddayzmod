@@ -8,9 +8,7 @@ import com.harddayz.HardDayz;
 import com.harddayz.network.Net;
 import com.harddayz.registry.ModParticles;
 
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.BlockParticleOption;
@@ -136,7 +134,7 @@ public final class ClientBlasts {
 
     // ------------------------------------------------------------------ по тикам
 
-    static void onTick(net.minecraftforge.event.TickEvent.ClientTickEvent.Post event) {
+    static void onTick() {
         Minecraft mc = Minecraft.getInstance();
         if (flash > 0) {
             flash = Math.max(0, flash - 0.08f);
@@ -280,7 +278,7 @@ public final class ClientBlasts {
         var S = com.harddayz.registry.ModSounds.class;
         if (d < 160) {
             // ванильный удар + свой взрыв поверх
-            mc.level.playLocalSound(at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.BLOCKS, vol, 0.55f + R.nextFloat() * 0.1f, false);
+            mc.level.playLocalSound(at.x, at.y, at.z, SoundEvents.GENERIC_EXPLODE, SoundSource.BLOCKS, vol, 0.55f + R.nextFloat() * 0.1f, false);
             mc.level.playLocalSound(at.x, at.y, at.z, com.harddayz.registry.ModSounds.EXPLODE_NEAR.get(), SoundSource.BLOCKS, vol * 0.7f,
                     0.85f + R.nextFloat() * 0.25f, false);
             if (a.power >= 6) {
@@ -323,7 +321,7 @@ public final class ClientBlasts {
         event.setBlue(Mth.lerp(k, event.getBlue(), 0.25f));
     }
 
-    public static void renderFlash(GuiGraphicsExtractor g, DeltaTracker delta) {
+    public static void renderFlash(Gfx g, float delta) {
         if (glow > 0.02f) {
             // небо светится: оранжевый градиент сверху вниз
             int h = g.guiHeight();

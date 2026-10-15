@@ -669,5 +669,127 @@
     0.7
    ]
   }
- }
+ },
+ "overrides": [
+  {
+   "predicate": {
+    "harddayz:sight": 0.0,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_iron_01"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.0,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_iron_10"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.0,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_iron_11"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.25,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_reddot_00"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.25,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_reddot_01"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.25,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_reddot_10"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.25,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_reddot_11"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.5,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_scope_00"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.5,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_scope_01"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.5,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_scope_10"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.5,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_scope_11"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.75,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_thermal_00"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.75,
+    "harddayz:suppressor": 0,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_thermal_01"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.75,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 0
+   },
+   "model": "harddayz:item/svd_thermal_10"
+  },
+  {
+   "predicate": {
+    "harddayz:sight": 0.75,
+    "harddayz:suppressor": 1,
+    "harddayz:underbarrel": 1
+   },
+   "model": "harddayz:item/svd_thermal_11"
+  }
+ ]
 }

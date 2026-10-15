@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -409,7 +409,7 @@ public final class War {
             if (t == null) {
                 t = sb.addPlayerTeam(teamName(f));
             }
-            t.setColor(java.util.Optional.of(net.minecraft.world.scores.TeamColor.valueOf(f.format().name())));
+            t.setColor(f.format());
             t.setPlayerPrefix(Component.literal("[" + f.name + "] ").withStyle(f.format()));
             t.setAllowFriendlyFire(true);
             for (String m : f.members) {

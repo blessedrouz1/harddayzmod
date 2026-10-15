@@ -1,6 +1,6 @@
 package com.harddayz.weapon;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.Config;
 import com.harddayz.network.Net;
@@ -62,11 +62,11 @@ public final class Blast {
             }
             if (e instanceof com.harddayz.entity.Vehicle || e instanceof com.harddayz.entity.Drone) {
                 // техника: урон от ударной волны и осколков по всей зоне (сам взрыв бьёт отдельно)
-                e.hurtServer(level, level.damageSources().explosion(source, null), (float) (f * p * 3.0));
+                e.hurt(level.damageSources().explosion(source, null), (float) (f * p * 3.0));
                 continue;
             }
             if (e instanceof LivingEntity && d > p * 1.8) {
-                e.hurtServer(level, level.damageSources().explosion(source, null), (float) (f * p * 1.2));
+                e.hurt(level.damageSources().explosion(source, null), (float) (f * p * 1.2));
             }
         }
 

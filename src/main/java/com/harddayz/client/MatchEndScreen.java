@@ -2,13 +2,12 @@ package com.harddayz.client;
 
 import java.util.List;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /** Экран конца матча: победитель и таблица статистики по фракциям. */
-public class MatchEndScreen extends Screen {
+public class MatchEndScreen extends HdScreen {
     private static final int W = 400;
     private final String winner;
     private final List<String[]> rows;
@@ -39,8 +38,7 @@ public class MatchEndScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractBackground(g, mouseX, mouseY, a);
+    protected void background(Gfx g, int mouseX, int mouseY, float a) {
         int l = (width - W) / 2;
         int t = (height - h()) / 2;
         g.fill(l, t, l + W, t + h(), 0xF0101410);
@@ -48,8 +46,7 @@ public class MatchEndScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractRenderState(g, mouseX, mouseY, a);
+    protected void content(Gfx g, int mouseX, int mouseY, float a) {
         int l = (width - W) / 2;
         int t = (height - h()) / 2;
         g.centeredText(font, title, width / 2, t + 8, 0xFFFFD27A);

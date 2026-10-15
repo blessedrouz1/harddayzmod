@@ -27,7 +27,7 @@ public final class ModItems {
 
     /** Зарегистрировать предмет: id в свойствах выставляется сам. */
     private static RegistryObject<Item> item(String name, Function<Item.Properties, Item> factory, UnaryOperator<Item.Properties> props) {
-        return ITEMS.register(name, () -> factory.apply(props.apply(new Item.Properties().setId(ITEMS.key(name)))));
+        return ITEMS.register(name, () -> factory.apply(props.apply(new Item.Properties())));
     }
 
     // ---- Пусковые установки (ставятся на землю) ----
@@ -87,10 +87,11 @@ public final class ModItems {
             () -> ModItems.PISTOL_AMMO.get(), 80, 1.4f, false, 0.85f, 2.2f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_PM.get()), p -> p.stacksTo(1));
     public static final RegistryObject<Item> GLOCK = item("glock", p -> new com.harddayz.item.GunItem(p, new com.harddayz.item.GunItem.Spec(5.5f, 3, 2.0f, 0.8f, 17, 30,
             () -> ModItems.PISTOL_AMMO.get(), 90, 1.5f, false, 0.85f, 1.8f, false)).sound(() -> com.harddayz.registry.ModSounds.GUN_GLOCK.get()), p -> p.stacksTo(1));
-    public static final RegistryObject<Item> COMBAT_KNIFE = item("combat_knife", Item::new,
-            p -> p.tool(net.minecraft.world.item.ToolMaterial.IRON, net.minecraft.tags.BlockTags.SWORD_EFFICIENT, 4.5f, -1.4f, 0f));
-    public static final RegistryObject<Item> MACHETE = item("machete", Item::new,
-            p -> p.tool(net.minecraft.world.item.ToolMaterial.IRON, net.minecraft.tags.BlockTags.SWORD_EFFICIENT, 6f, -2.4f, 0f));
+    // SwordItem сам прибавляет урон железа (+2); в 1.20.1 бонус только целый, нож 4.5 -> 4
+    public static final RegistryObject<Item> COMBAT_KNIFE = item("combat_knife", p -> new net.minecraft.world.item.SwordItem(
+            net.minecraft.world.item.Tiers.IRON, 4, -1.4f, p), p -> p);
+    public static final RegistryObject<Item> MACHETE = item("machete", p -> new net.minecraft.world.item.SwordItem(
+            net.minecraft.world.item.Tiers.IRON, 6, -2.4f, p), p -> p);
     public static final RegistryObject<Item> FIELD_SHOVEL = item("field_shovel", com.harddayz.item.FieldShovelItem::new, p -> p.stacksTo(1)
             .durability(400));
     public static final RegistryObject<Item> BANDAGE = item("bandage", p -> new com.harddayz.item.MedItem(p, com.harddayz.item.MedItem.Kind.BANDAGE),

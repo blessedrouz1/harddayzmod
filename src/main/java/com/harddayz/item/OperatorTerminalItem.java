@@ -16,7 +16,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 
@@ -27,7 +26,7 @@ public class OperatorTerminalItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
             // сначала — свой квадрокоптер поблизости (FPV / разведчик)
             Drone quad = null;
@@ -39,9 +38,9 @@ public class OperatorTerminalItem extends Item {
                 }
             }
             if (quad != null && quad.connect(sp)) {
-                sp.sendOverlayMessage(Component.translatable("message.harddayz.drone_linked", (int) Math.sqrt(qd)).withStyle(ChatFormatting.GREEN));
+                sp.displayClientMessage(Component.translatable("message.harddayz.drone_linked", (int) Math.sqrt(qd)).withStyle(ChatFormatting.GREEN), true);
                 level.playSound(null, sp.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), sp.getSoundSource(), 0.8f, 1.6f);
-                return InteractionResult.SUCCESS;
+                return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
             }
             Drone best = null;
             double bestD = Double.MAX_VALUE;
@@ -56,17 +55,17 @@ public class OperatorTerminalItem extends Item {
                 }
             }
             if (best == null || !best.takeControl(sp)) {
-                sp.sendOverlayMessage(Component.translatable("message.harddayz.no_shahed").withStyle(ChatFormatting.RED));
-                return InteractionResult.FAIL;
+                sp.displayClientMessage(Component.translatable("message.harddayz.no_shahed").withStyle(ChatFormatting.RED), true);
+                return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
             }
-            sp.sendOverlayMessage(Component.translatable("message.harddayz.shahed_linked", (int) Math.sqrt(bestD)).withStyle(ChatFormatting.GREEN));
+            sp.displayClientMessage(Component.translatable("message.harddayz.shahed_linked", (int) Math.sqrt(bestD)).withStyle(ChatFormatting.GREEN), true);
             level.playSound(null, sp.blockPosition(), SoundEvents.NOTE_BLOCK_BIT.value(), sp.getSoundSource(), 0.8f, 1.2f);
         }
-        return InteractionResult.SUCCESS;
+        return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable("item.harddayz.operator_terminal.desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable("item.harddayz.operator_terminal.desc").withStyle(ChatFormatting.GRAY));
     }
 }

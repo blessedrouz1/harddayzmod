@@ -1,0 +1,72 @@
+{
+ "format_version": "1.8.0",
+ "animations": {
+  "animation.pickup_sam.drive": {
+   "loop": true,
+   "animation_length": 1.0,
+   "bones": {
+    "wheel_0_r": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       -360,
+       0,
+       0
+      ]
+     }
+    },
+    "wheel_0_l": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       -360,
+       0,
+       0
+      ]
+     }
+    },
+    "wheel_1_right": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       -360,
+       0,
+       0
+      ]
+     }
+    },
+    "wheel_1_left": {
+     "rotation": {
+      "0.0": [
+       0,
+       0,
+       0
+      ],
+      "1.0": [
+       -360,
+       0,
+       0
+      ]
+     }
+    }
+   }
+  },
+  "animation.pickup_sam.idle": {
+   "loop": true,
+   "animation_length": 1.0,
+   "bones": {}
+  }
+ }
+}

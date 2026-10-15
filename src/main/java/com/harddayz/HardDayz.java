@@ -18,7 +18,7 @@ public final class HardDayz {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public HardDayz(FMLJavaModLoadingContext context) {
-        var bus = context.getModBusGroup();
+        var bus = context.getModEventBus();
         com.harddayz.registry.ModBlocks.init();
         com.harddayz.registry.ModBlocks.BLOCKS.register(bus);
         com.harddayz.registry.ModBlocks.BLOCK_ENTITIES.register(bus);
@@ -33,7 +33,7 @@ public final class HardDayz {
         com.harddayz.network.Net.init();
         com.harddayz.war.WarEvents.init();
         if (FMLEnvironment.dist.isClient()) {
-            com.harddayz.client.ClientSetup.init();
+            com.harddayz.client.ClientSetup.init(bus);
         }
     }
 }

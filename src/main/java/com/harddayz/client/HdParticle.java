@@ -3,7 +3,8 @@ package com.harddayz.client;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.particle.ParticleProvider;
-import net.minecraft.client.particle.SingleQuadParticle;
+import net.minecraft.client.particle.ParticleRenderType;
+import net.minecraft.client.particle.TextureSheetParticle;
 import net.minecraft.client.particle.SpriteSet;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.util.Mth;
@@ -13,7 +14,7 @@ import net.minecraft.util.RandomSource;
  * Мягкие частицы взрыва: дым растёт, медленно всплывает и тает; огонь светится сам,
  * остывает от бело-жёлтого к тёмно-красному и гаснет.
  */
-public class HdParticle extends SingleQuadParticle {
+public class HdParticle extends TextureSheetParticle {
     public enum Kind {
         SMOKE, SMOKE_HUGE, SMOKE_WHITE, DUST, FIRE, FLASH, GLOW
     }
@@ -27,7 +28,8 @@ public class HdParticle extends SingleQuadParticle {
     private final float b0;
 
     protected HdParticle(ClientLevel level, double x, double y, double z, double xd, double yd, double zd, SpriteSet sprites, Kind kind) {
-        super(level, x, y, z, sprites.get(level.getRandom()));
+        super(level, x, y, z);
+        pickSprite(sprites);
         this.kind = kind;
         this.sprites = sprites;
         this.xd = xd;
@@ -35,7 +37,7 @@ public class HdParticle extends SingleQuadParticle {
         this.zd = zd;
         this.hasPhysics = false;
         RandomSource r = level.getRandom();
-        this.roll = r.nextFloat() * Mth.TWO_PI;
+        this.roll = r.nextFloat() * (float) (Math.PI * 2);
         this.oRoll = this.roll;
         this.spin = (r.nextFloat() - 0.5f) * 0.03f;
         float shade;
@@ -162,13 +164,13 @@ public class HdParticle extends SingleQuadParticle {
     }
 
     @Override
-    protected int getLightCoords(float pt) {
-        return kind == Kind.FIRE || kind == Kind.FLASH || kind == Kind.GLOW || (kind != Kind.SMOKE_WHITE && age < 6) ? 0xF000F0 : super.getLightCoords(pt);
+    protected int getLightColor(float pt) {
+        return kind == Kind.FIRE || kind == Kind.FLASH || kind == Kind.GLOW || (kind != Kind.SMOKE_WHITE && age < 6) ? 0xF000F0 : super.getLightColor(pt);
     }
 
     @Override
-    protected SingleQuadParticle.Layer getLayer() {
-        return SingleQuadParticle.Layer.TRANSLUCENT;
+    public ParticleRenderType getRenderType() {
+        return ParticleRenderType.PARTICLE_SHEET_TRANSLUCENT;
     }
 
     public static class Provider implements ParticleProvider<SimpleParticleType> {
@@ -181,8 +183,7 @@ public class HdParticle extends SingleQuadParticle {
         }
 
         @Override
-        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z, double xd, double yd, double zd,
-                RandomSource random) {
+        public Particle createParticle(SimpleParticleType type, ClientLevel level, double x, double y, double z, double xd, double yd, double zd) {
             return new HdParticle(level, x, y, z, xd, yd, zd, sprites, kind);
         }
     }

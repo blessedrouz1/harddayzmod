@@ -1,0 +1,214 @@
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/8.8/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+
+> Configure project :
+MixinGradle did not locate the diffplug APT plugin, skipping eclipse task configuration
+
+> Task :clean
+> Task :downloadMcpConfig
+> Task :extractSrg
+> Task :createMcpToSrg
+
+> Task :compileJava
+Note: SpongePowered MIXIN Annotation Processor Version=0.8.5 (MixinGradle Version=0.7.38)
+Note: Supported obfuscation types: ObfuscationServiceMCP supports [notch] ObfuscationServiceFG3 supports [searge]
+Note: Loading searge mappings from /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/createMcpToSrg/output.tsrg
+Note: Writing refmap to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-refmap.json
+Note: Writing refmap to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-refmap.json
+Note: Writing searge composite mappings to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-mappings.tsrg
+Note: Writing refmap to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-refmap.json
+Note: Writing refmap to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-refmap.json
+Note: Writing searge composite mappings to /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/tmp/compileJava/compileJava-mappings.tsrg
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/Compat.java:26: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+        return new ResourceLocation(HardDayz.MODID, path);
+               ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/network/Net.java:27: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(HardDayz.MODID, "main"), () -> PROTOCOL,
+                                                                                 ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/registry/ModSounds.java:31: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+        return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, name)));
+                                                                               ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/MissileRenderer.java:67: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    private static final net.minecraft.resources.ResourceLocation ISKANDER_TEX = new net.minecraft.resources.ResourceLocation(
+                                                                                 ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/MissileRenderer.java:131: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+            geoBody(gn).render(s, pose, buffers, RenderType.entityTranslucent(new net.minecraft.resources.ResourceLocation(
+                                                                              ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/DroneRenderer.java:47: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+            this.texture = new net.minecraft.resources.ResourceLocation(com.harddayz.HardDayz.MODID, "textures/entity/" + name + ".png");
+                           ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/model/HdModels.java:55: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+        return new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, name), "main");
+                                      ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/MineRenderer.java:25: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    public static final ModelLayerLocation AP = new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "mine_ap"), "main");
+                                                                       ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/MineRenderer.java:26: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    public static final ModelLayerLocation AT = new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "mine_at"), "main");
+                                                                       ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/LauncherRenderer.java:26: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    public static final ResourceLocation PALETTE = new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/palette.png");
+                                                   ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/LauncherRenderer.java:122: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+            return new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/" + t + ".png");
+                   ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/LauncherRenderer.java:127: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+            return new net.minecraft.resources.ResourceLocation(HardDayz.MODID, t.replace(".png", "_glowmask.png"));
+                   ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/LauncherRenderer.java:151: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+                    new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/" + n + ".png"));
+                    ^
+/Users/danylokulibaba/Desktop/dayz/harddayzmod-main/src/main/java/com/harddayz/client/LauncherRenderer.java:178: warning: [removal] ResourceLocation(String,String) in ResourceLocation has been deprecated and marked for removal
+    public static final ResourceLocation MARKS = new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "textures/entity/marks.png");
+                                                 ^
+Note: Some input files use or override a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+14 warnings
+
+> Task :addMixinsToJar
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :configureReobfTaskForReobfJar
+> Task :reobfJar
+> Task :configureReobfTaskForReobfJarJar
+> Task :addMixinsToJarJar
+> Task :jarJar SKIPPED
+> Task :reobfJarJar SKIPPED
+> Task :assemble
+> Task :compileTestJava
+> Task :processTestResources
+> Task :testClasses
+> Task :test
+> Task :check
+> Task :build
+> Task :createSrgToMcp
+> Task :downloadMCMeta
+> Task :downloadAssets UP-TO-DATE
+> Task :extractNatives
+> Task :makeSrcDirs
+> Task :prepareRuns
+> Task :prepareRunGameTestServer
+> Task :prepareRunGameTestServerCompile
+
+> Task :runGameTestServer
+2026-10-15 10:17:44,433 main WARN Advanced terminal features are not available in this environment
+[10:17:44] [main/INFO] [cp.mo.mo.Launcher/MODLAUNCHER]: ModLauncher running: args [--launchTarget, forgegametestserveruserdev, --gameDir, ., --fml.forgeVersion, 47.4.10, --fml.mcVersion, 1.20.1, --fml.forgeGroup, net.minecraftforge, --fml.mcpVersion, 20230612.114412, --mixin.config, harddayz.mixins.json]
+[10:17:44] [main/INFO] [cp.mo.mo.Launcher/MODLAUNCHER]: ModLauncher 10.0.9+10.0.9+main.dcd20f30 starting: java version 17.0.20.1 by Eclipse Adoptium; OS Mac OS X arch aarch64 version 27.0.1
+[10:17:44] [main/WARN] [ne.mi.fm.lo.FMLConfig/CORE]: Configuration file /Users/danylokulibaba/Desktop/dayz/harddayzmod-main/build/gametest-run/config/fml.toml is not correct. Correcting
+[10:17:44] [main/INFO] [ne.mi.fm.lo.FMLConfig/CORE]: Incorrect key [earlyWindowSkipGLVersions] was corrected from null to []
+[10:17:44] [main/INFO] [ne.mi.fm.lo.FMLConfig/CORE]: Incorrect key [earlyWindowLogHelpMessage] was corrected from null to true
+[10:17:44] [main/INFO] [ne.mi.fm.lo.FMLConfig/CORE]: Incorrect key [earlyWindowSquir] was corrected from null to false
+[10:17:44] [main/INFO] [ne.mi.fm.lo.FMLConfig/CORE]: Incorrect key [earlyWindowShowCPU] was corrected from null to false
+[10:17:44] [main/INFO] [ne.mi.fm.lo.ImmediateWindowHandler/]: ImmediateWindowProvider not loading because launch target is forgegametestserveruserdev
+[10:17:44] [main/INFO] [mixin/]: SpongePowered MIXIN Subsystem Version=0.8.5 Source=union:/Users/danylokulibaba/.gradle/caches/modules-2/files-2.1/org.spongepowered/mixin/0.8.5/9d1c0c3a304ae6697ecd477218fa61b850bf57fc/mixin-0.8.5.jar%23121!/ Service=ModLauncher Env=SERVER
+[10:17:44] [main/WARN] [ne.mi.fm.lo.mo.ModFileParser/LOADING]: Mod file /Users/danylokulibaba/.gradle/caches/modules-2/files-2.1/net.minecraftforge/javafmllanguage/1.20.1-47.4.10/ccc533c7dd67e0983217197d7549c8b49e7ab453/javafmllanguage-1.20.1-47.4.10.jar is missing mods.toml file
+[10:17:44] [main/WARN] [ne.mi.fm.lo.mo.ModFileParser/LOADING]: Mod file /Users/danylokulibaba/.gradle/caches/modules-2/files-2.1/net.minecraftforge/lowcodelanguage/1.20.1-47.4.10/e9a2879fe3612ea34b9728ec2633304a1e67d480/lowcodelanguage-1.20.1-47.4.10.jar is missing mods.toml file
+[10:17:44] [main/WARN] [ne.mi.fm.lo.mo.ModFileParser/LOADING]: Mod file /Users/danylokulibaba/.gradle/caches/modules-2/files-2.1/net.minecraftforge/mclanguage/1.20.1-47.4.10/ec5cefbbc65c67302b8fac317010faab85fa14b9/mclanguage-1.20.1-47.4.10.jar is missing mods.toml file
+[10:17:44] [main/WARN] [ne.mi.fm.lo.mo.ModFileParser/LOADING]: Mod file /Users/danylokulibaba/.gradle/caches/modules-2/files-2.1/net.minecraftforge/fmlcore/1.20.1-47.4.10/94dae566be650566ea9115a1414ab76bfcf5a804/fmlcore-1.20.1-47.4.10.jar is missing mods.toml file
+[10:17:44] [main/INFO] [ne.mi.fm.lo.mo.JarInJarDependencyLocator/]: No dependencies to load found. Skipping!
+[10:17:45] [main/INFO] [mixin/]: Compatibility level set to JAVA_17
+[10:17:45] [main/INFO] [cp.mo.mo.LaunchServiceHandler/MODLAUNCHER]: Launching target 'forgegametestserveruserdev' with arguments [--gameDir, .]
+[10:17:45] [main/WARN] [mixin/]: Reference map 'harddayz.refmap.json' for harddayz.mixins.json could not be read. If this is a development environment you can ignore this message
+[10:17:46] [main/WARN] [os.ut.pl.ma.SysctlUtil/]: Failed sysctl call: hw.cpufrequency, Error code: 2
+[10:17:47] [modloading-worker-0/INFO] [ne.mi.co.ForgeMod/FORGEMOD]: Forge mod loading, version 47.4.10, for MC 1.20.1 with MCP 20230612.114412
+[10:17:47] [modloading-worker-0/INFO] [ne.mi.co.MinecraftForge/FORGE]: MinecraftForge v47.4.10 Initialized
+[10:17:47] [Forge Version Check/INFO] [ne.mi.fm.VersionChecker/]: [forge] Starting version check at https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json
+[10:17:48] [Forge Version Check/INFO] [ne.mi.fm.VersionChecker/]: [forge] Found status: UP_TO_DATE Current: 47.4.10 Target: null
+[10:17:48] [main/ERROR] [minecraft/Settings]: Failed to load properties from file: server.properties
+java.nio.file.NoSuchFileException: server.properties
+	at sun.nio.fs.UnixException.translateToIOException(UnixException.java:92) ~[?:?] {}
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:106) ~[?:?] {}
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:111) ~[?:?] {}
+	at sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:218) ~[?:?] {}
+	at java.nio.file.Files.newByteChannel(Files.java:380) ~[?:?] {}
+	at java.nio.file.Files.newByteChannel(Files.java:432) ~[?:?] {}
+	at java.nio.file.spi.FileSystemProvider.newInputStream(FileSystemProvider.java:422) ~[?:?] {}
+	at java.nio.file.Files.newInputStream(Files.java:160) ~[?:?] {}
+	at net.minecraft.server.dedicated.Settings.loadFromFile(Settings.java:36) ~[forge-1.20.1-47.4.10_mapped_official_1.20.1.jar:?] {re:classloading}
+	at net.minecraft.server.dedicated.DedicatedServerProperties.fromFile(DedicatedServerProperties.java:137) ~[forge-1.20.1-47.4.10_mapped_official_1.20.1.jar:?] {re:classloading}
+	at net.minecraft.server.dedicated.DedicatedServerSettings.<init>(DedicatedServerSettings.java:12) ~[forge-1.20.1-47.4.10_mapped_official_1.20.1.jar:?] {re:classloading}
+	at net.minecraft.server.Main.main(Main.java:126) ~[forge-1.20.1-47.4.10_mapped_official_1.20.1.jar:?] {re:classloading}
+	at net.minecraftforge.gametest.GameTestMain.main(GameTestMain.java:16) ~[forge-1.20.1-47.4.10_mapped_official_1.20.1.jar:?] {re:classloading}
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method) ~[?:?] {}
+	at jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77) ~[?:?] {}
+	at jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43) ~[?:?] {}
+	at java.lang.reflect.Method.invoke(Method.java:569) ~[?:?] {}
+	at net.minecraftforge.fml.loading.targets.ForgeGametestUserdevLaunchHandler.devService(ForgeGametestUserdevLaunchHandler.java:16) ~[fmlloader-1.20.1-47.4.10.jar:?] {}
+	at net.minecraftforge.fml.loading.targets.CommonDevLaunchHandler.lambda$makeService$7(CommonDevLaunchHandler.java:135) ~[fmlloader-1.20.1-47.4.10.jar:?] {}
+	at cpw.mods.modlauncher.LaunchServiceHandlerDecorator.launch(LaunchServiceHandlerDecorator.java:30) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.LaunchServiceHandler.launch(LaunchServiceHandler.java:53) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.LaunchServiceHandler.launch(LaunchServiceHandler.java:71) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.Launcher.run(Launcher.java:108) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.Launcher.main(Launcher.java:78) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.BootstrapLaunchConsumer.accept(BootstrapLaunchConsumer.java:26) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.modlauncher.BootstrapLaunchConsumer.accept(BootstrapLaunchConsumer.java:23) ~[modlauncher-10.0.9.jar:?] {}
+	at cpw.mods.bootstraplauncher.BootstrapLauncher.main(BootstrapLauncher.java:141) ~[bootstraplauncher-1.1.2.jar:?] {}
+[10:17:48] [main/INFO] [mojang/YggdrasilAuthenticationService]: Environment: authHost='https://authserver.mojang.com', accountsHost='https://api.mojang.com', sessionHost='https://sessionserver.mojang.com', servicesHost='https://api.minecraftservices.com', name='PROD'
+[10:17:48] [main/WARN] [minecraft/VanillaPackResourcesBuilder]: Assets URL 'union:/Users/danylokulibaba/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1.jar%23184!/assets/.mcassetsroot' uses unexpected schema
+[10:17:48] [main/WARN] [minecraft/VanillaPackResourcesBuilder]: Assets URL 'union:/Users/danylokulibaba/.gradle/caches/forge_gradle/minecraft_user_repo/net/minecraftforge/forge/1.20.1-47.4.10_mapped_official_1.20.1/forge-1.20.1-47.4.10_mapped_official_1.20.1.jar%23184!/data/.mcassetsroot' uses unexpected schema
+[10:17:48] [main/INFO] [minecraft/RecipeManager]: Loaded 7 recipes
+[10:17:48] [main/INFO] [minecraft/AdvancementList]: Loaded 1271 advancements
+[10:17:48] [main/INFO] [ne.mi.ga.ForgeGameTestHooks/]: Enabled Gametest Namespaces: [harddayz]
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Configuration file ./world/serverconfig/harddayz-server.toml is not correct. Correcting
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key blockDamage was corrected from null to its default, true. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key blastScale was corrected from null to its default, 1.0. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key ballisticRange was corrected from null to its default, 2000. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Configuration file ./world/serverconfig/forge-server.toml is not correct. Correcting
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server was corrected from null to its default, SimpleCommentedConfig:{}. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.removeErroringBlockEntities was corrected from null to its default, false. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.removeErroringEntities was corrected from null to its default, false. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.fullBoundingBoxLadders was corrected from null to its default, false. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.zombieBaseSummonChance was corrected from null to its default, 0.1. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.zombieBabyChance was corrected from null to its default, 0.05. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.permissionHandler was corrected from null to its default, forge:default_handler. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.advertiseDedicatedServerToLan was corrected from null to its default, true. 
+[10:17:49] [Server thread/WARN] [ne.mi.co.ForgeConfigSpec/CORE]: Incorrect key server.useItemWithDurationZero was corrected from null to its default, false. 
+[10:17:50] [Server thread/INFO] [minecraft/MinecraftServer]: Preparing start region for dimension minecraft:overworld
+[10:17:51] [Worker-Main-3/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 0%
+[10:17:51] [Worker-Main-6/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 0%
+[10:17:51] [Worker-Main-6/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 1%
+[10:17:52] [Worker-Main-1/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 2%
+[10:17:52] [Worker-Main-8/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 5%
+[10:17:53] [Worker-Main-5/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 9%
+[10:17:54] [Worker-Main-8/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 15%
+[10:17:54] [Worker-Main-3/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 22%
+[10:17:54] [Worker-Main-1/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 28%
+[10:17:55] [Worker-Main-2/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 35%
+[10:17:56] [Worker-Main-1/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 43%
+[10:17:56] [Worker-Main-4/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 49%
+[10:17:56] [Worker-Main-8/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 56%
+[10:17:57] [Worker-Main-7/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 65%
+[10:17:58] [Worker-Main-9/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 73%
+[10:17:58] [Worker-Main-7/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 75%
+[10:17:58] [Worker-Main-4/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 84%
+[10:17:59] [Worker-Main-8/INFO] [minecraft/LoggerChunkProgressListener]: Preparing spawn area: 90%
+[10:17:59] [Server thread/INFO] [minecraft/LoggerChunkProgressListener]: Time elapsed: 8944 ms
+[10:17:59] [Server thread/INFO] [minecraft/GameTestServer]: Started game test server
+[10:17:59] [Server thread/INFO] [ne.mi.se.pe.PermissionAPI/]: Successfully initialized permission handler forge:default_handler
+[10:18:00] [Server thread/INFO] [minecraft/GameTestBatchRunner]: Running test batch 'defaultBatch:1' (5 tests)...
+[10:18:00] [Server thread/INFO] [minecraft/GameTestServer]: 5 tests are now running!
+[10:18:00] [Server thread/INFO] [minecraft/GameTestServer]: [+++++]
+[10:18:00] [Server thread/INFO] [minecraft/GameTestServer]: ========= 5 GAME TESTS COMPLETE ======================
+[10:18:00] [Server thread/INFO] [minecraft/GameTestServer]: All 5 required tests passed :)
+[10:18:00] [Server thread/INFO] [minecraft/GameTestServer]: ====================================================
+[10:18:00] [Server thread/INFO] [minecraft/MinecraftServer]: Stopping server
+[10:18:00] [Server thread/INFO] [minecraft/MinecraftServer]: Saving players
+[10:18:00] [Server thread/INFO] [minecraft/MinecraftServer]: Saving worlds
+[10:18:00] [Server thread/INFO] [minecraft/MinecraftServer]: Saving chunks for level 'ServerLevel[world]'/minecraft:overworld
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_nether
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: Saving chunks for level 'ServerLevel[world]'/minecraft:the_end
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: ThreadedAnvilChunkStorage (world): All chunks are saved
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: ThreadedAnvilChunkStorage (DIM-1): All chunks are saved
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: ThreadedAnvilChunkStorage (DIM1): All chunks are saved
+[10:18:01] [Server thread/INFO] [minecraft/MinecraftServer]: ThreadedAnvilChunkStorage: All dimensions are saved
+[10:18:01] [Server thread/INFO] [minecraft/GameTestServer]: Game test server shutting down
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.8/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 29s
+21 actionable tasks: 20 executed, 1 up-to-date

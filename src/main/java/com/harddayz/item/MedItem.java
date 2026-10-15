@@ -14,9 +14,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemUseAnimation;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
 /** Бинт, жгут, аптечка, обезболивающее: зажать ПКМ — применить на себя. ПКМ по раненому товарищу — поднять. */
@@ -48,25 +46,25 @@ public class MedItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         player.startUsingItem(hand);
-        return InteractionResult.CONSUME;
+        return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.CONSUME, player.getItemInHand(hand));
     }
 
     @Override
-    public int getUseDuration(ItemStack stack, LivingEntity user) {
+    public int getUseDuration(ItemStack stack) {
         return kind.time;
     }
 
     @Override
-    public ItemUseAnimation getUseAnimation(ItemStack stack) {
-        return ItemUseAnimation.BRUSH;
+    public net.minecraft.world.item.UseAnim getUseAnimation(ItemStack stack) {
+        return net.minecraft.world.item.UseAnim.BRUSH;
     }
 
     @Override
     public ItemStack finishUsingItem(ItemStack stack, Level level, LivingEntity e) {
         if (!level.isClientSide()) {
-            var bleed = ModEffects.BLEEDING.getHolder().get();
+            var bleed = ModEffects.BLEEDING.get();
             switch (kind) {
                 case BANDAGE -> {
                     var b = e.getEffect(bleed);
@@ -78,12 +76,12 @@ public class MedItem extends Item {
                 }
                 case TOURNIQUET -> {
                     e.removeEffect(bleed);
-                    e.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 20 * 30, 0));
+                    e.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 20 * 30, 0));
                 }
                 case MEDKIT -> e.removeEffect(bleed);
                 case PAINKILLER -> {
                     e.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 20 * 12, 0));
-                    e.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 20 * 20, 0));
+                    e.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 20 * 20, 0));
                 }
             }
             if (kind.heal > 0) {
@@ -97,7 +95,7 @@ public class MedItem extends Item {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
     }
 }

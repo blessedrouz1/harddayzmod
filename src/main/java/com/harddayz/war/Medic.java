@@ -36,33 +36,57 @@ public final class Medic {
     }
 
     public static void init() {
-        LivingDamageEvent.BUS.addListener(Medic::onDamage);
-        TickEvent.PlayerTickEvent.Post.BUS.addListener(Medic::onTick);
-        PlayerInteractEvent.EntityInteractSpecific.BUS.addListener(Medic::onInteract);
+        var bus = net.minecraftforge.common.MinecraftForge.EVENT_BUS;
+        bus.addListener(Medic::onDamage);
+        bus.addListener((net.minecraftforge.event.server.ServerStoppedEvent e) -> {
+            DOWNED.clear();
+            REVIVE.clear();
+            GIVE_UP.clear();
+        });
+        bus.addListener((TickEvent.PlayerTickEvent e) -> {
+            if (e.phase == TickEvent.Phase.END) {
+                onTick(e.player);
+            }
+        });
+        bus.addListener((PlayerInteractEvent.EntityInteractSpecific e) -> {
+            if (onInteract(e)) {
+                e.setCanceled(true);
+                e.setCancellationResult(net.minecraft.world.InteractionResult.SUCCESS);
+            }
+        });
     }
 
     public static boolean isDowned(Player p) {
         return DOWNED.containsKey(p.getUUID());
     }
 
+    private static void clearDowned(Player p) {
+        boolean wasDowned = DOWNED.remove(p.getUUID()) != null;
+        REVIVE.remove(p.getUUID());
+        GIVE_UP.remove(p.getUUID());
+        if (wasDowned) {
+            p.setForcedPose(null);
+        }
+    }
+
     /** Кровотечение от пуль, осколков и взрывов. */
-    private static boolean onDamage(LivingDamageEvent e) {
+    private static void onDamage(LivingDamageEvent e) {
         LivingEntity t = e.getEntity();
         if (t.level().isClientSide() || !(t instanceof Player) || e.getAmount() < 3.5f || isDowned((Player) t)) {
-            return false;
+            return;
         }
         if (t.getRandom().nextFloat() < Math.min(0.8f, e.getAmount() / 12f)) {
-            t.addEffect(new MobEffectInstance(com.harddayz.registry.ModEffects.BLEEDING.getHolder().get(), 20 * 60, e.getAmount() > 9 ? 1 : 0));
+            t.addEffect(new MobEffectInstance(com.harddayz.registry.ModEffects.BLEEDING.get(), 20 * 60, e.getAmount() > 9 ? 1 : 0));
         }
-        return false;
     }
 
     /** Вызывается вместо смерти: true — игрок упал раненым (смерть отменить). */
     public static boolean tryDown(ServerPlayer p, DamageSource source) {
         if (isDowned(p) || p.isCreative() || p.isSpectator() || source.is(net.minecraft.tags.DamageTypeTags.BYPASSES_INVULNERABILITY)) {
-            DOWNED.remove(p.getUUID());
+            clearDowned(p);
             return false;
         }
+        clearDowned(p);
         DOWNED.put(p.getUUID(), DOWN_TICKS);
         p.setHealth(2);
         p.removeAllEffects();
@@ -72,7 +96,7 @@ public final class Medic {
         p.sendSystemMessage(Component.translatable("message.harddayz.downed").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
         War.Faction f = War.of(p.getUUID());
         if (f != null) {
-            for (ServerPlayer m : Supply.members(p.level().getServer(), f)) {
+            for (ServerPlayer m : Supply.members(p.getServer(), f)) {
                 if (m != p) {
                     m.sendSystemMessage(Component.translatable("message.harddayz.ally_downed", p.getDisplayName(), p.getBlockX(), p.getBlockY(), p.getBlockZ())
                             .withStyle(ChatFormatting.GOLD));
@@ -82,8 +106,8 @@ public final class Medic {
         return true;
     }
 
-    private static void onTick(TickEvent.PlayerTickEvent.Post e) {
-        if (!(e.player() instanceof ServerPlayer p)) {
+    private static void onTick(Player player) {
+        if (!(player instanceof ServerPlayer p)) {
             return;
         }
         Integer left = DOWNED.get(p.getUUID());
@@ -91,13 +115,13 @@ public final class Medic {
             return;
         }
         if (!p.isAlive()) {
-            DOWNED.remove(p.getUUID());
+            clearDowned(p);
             return;
         }
         left--;
         DOWNED.put(p.getUUID(), left);
         p.setForcedPose(Pose.SWIMMING);
-        p.addEffect(new MobEffectInstance(MobEffects.SLOWNESS, 40, 4, false, false));
+        p.addEffect(new MobEffectInstance(MobEffects.MOVEMENT_SLOWDOWN, 40, 4, false, false));
         p.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 40, 4, false, false));
         p.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 40, 0, false, false));
         if (p.getHealth() > 2) {
@@ -108,13 +132,11 @@ public final class Medic {
         GIVE_UP.put(p.getUUID(), g);
         int rev = REVIVE.getOrDefault(p.getUUID(), 0);
         if (p.tickCount % 10 == 0) {
-            p.sendOverlayMessage(Component.translatable("message.harddayz.downed_bar", left / 20, rev).withStyle(ChatFormatting.RED));
+            p.displayClientMessage(Component.translatable("message.harddayz.downed_bar", left / 20, rev).withStyle(ChatFormatting.RED), true);
         }
         if (left <= 0 || g >= 60) {
-            DOWNED.remove(p.getUUID());
-            REVIVE.remove(p.getUUID());
-            p.setForcedPose(null);
-            p.hurtServer(p.level(), p.damageSources().genericKill(), Float.MAX_VALUE);
+            clearDowned(p);
+            p.hurt(p.damageSources().genericKill(), Float.MAX_VALUE);
         }
     }
 
@@ -127,21 +149,19 @@ public final class Medic {
         var stack = medic.getMainHandItem();
         int add = stack.is(ModItems.MEDKIT.get()) ? 50 : stack.is(ModItems.BANDAGE.get()) ? 35 : 20;
         int rev = REVIVE.getOrDefault(hurt.getUUID(), 0) + add;
-        medic.level().playSound(null, hurt.blockPosition(), SoundEvents.ARMOR_EQUIP_LEATHER.value(), SoundSource.PLAYERS, 1f, 1f);
+        medic.level().playSound(null, hurt.blockPosition(), SoundEvents.ARMOR_EQUIP_LEATHER, SoundSource.PLAYERS, 1f, 1f);
         if (rev >= 100) {
             if (add > 20 && !medic.isCreative()) {
                 stack.shrink(1);
             }
-            DOWNED.remove(hurt.getUUID());
-            REVIVE.remove(hurt.getUUID());
-            hurt.setForcedPose(null);
+            clearDowned(hurt);
             hurt.setHealth(add == 50 ? 10 : 6);
             hurt.removeAllEffects();
             hurt.sendSystemMessage(Component.translatable("message.harddayz.revived", medic.getDisplayName()).withStyle(ChatFormatting.GREEN));
-            medic.sendOverlayMessage(Component.translatable("message.harddayz.revived_by_you", hurt.getDisplayName()).withStyle(ChatFormatting.GREEN));
+            medic.displayClientMessage(Component.translatable("message.harddayz.revived_by_you", hurt.getDisplayName()).withStyle(ChatFormatting.GREEN), true);
         } else {
             REVIVE.put(hurt.getUUID(), rev);
-            medic.sendOverlayMessage(Component.translatable("message.harddayz.reviving", rev).withStyle(ChatFormatting.YELLOW));
+            medic.displayClientMessage(Component.translatable("message.harddayz.reviving", rev).withStyle(ChatFormatting.YELLOW), true);
         }
         return true;
     }

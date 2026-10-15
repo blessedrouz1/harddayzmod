@@ -1,6 +1,6 @@
 package com.harddayz.war;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -25,7 +25,7 @@ public class FrontlineBlock extends Block {
             return;
         }
         if (!War.active()) {
-            p.sendOverlayMessage(Component.translatable("message.harddayz.war_none").withStyle(ChatFormatting.YELLOW));
+            p.displayClientMessage(Component.translatable("message.harddayz.war_none").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         Frontline.add(pos);

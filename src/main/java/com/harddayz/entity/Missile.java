@@ -3,7 +3,7 @@ package com.harddayz.entity;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.weapon.Blast;
 import com.harddayz.registry.ModEntities;
@@ -23,8 +23,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
@@ -94,15 +93,15 @@ public class Missile extends Entity implements Threat {
         return m;
     }
 
-    private java.util.@Nullable UUID owner;
+    private @javax.annotation.Nullable java.util.UUID owner;
 
-    public Missile owner(java.util.@Nullable UUID uuid) {
+    public Missile owner(@javax.annotation.Nullable java.util.UUID uuid) {
         owner = uuid;
         return this;
     }
 
     @Override
-    public java.util.@Nullable UUID owner() {
+    public @javax.annotation.Nullable java.util.UUID owner() {
         return owner;
     }
 
@@ -129,9 +128,11 @@ public class Missile extends Entity implements Threat {
         return kind() != Kind.SAM && kind() != Kind.BOMB;
     }
 
+    private final com.harddayz.Compat.Lerp lerp = new com.harddayz.Compat.Lerp(2);
+
     @Override
-    protected net.minecraft.world.entity.InterpolationHandler createInterpolationHandler() {
-        return net.minecraft.world.entity.LinearInterpolationHandler.create(this, 2);
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps, boolean teleport) {
+        lerp.set(x, y, z, yRot, xRot);
     }
 
     private void face(Vec3 v) {
@@ -150,7 +151,7 @@ public class Missile extends Entity implements Threat {
         if (level() instanceof ServerLevel level) {
             v = guide(level, v);
             setDeltaMovement(v);
-            if (tickCount > 4000 || getY() < level.getMinY() - 20) {
+            if (tickCount > 4000 || getY() < level.getMinBuildHeight() - 20) {
                 detonate(level, position());
                 return;
             }
@@ -177,7 +178,7 @@ public class Missile extends Entity implements Threat {
             setPos(position().add(v));
             face(v);
         } else {
-            getInterpolation().interpolate();
+            lerp.tick(this);
             trail(v);
             whistle(v);
         }
@@ -200,7 +201,7 @@ public class Missile extends Entity implements Threat {
         double dz = target.z - pos.z;
         double dh = Math.sqrt(dx * dx + dz * dz);
         // высокая дуга: минимум — почти под потолок мира, на дальние цели ещё выше
-        double ceiling = level.getMaxY() - 12;
+        double ceiling = level.getMaxBuildHeight() - 12;
         double apex = Math.min(1500, Math.max(ceiling, target.y + 160 + dh * 0.35));
         if (tickCount < 40 || (!diving && tickCount < 260 && pos.y < Math.min(apex, ceiling) - 30)) {
             // вертикальный старт с разгоном — до самого верха
@@ -231,7 +232,7 @@ public class Missile extends Entity implements Threat {
         return steer(v, desired, speed, turn);
     }
 
-    private @org.jspecify.annotations.Nullable Vec3 ground;
+    private @javax.annotation.Nullable Vec3 ground;
 
     /** Точка цели на реальной поверхности (по карте высот), а не на введённой высоте. */
     private Vec3 groundAim(ServerLevel level) {
@@ -270,10 +271,10 @@ public class Missile extends Entity implements Threat {
                 } else if (t instanceof Drone d) {
                     d.shotDown(level);
                 } else {
-                    t.hurtServer(level, damageSources().explosion(this, null), 30);
+                    t.hurt(damageSources().explosion(this, null), 30);
                 }
             } else if (t instanceof Drone d) {
-                d.hurtServer(level, damageSources().explosion(this, null), 2); // промах: лишь задело осколками
+                d.hurt(damageSources().explosion(this, null), 2); // промах: лишь задело осколками
             }
             detonate(level, at);
             return v;
@@ -333,7 +334,7 @@ public class Missile extends Entity implements Threat {
             }
             BlockHitResult hit = level.clip(new ClipContext(from, to, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
             if (hit.getType() != HitResult.Type.MISS) {
-                var n = hit.getDirection().getUnitVec3();
+                var n = Vec3.atLowerCornerOf(hit.getDirection().getNormal());
                 Vec3 r = v.subtract(n.scale(2 * v.dot(n))).scale(0.35); // отскок с потерей скорости
                 setDeltaMovement(r.lengthSqr() < 0.004 ? Vec3.ZERO : r);
                 setPos(hit.getLocation().add(n.scale(0.05)));
@@ -408,8 +409,8 @@ public class Missile extends Entity implements Threat {
 
     private void detonate(ServerLevel level, Vec3 at) {
         if (smoke) {
-            level.sendParticles(com.harddayz.registry.ModParticles.SMOKE_HUGE.get(), true, true, at.x, at.y + 1.5, at.z, 70, 3.5, 1.8, 3.5, 0.01);
-            level.sendParticles(net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, true, true, at.x, at.y + 1, at.z, 60, 3, 1, 3, 0.01);
+            com.harddayz.Compat.particles(level, com.harddayz.registry.ModParticles.SMOKE_HUGE.get(), at.x, at.y + 1.5, at.z, 70, 3.5, 1.8, 3.5, 0.01);
+            com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, at.x, at.y + 1, at.z, 60, 3, 1, 3, 0.01);
             level.playSound(null, at.x, at.y, at.z, net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH, net.minecraft.sounds.SoundSource.PLAYERS, 1.5f, 0.6f);
             discardSafely(level);
             return;
@@ -424,7 +425,7 @@ public class Missile extends Entity implements Threat {
                     level.setBlockAndUpdate(p, net.minecraft.world.level.block.Blocks.FIRE.defaultBlockState());
                 }
             }
-            level.sendParticles(net.minecraft.core.particles.ParticleTypes.FLAME, true, true, at.x, at.y + 1, at.z, 120, 3, 1.5, 3, 0.15);
+            com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, at.x, at.y + 1, at.z, 120, 3, 1.5, 3, 0.15);
         }
         discardSafely(level);
     }
@@ -538,17 +539,17 @@ public class Missile extends Entity implements Threat {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(KIND, 0);
-        builder.define(LOOK, 0);
+    protected void defineSynchedData() {
+        entityData.define(KIND, 0);
+        entityData.define(LOOK, 0);
     }
 
     @Override
-    protected void readAdditionalSaveData(ValueInput input) {
+    protected void readAdditionalSaveData(CompoundTag input) {
     }
 
     @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
+    protected void addAdditionalSaveData(CompoundTag output) {
     }
 
     @Override
@@ -562,7 +563,10 @@ public class Missile extends Entity implements Threat {
     }
 
     @Override
-    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+    public boolean hurt(DamageSource source, float damage) {
+        if (!(level() instanceof ServerLevel level)) {
+            return false;
+        }
         return false;
     }
 }

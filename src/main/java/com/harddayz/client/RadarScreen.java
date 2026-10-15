@@ -3,14 +3,13 @@ package com.harddayz.client;
 import com.harddayz.network.Net;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 
 /** Радарный экран: круговая развёртка вокруг игрока, метки целей, которые реально видят РЛС сети. */
-public class RadarScreen extends Screen {
+public class RadarScreen extends HdScreen {
     private static final int[] RANGES = {150, 300, 600, 1200};
     private Net.RadarState state;
     private int range = 2;
@@ -23,10 +22,10 @@ public class RadarScreen extends Screen {
 
     public static void onState(Net.RadarState s) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.gui.screen() instanceof RadarScreen r) {
+        if (mc.screen instanceof RadarScreen r) {
             r.state = s;
         } else if (s.open()) {
-            mc.gui.setScreen(new RadarScreen(s));
+            mc.setScreen(new RadarScreen(s));
         }
     }
 
@@ -48,8 +47,7 @@ public class RadarScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractBackground(g, mouseX, mouseY, a);
+    protected void background(Gfx g, int mouseX, int mouseY, float a) {
         int cx = width / 2;
         int cy = height / 2 - 6;
         int r = 104;
@@ -70,7 +68,7 @@ public class RadarScreen extends Screen {
         }
     }
 
-    private static void circle(GuiGraphicsExtractor g, int cx, int cy, int r, int col) {
+    private static void circle(Gfx g, int cx, int cy, int r, int col) {
         for (int i = 0; i < 180; i++) {
             double t = i * Math.PI * 2 / 180;
             int x = cx + (int) Math.round(Math.cos(t) * r);
@@ -80,8 +78,7 @@ public class RadarScreen extends Screen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractRenderState(g, mouseX, mouseY, a);
+    protected void content(Gfx g, int mouseX, int mouseY, float a) {
         Minecraft mc = Minecraft.getInstance();
         int cx = width / 2;
         int cy = height / 2 - 6;

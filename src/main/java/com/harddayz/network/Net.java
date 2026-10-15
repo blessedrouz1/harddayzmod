@@ -4,47 +4,71 @@ import com.harddayz.HardDayz;
 import com.harddayz.entity.Drone;
 import com.harddayz.entity.Launcher;
 
-import io.netty.buffer.ByteBuf;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import net.minecraft.core.BlockPos;
-import net.minecraft.network.codec.ByteBufCodecs;
-import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.resources.Identifier;
+import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.event.network.CustomPayloadEvent;
-import net.minecraftforge.network.ChannelBuilder;
 import net.minecraftforge.network.NetworkDirection;
+import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.PacketDistributor;
-import net.minecraftforge.network.SimpleChannel;
+import net.minecraftforge.network.simple.SimpleChannel;
 
 /** Сетевые пакеты мода (канал Forge). */
 public final class Net {
-    public static final SimpleChannel CHANNEL = ChannelBuilder.named(Identifier.fromNamespaceAndPath(HardDayz.MODID, "main"))
-            .networkProtocolVersion(1)
-            .simpleChannel();
+    private static final String PROTOCOL = "1";
+    public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(new ResourceLocation(HardDayz.MODID, "main"), () -> PROTOCOL,
+            PROTOCOL::equals, PROTOCOL::equals);
+    private static int nextId;
+
+    /** Обработчик пакета на главном потоке: пакет и контекст (отправитель). */
+    private interface Handler<T> {
+        void handle(T msg, NetworkEvent.Context ctx);
+    }
+
+    private static <T> void reg(Class<T> type, NetworkDirection dir, BiConsumer<T, FriendlyByteBuf> enc, Function<FriendlyByteBuf, T> dec,
+            Handler<T> handler) {
+        CHANNEL.messageBuilder(type, nextId++, dir).encoder(enc).decoder(dec).consumerMainThread((T msg, Supplier<NetworkEvent.Context> ctx) -> {
+            handler.handle(msg, ctx.get());
+        }).add();
+    }
+
+    private static void writeList(FriendlyByteBuf b, List<String> l) {
+        b.writeVarInt(l.size());
+        for (String s : l) {
+            b.writeUtf(s);
+        }
+    }
+
+    private static List<String> readList(FriendlyByteBuf b, int max) {
+        int n = readCount(b, max);
+        List<String> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            out.add(b.readUtf());
+        }
+        return out;
+    }
 
     private Net() {
     }
 
     /** Сервер → клиент: эффекты взрыва. */
     public record BlastFx(double x, double y, double z, float power) {
-        public static final StreamCodec<ByteBuf, BlastFx> CODEC = StreamCodec.composite(
-                ByteBufCodecs.DOUBLE, BlastFx::x, ByteBufCodecs.DOUBLE, BlastFx::y, ByteBufCodecs.DOUBLE, BlastFx::z,
-                ByteBufCodecs.FLOAT, BlastFx::power, BlastFx::new);
     }
 
     /** Клиент → сервер: приказ пусковой из окна управления. */
     public record FireOrder(int entity, int x, int y, int z, boolean fire, int slot) {
-        public static final StreamCodec<ByteBuf, FireOrder> CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, FireOrder::entity, ByteBufCodecs.VAR_INT, FireOrder::x, ByteBufCodecs.VAR_INT, FireOrder::y,
-                ByteBufCodecs.VAR_INT, FireOrder::z, ByteBufCodecs.BOOL, FireOrder::fire, ByteBufCodecs.VAR_INT, FireOrder::slot, FireOrder::new);
     }
 
     /** Клиент пилота → сервер: позиция дрона. */
     public record DroneMove(int entity, double x, double y, double z, float yaw, float pitch) {
-        public static final StreamCodec<ByteBuf, DroneMove> CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, DroneMove::entity, ByteBufCodecs.DOUBLE, DroneMove::x, ByteBufCodecs.DOUBLE, DroneMove::y,
-                ByteBufCodecs.DOUBLE, DroneMove::z, ByteBufCodecs.FLOAT, DroneMove::yaw, ByteBufCodecs.FLOAT, DroneMove::pitch, DroneMove::new);
     }
 
     /** Клиент пилота → сервер: огонь / отпустить управление. */
@@ -52,79 +76,54 @@ public final class Net {
         public static final int FIRE = 0;
         public static final int RELEASE = 1;
         public static final int ENGINE = 2;
-        public static final StreamCodec<ByteBuf, DroneAction> CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, DroneAction::entity, ByteBufCodecs.VAR_INT, DroneAction::action, DroneAction::new);
     }
 
     /** Клиент → сервер: новый список точек журнала целей в руке (x, y, z подряд). */
     public record LogEdit(boolean offhand, java.util.List<Integer> pts) {
-        public static final StreamCodec<ByteBuf, LogEdit> CODEC = StreamCodec.composite(ByteBufCodecs.BOOL, LogEdit::offhand,
-                ByteBufCodecs.VAR_INT.apply(ByteBufCodecs.list(com.harddayz.item.TargetLogItem.MAX * 3)), LogEdit::pts, LogEdit::new);
     }
 
     /** Сервер → клиент: итоги матча. Строка фракции: id;имя;очки;убийства;смерти;уничтожил;потерял;потратил;рубежи;игроков. */
     public record MatchEnd(String winner, java.util.List<String> rows) {
-        public static final StreamCodec<ByteBuf, MatchEnd> CODEC = StreamCodec.composite(ByteBufCodecs.STRING_UTF8, MatchEnd::winner,
-                ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(8)), MatchEnd::rows, MatchEnd::new);
     }
 
     /** Клиент пилота → сервер: записать точку, куда смотрит камера разведдрона. */
     public record DroneMark(int entity, int x, int y, int z) {
-        public static final StreamCodec<ByteBuf, DroneMark> CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, DroneMark::entity, ByteBufCodecs.VAR_INT, DroneMark::x, ByteBufCodecs.VAR_INT, DroneMark::y,
-                ByteBufCodecs.VAR_INT, DroneMark::z, DroneMark::new);
     }
 
     /** Сервер → клиент: трассер пулемёта. */
     public record Tracer(double x1, double y1, double z1, double x2, double y2, double z2, boolean block) {
-        public static final StreamCodec<ByteBuf, Tracer> CODEC = StreamCodec.composite(
-                ByteBufCodecs.DOUBLE, Tracer::x1, ByteBufCodecs.DOUBLE, Tracer::y1, ByteBufCodecs.DOUBLE, Tracer::z1,
-                ByteBufCodecs.DOUBLE, Tracer::x2, ByteBufCodecs.DOUBLE, Tracer::y2, ByteBufCodecs.DOUBLE, Tracer::z2,
-                ByteBufCodecs.BOOL, Tracer::block, Tracer::new);
     }
 
     /** Клиент → сервер: стрелок нажал ЛКМ. */
     /** Клиент → сервер: выстрел из ручного оружия в руке. */
     public record GunShot(boolean aiming) {
-        public static final StreamCodec<ByteBuf, GunShot> CODEC = ByteBufCodecs.BOOL.map(GunShot::new, GunShot::aiming);
     }
 
     /** Клиент → сервер: подствольник (G). */
     public record UnderFire() {
-        public static final StreamCodec<ByteBuf, UnderFire> CODEC = StreamCodec.unit(new UnderFire());
     }
 
     /** Клиент → сервер: точка дальномера в журнал целей. */
     public record LogMark(int x, int y, int z) {
-        public static final StreamCodec<ByteBuf, LogMark> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, LogMark::x, ByteBufCodecs.VAR_INT,
-                LogMark::y, ByteBufCodecs.VAR_INT, LogMark::z, LogMark::new);
     }
 
     /** Сервер → клиент: жизни команд в режиме «жизни» (строки «id;имя;жизни»), пусто — режим выключен. */
     public record Lives(java.util.List<String> rows) {
-        public static final StreamCodec<ByteBuf, Lives> CODEC = ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list(8)).map(Lives::new, Lives::rows);
     }
 
     /** Клиент пилота → сервер: оружие вертолёта / удар. */
     public record HeliFire(int entity, int weapon) {
-        public static final StreamCodec<ByteBuf, HeliFire> CODEC = StreamCodec.composite(ByteBufCodecs.VAR_INT, HeliFire::entity, ByteBufCodecs.VAR_INT,
-                HeliFire::weapon, HeliFire::new);
     }
 
     public record GunnerFire(int entity) {
-        public static final StreamCodec<ByteBuf, GunnerFire> CODEC = ByteBufCodecs.VAR_INT.map(GunnerFire::new, GunnerFire::entity);
     }
 
     /** Сервер → клиент: состояние снабжения фракции (открыть/обновить магазин). */
     public record ShopState(String faction, int budget, boolean commander, java.util.List<String> orders, boolean open) {
-        public static final StreamCodec<ByteBuf, ShopState> CODEC = StreamCodec.composite(
-                ByteBufCodecs.STRING_UTF8, ShopState::faction, ByteBufCodecs.VAR_INT, ShopState::budget, ByteBufCodecs.BOOL, ShopState::commander,
-                ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), ShopState::orders, ByteBufCodecs.BOOL, ShopState::open, ShopState::new);
     }
 
     /** Клиент → сервер: купить позицию каталога (-1 — просто обновить состояние). */
     public record ShopBuy(int index) {
-        public static final StreamCodec<ByteBuf, ShopBuy> CODEC = ByteBufCodecs.VAR_INT.map(ShopBuy::new, ShopBuy::index);
     }
 
     /** Собрать состояние магазина для игрока. */
@@ -134,7 +133,7 @@ public final class Net {
         if (f == null) {
             return new ShopState("", 0, false, orders, open);
         }
-        long now = p.level().getServer().overworld().getGameTime();
+        long now = p.getServer().overworld().getGameTime();
         for (var o : f.orders) {
             orders.add(o.entry + ";" + Math.max(0, (o.due - now) / 20) + ";" + o.by);
         }
@@ -143,19 +142,14 @@ public final class Net {
 
     /** Клиент → сервер: запросить картину радара (open — открыть экран). */
     public record RadarRequest(boolean open) {
-        public static final StreamCodec<ByteBuf, RadarRequest> CODEC = ByteBufCodecs.BOOL.map(RadarRequest::new, RadarRequest::open);
     }
 
     /** Сервер → клиент: метки целей относительно игрока «тип;dx;dz;высота;возраст». */
     public record RadarState(int radars, java.util.List<String> contacts, boolean open) {
-        public static final StreamCodec<ByteBuf, RadarState> CODEC = StreamCodec.composite(
-                ByteBufCodecs.VAR_INT, RadarState::radars, ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list()), RadarState::contacts,
-                ByteBufCodecs.BOOL, RadarState::open, RadarState::new);
     }
 
     /** Сервер → клиент: тревога на экране. */
     public record Alert(String text) {
-        public static final StreamCodec<ByteBuf, Alert> CODEC = ByteBufCodecs.STRING_UTF8.map(Alert::new, Alert::text);
     }
 
     public static RadarState radarState(ServerPlayer p, boolean open) {
@@ -169,30 +163,16 @@ public final class Net {
     }
 
     public static void init() {
-        CHANNEL.messageBuilder(RadarRequest.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(RadarRequest.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+        reg(RadarRequest.class, NetworkDirection.PLAY_TO_SERVER, Net::encRadarRequest, Net::decRadarRequest, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null) {
                         toPlayer(sp, radarState(sp, p.open()));
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(RadarState.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(RadarState.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.RadarScreen.onState(p))
-                .add();
-        CHANNEL.messageBuilder(Alert.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(Alert.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientSetup.alert(p.text()))
-                .add();
-        CHANNEL.messageBuilder(ShopState.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(ShopState.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ShopScreen.onState(p))
-                .add();
-        CHANNEL.messageBuilder(ShopBuy.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(ShopBuy.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(RadarState.class, NetworkDirection.PLAY_TO_CLIENT, Net::encRadarState, Net::decRadarState, (p, ctx) -> com.harddayz.client.RadarScreen.onState(p));
+        reg(Alert.class, NetworkDirection.PLAY_TO_CLIENT, Net::encAlert, Net::decAlert, (p, ctx) -> com.harddayz.client.ClientSetup.alert(p.text()));
+        reg(ShopState.class, NetworkDirection.PLAY_TO_CLIENT, Net::encShopState, Net::decShopState, (p, ctx) -> com.harddayz.client.ShopScreen.onState(p));
+        reg(ShopBuy.class, NetworkDirection.PLAY_TO_SERVER, Net::encShopBuy, Net::decShopBuy, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp == null) {
                         return;
@@ -200,28 +180,19 @@ public final class Net {
                     if (p.index() >= 0) {
                         var err = com.harddayz.war.Supply.buy(sp, p.index());
                         if (err != null) {
-                            sp.sendOverlayMessage(err.copy().withStyle(net.minecraft.ChatFormatting.RED));
+                            sp.displayClientMessage(err.copy().withStyle(net.minecraft.ChatFormatting.RED), true);
                         }
                     }
                     toPlayer(sp, shopState(sp, false));
-                })
-                .add();
-        CHANNEL.messageBuilder(Tracer.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(Tracer.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientGunner.tracer(p))
-                .add();
-        CHANNEL.messageBuilder(UnderFire.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(UnderFire.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(Tracer.class, NetworkDirection.PLAY_TO_CLIENT, Net::encTracer, Net::decTracer, (p, ctx) -> com.harddayz.client.ClientGunner.tracer(p));
+        reg(UnderFire.class, NetworkDirection.PLAY_TO_SERVER, Net::encUnderFire, Net::decUnderFire, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
                         g.fireUnder(sp, sp.getMainHandItem());
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(LogMark.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(LogMark.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(LogMark.class, NetworkDirection.PLAY_TO_SERVER, Net::encLogMark, Net::decLogMark, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     BlockPos pos = new BlockPos(p.x(), p.y(), p.z());
                     if (sp == null || !sp.getMainHandItem().is(com.harddayz.registry.ModItems.RANGEFINDER.get())
@@ -232,75 +203,45 @@ public final class Net {
                         var s = sp.getInventory().getItem(i);
                         if (s.is(com.harddayz.registry.ModItems.TARGET_LOG.get())) {
                             int n = com.harddayz.item.TargetLogItem.add(s, pos);
-                            sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, p.x(), p.y(), p.z())
-                                    .withStyle(net.minecraft.ChatFormatting.GREEN));
+                            sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.point_saved", n, p.x(), p.y(), p.z())
+                                    .withStyle(net.minecraft.ChatFormatting.GREEN), true);
                             return;
                         }
                     }
-                    sp.sendOverlayMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log")
-                            .withStyle(net.minecraft.ChatFormatting.RED));
-                })
-                .add();
-        CHANNEL.messageBuilder(Lives.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(Lives.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientAccess.lives(p.rows()))
-                .add();
-        CHANNEL.messageBuilder(HeliFire.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(HeliFire.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                    sp.displayClientMessage(net.minecraft.network.chat.Component.translatable("message.harddayz.no_log")
+                            .withStyle(net.minecraft.ChatFormatting.RED), true);
+                });
+        reg(Lives.class, NetworkDirection.PLAY_TO_CLIENT, Net::encLives, Net::decLives, (p, ctx) -> com.harddayz.client.ClientAccess.lives(p.rows()));
+        reg(HeliFire.class, NetworkDirection.PLAY_TO_SERVER, Net::encHeliFire, Net::decHeliFire, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l) {
                         l.heliFire(sp, p.weapon());
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(GunShot.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(GunShot.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(GunShot.class, NetworkDirection.PLAY_TO_SERVER, Net::encGunShot, Net::decGunShot, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.getVehicle() == null && !com.harddayz.war.Medic.isDowned(sp)
                             && sp.getMainHandItem().getItem() instanceof com.harddayz.item.GunItem g) {
                         g.shoot(sp, sp.getMainHandItem(), p.aiming());
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(GunnerFire.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(GunnerFire.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(GunnerFire.class, NetworkDirection.PLAY_TO_SERVER, Net::encGunnerFire, Net::decGunnerFire, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l) {
                         l.gunnerFire(sp);
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(BlastFx.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(BlastFx.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientBlasts.add(p))
-                .add();
-        CHANNEL.messageBuilder(FireOrder.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(FireOrder.CODEC.cast())
-                .consumerMainThread(Net::onFireOrder)
-                .add();
-        CHANNEL.messageBuilder(DroneMove.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(DroneMove.CODEC.cast())
-                .consumerMainThread(Net::onDroneMove)
-                .add();
-        CHANNEL.messageBuilder(DroneMark.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(DroneMark.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(BlastFx.class, NetworkDirection.PLAY_TO_CLIENT, Net::encBlastFx, Net::decBlastFx, (p, ctx) -> com.harddayz.client.ClientBlasts.add(p));
+        reg(FireOrder.class, NetworkDirection.PLAY_TO_SERVER, Net::encFireOrder, Net::decFireOrder, Net::onFireOrder);
+        reg(DroneMove.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneMove, Net::decDroneMove, Net::onDroneMove);
+        reg(DroneMark.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneMark, Net::decDroneMark, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.level().getEntity(p.entity()) instanceof Drone d) {
                         d.pilotMark(sp, new BlockPos(p.x(), p.y(), p.z()));
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(MatchEnd.class, NetworkDirection.PLAY_TO_CLIENT)
-                .codec(MatchEnd.CODEC.cast())
-                .consumerMainThread((p, ctx) -> com.harddayz.client.ClientAccess.matchEnd(p.winner(), p.rows()))
-                .add();
-        CHANNEL.messageBuilder(LogEdit.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(LogEdit.CODEC.cast())
-                .consumerMainThread((p, ctx) -> {
+                });
+        reg(MatchEnd.class, NetworkDirection.PLAY_TO_CLIENT, Net::encMatchEnd, Net::decMatchEnd, (p, ctx) -> com.harddayz.client.ClientAccess.matchEnd(p.winner(), p.rows()));
+        reg(LogEdit.class, NetworkDirection.PLAY_TO_SERVER, Net::encLogEdit, Net::decLogEdit, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null) {
                         var stack = sp.getItemInHand(p.offhand() ? net.minecraft.world.InteractionHand.OFF_HAND : net.minecraft.world.InteractionHand.MAIN_HAND);
@@ -308,15 +249,11 @@ public final class Net {
                             com.harddayz.item.TargetLogItem.set(stack, p.pts());
                         }
                     }
-                })
-                .add();
-        CHANNEL.messageBuilder(DroneAction.class, NetworkDirection.PLAY_TO_SERVER)
-                .codec(DroneAction.CODEC.cast())
-                .consumerMainThread(Net::onDroneAction)
-                .add();
+                });
+        reg(DroneAction.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneAction, Net::decDroneAction, Net::onDroneAction);
     }
 
-    private static void onFireOrder(FireOrder p, CustomPayloadEvent.Context ctx) {
+    private static void onFireOrder(FireOrder p, NetworkEvent.Context ctx) {
         ServerPlayer sp = ctx.getSender();
         if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l && l.distanceTo(sp) < 10) {
             BlockPos t = new BlockPos(p.x(), p.y(), p.z());
@@ -327,14 +264,14 @@ public final class Net {
         }
     }
 
-    private static void onDroneMove(DroneMove p, CustomPayloadEvent.Context ctx) {
+    private static void onDroneMove(DroneMove p, NetworkEvent.Context ctx) {
         ServerPlayer sp = ctx.getSender();
         if (sp != null && sp.level().getEntity(p.entity()) instanceof Drone d) {
             d.pilotMove(sp, new Vec3(p.x(), p.y(), p.z()), p.yaw(), p.pitch());
         }
     }
 
-    private static void onDroneAction(DroneAction p, CustomPayloadEvent.Context ctx) {
+    private static void onDroneAction(DroneAction p, NetworkEvent.Context ctx) {
         ServerPlayer sp = ctx.getSender();
         if (sp != null && sp.level().getEntity(p.entity()) instanceof Drone d && d.pilotId() == sp.getId()) {
             if (p.action() == DroneAction.FIRE) {
@@ -347,13 +284,220 @@ public final class Net {
         }
     }
 
+    // ------------------------------------------------------------------ кодеки
+
+    private static List<Integer> readInts(FriendlyByteBuf b) {
+        int n = readCount(b, com.harddayz.item.TargetLogItem.MAX * 3);
+        if (n % 3 != 0) {
+            throw new io.netty.handler.codec.DecoderException("Incomplete target coordinates");
+        }
+        List<Integer> out = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            out.add(b.readVarInt());
+        }
+        return out;
+    }
+
+    private static int readCount(FriendlyByteBuf b, int max) {
+        int count = b.readVarInt();
+        if (count < 0 || count > max) {
+            throw new io.netty.handler.codec.DecoderException("Invalid list size: " + count);
+        }
+        return count;
+    }
+
+    private static void encBlastFx(BlastFx m, FriendlyByteBuf b) {
+        b.writeDouble(m.x());
+        b.writeDouble(m.y());
+        b.writeDouble(m.z());
+        b.writeFloat(m.power());
+    }
+
+    private static BlastFx decBlastFx(FriendlyByteBuf b) {
+        return new BlastFx(b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat());
+    }
+
+    private static void encFireOrder(FireOrder m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+        b.writeVarInt(m.x());
+        b.writeVarInt(m.y());
+        b.writeVarInt(m.z());
+        b.writeBoolean(m.fire());
+        b.writeVarInt(m.slot());
+    }
+
+    private static FireOrder decFireOrder(FriendlyByteBuf b) {
+        return new FireOrder(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(), b.readVarInt());
+    }
+
+    private static void encDroneMove(DroneMove m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+        b.writeDouble(m.x());
+        b.writeDouble(m.y());
+        b.writeDouble(m.z());
+        b.writeFloat(m.yaw());
+        b.writeFloat(m.pitch());
+    }
+
+    private static DroneMove decDroneMove(FriendlyByteBuf b) {
+        return new DroneMove(b.readVarInt(), b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat(), b.readFloat());
+    }
+
+    private static void encDroneAction(DroneAction m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+        b.writeVarInt(m.action());
+    }
+
+    private static DroneAction decDroneAction(FriendlyByteBuf b) {
+        return new DroneAction(b.readVarInt(), b.readVarInt());
+    }
+
+    private static void encLogEdit(LogEdit m, FriendlyByteBuf b) {
+        b.writeBoolean(m.offhand());
+        b.writeVarInt(m.pts().size()); for (int v : m.pts()) { b.writeVarInt(v); }
+    }
+
+    private static LogEdit decLogEdit(FriendlyByteBuf b) {
+        return new LogEdit(b.readBoolean(), readInts(b));
+    }
+
+    private static void encMatchEnd(MatchEnd m, FriendlyByteBuf b) {
+        b.writeUtf(m.winner());
+        writeList(b, m.rows());
+    }
+
+    private static MatchEnd decMatchEnd(FriendlyByteBuf b) {
+        return new MatchEnd(b.readUtf(), readList(b, 4096));
+    }
+
+    private static void encDroneMark(DroneMark m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+        b.writeVarInt(m.x());
+        b.writeVarInt(m.y());
+        b.writeVarInt(m.z());
+    }
+
+    private static DroneMark decDroneMark(FriendlyByteBuf b) {
+        return new DroneMark(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt());
+    }
+
+    private static void encTracer(Tracer m, FriendlyByteBuf b) {
+        b.writeDouble(m.x1());
+        b.writeDouble(m.y1());
+        b.writeDouble(m.z1());
+        b.writeDouble(m.x2());
+        b.writeDouble(m.y2());
+        b.writeDouble(m.z2());
+        b.writeBoolean(m.block());
+    }
+
+    private static Tracer decTracer(FriendlyByteBuf b) {
+        return new Tracer(b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readDouble(), b.readBoolean());
+    }
+
+    private static void encGunShot(GunShot m, FriendlyByteBuf b) {
+        b.writeBoolean(m.aiming());
+    }
+
+    private static GunShot decGunShot(FriendlyByteBuf b) {
+        return new GunShot(b.readBoolean());
+    }
+
+    private static void encUnderFire(UnderFire m, FriendlyByteBuf b) {
+    }
+
+    private static UnderFire decUnderFire(FriendlyByteBuf b) {
+        return new UnderFire();
+    }
+
+    private static void encLogMark(LogMark m, FriendlyByteBuf b) {
+        b.writeVarInt(m.x());
+        b.writeVarInt(m.y());
+        b.writeVarInt(m.z());
+    }
+
+    private static LogMark decLogMark(FriendlyByteBuf b) {
+        return new LogMark(b.readVarInt(), b.readVarInt(), b.readVarInt());
+    }
+
+    private static void encLives(Lives m, FriendlyByteBuf b) {
+        writeList(b, m.rows());
+    }
+
+    private static Lives decLives(FriendlyByteBuf b) {
+        return new Lives(readList(b, 4096));
+    }
+
+    private static void encHeliFire(HeliFire m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+        b.writeVarInt(m.weapon());
+    }
+
+    private static HeliFire decHeliFire(FriendlyByteBuf b) {
+        return new HeliFire(b.readVarInt(), b.readVarInt());
+    }
+
+    private static void encGunnerFire(GunnerFire m, FriendlyByteBuf b) {
+        b.writeVarInt(m.entity());
+    }
+
+    private static GunnerFire decGunnerFire(FriendlyByteBuf b) {
+        return new GunnerFire(b.readVarInt());
+    }
+
+    private static void encShopState(ShopState m, FriendlyByteBuf b) {
+        b.writeUtf(m.faction());
+        b.writeVarInt(m.budget());
+        b.writeBoolean(m.commander());
+        writeList(b, m.orders());
+        b.writeBoolean(m.open());
+    }
+
+    private static ShopState decShopState(FriendlyByteBuf b) {
+        return new ShopState(b.readUtf(), b.readVarInt(), b.readBoolean(), readList(b, 4096), b.readBoolean());
+    }
+
+    private static void encShopBuy(ShopBuy m, FriendlyByteBuf b) {
+        b.writeVarInt(m.index());
+    }
+
+    private static ShopBuy decShopBuy(FriendlyByteBuf b) {
+        return new ShopBuy(b.readVarInt());
+    }
+
+    private static void encRadarRequest(RadarRequest m, FriendlyByteBuf b) {
+        b.writeBoolean(m.open());
+    }
+
+    private static RadarRequest decRadarRequest(FriendlyByteBuf b) {
+        return new RadarRequest(b.readBoolean());
+    }
+
+    private static void encRadarState(RadarState m, FriendlyByteBuf b) {
+        b.writeVarInt(m.radars());
+        writeList(b, m.contacts());
+        b.writeBoolean(m.open());
+    }
+
+    private static RadarState decRadarState(FriendlyByteBuf b) {
+        return new RadarState(b.readVarInt(), readList(b, 4096), b.readBoolean());
+    }
+
+    private static void encAlert(Alert m, FriendlyByteBuf b) {
+        b.writeUtf(m.text());
+    }
+
+    private static Alert decAlert(FriendlyByteBuf b) {
+        return new Alert(b.readUtf());
+    }
+
     // ------------------------------------------------------------------ отправка
 
     public static void toPlayer(ServerPlayer player, Object msg) {
-        CHANNEL.send(msg, PacketDistributor.PLAYER.with(player));
+        CHANNEL.send(PacketDistributor.PLAYER.with(() -> player), msg);
     }
 
     public static void toServer(Object msg) {
-        CHANNEL.send(msg, PacketDistributor.SERVER.noArg());
+        CHANNEL.sendToServer(msg);
     }
 }

@@ -1,12 +1,11 @@
 package com.harddayz.war;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.InsideBlockEffectApplier;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
@@ -15,7 +14,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
-import net.minecraft.world.level.block.state.properties.EnumProperty;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.CollisionContext;
 import net.minecraft.world.phys.shapes.Shapes;
@@ -26,7 +25,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
  * колючая проволока — замедляет и ранит.
  */
 public class EngBlock extends Block {
-    public static final EnumProperty<Direction> FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
 
     public enum Type {
         SOLID, NET, WIRE
@@ -55,24 +54,24 @@ public class EngBlock extends Block {
     }
 
     @Override
-    protected VoxelShape getShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
+    public VoxelShape getShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         Direction d = s.getValue(FACING);
         return d.getAxis() == Direction.Axis.Z ? north : east;
     }
 
     @Override
-    protected VoxelShape getCollisionShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
+    public VoxelShape getCollisionShape(BlockState s, BlockGetter level, BlockPos pos, CollisionContext ctx) {
         return type == Type.SOLID ? getShape(s, level, pos, ctx) : Shapes.empty();
     }
 
     @Override
-    protected void entityInside(BlockState s, Level level, BlockPos pos, Entity e, InsideBlockEffectApplier fx, boolean precise) {
+    public void entityInside(BlockState s, Level level, BlockPos pos, Entity e) {
         if (type != Type.WIRE) {
             return;
         }
         e.makeStuckInBlock(s, new Vec3(0.35, 0.3, 0.35));
         if (level instanceof ServerLevel sl && e instanceof LivingEntity le && le.tickCount % 15 == 0) {
-            le.hurtServer(sl, sl.damageSources().cactus(), 1.5f);
+            le.hurt(sl.damageSources().cactus(), 1.5f);
         }
     }
 }

@@ -248,7 +248,7 @@ public final class Supply {
         } else {
             ServerPlayer buyer = server.getPlayerList().getPlayerByName(o.by);
             if (buyer != null && !buyer.getInventory().add(stack)) {
-                buyer.spawnAtLocation(buyer.level(), stack);
+                buyer.spawnAtLocation(stack);
             }
         }
         Component where = at != null ? Component.translatable("message.harddayz.shop_where_base", at.getX(), at.getY(), at.getZ())

@@ -6,13 +6,12 @@ import com.harddayz.network.Net;
 import com.harddayz.war.Supply;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /** Планшет снабжения: каталог с ценами и сроками, бюджет фракции, активные поставки. */
-public class ShopScreen extends Screen {
+public class ShopScreen extends HdScreen {
     private static final int W = 360;
     private static final int H = 232;
     private static final int ROW = 22;
@@ -28,10 +27,10 @@ public class ShopScreen extends Screen {
 
     public static void onState(Net.ShopState s) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.gui.screen() instanceof ShopScreen open) {
+        if (mc.screen instanceof ShopScreen open) {
             open.state = s;
         } else if (s.open()) {
-            mc.gui.setScreen(new ShopScreen(s));
+            mc.setScreen(new ShopScreen(s));
         }
     }
 
@@ -69,7 +68,7 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mx, double my, double dx, double dy) {
+    public boolean mouseScrolled(double mx, double my, double dy) {
         int ns = Math.max(0, Math.min(Math.max(0, Supply.CATALOG.size() - VISIBLE), scroll - (int) Math.signum(dy)));
         if (ns != scroll) {
             scroll = ns;
@@ -86,16 +85,14 @@ public class ShopScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractBackground(g, mouseX, mouseY, a);
+    protected void background(Gfx g, int mouseX, int mouseY, float a) {
         g.fill(left(), top(), left() + W, top() + H, 0xEE10161A);
         g.outline(left(), top(), W, H, 0xFF5A8A70);
         g.fill(left() + 226, top() + 28, left() + 227, top() + H - 32, 0xFF2A4A3A);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractRenderState(g, mouseX, mouseY, a);
+    protected void content(Gfx g, int mouseX, int mouseY, float a) {
         int l = left();
         int t = top();
         g.text(font, title, l + 8, t + 8, 0xFFB8F0C8, true);

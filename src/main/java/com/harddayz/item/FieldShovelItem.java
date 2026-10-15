@@ -14,7 +14,6 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.block.Blocks;
 
@@ -44,14 +43,14 @@ public class FieldShovelItem extends Item {
         }
         if (dug > 0) {
             level.playSound(null, start, SoundEvents.ROOTED_DIRT_BREAK, SoundSource.BLOCKS, 1.2f, 0.8f);
-            ctx.getItemInHand().hurtAndBreak(1, ctx.getPlayer(), ctx.getHand());
-            ctx.getPlayer().getCooldowns().addCooldown(ctx.getItemInHand(), 15);
+            ctx.getItemInHand().hurtAndBreak(1, ctx.getPlayer(), pl -> pl.broadcastBreakEvent(ctx.getHand()));
+            ctx.getPlayer().getCooldowns().addCooldown(ctx.getItemInHand().getItem(), 15);
         }
         return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable("item.harddayz.field_shovel.desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable("item.harddayz.field_shovel.desc").withStyle(ChatFormatting.GRAY));
     }
 }

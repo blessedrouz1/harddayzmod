@@ -8,3 +8,4 @@ sound_backup/
 !gradle/wrapper/gradle-wrapper.jar
 КОМАНДЫ.txt
 release.ps1
+.DS_Store

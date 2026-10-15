@@ -11,11 +11,9 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionResult;
-import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.phys.Vec3;
 
@@ -34,7 +32,7 @@ public class MineItem extends Item {
             return InteractionResult.SUCCESS;
         }
         Vec3 at = Vec3.atBottomCenterOf(ctx.getClickedPos().above());
-        Mine m = ModEntities.MINE.get().create(level, EntitySpawnReason.SPAWN_ITEM_USE);
+        Mine m = ModEntities.MINE.get().create(level);
         if (m == null) {
             return InteractionResult.FAIL;
         }
@@ -43,12 +41,12 @@ public class MineItem extends Item {
         m.setYRot(level.getRandom().nextFloat() * 360);
         level.addFreshEntity(m);
         level.playSound(null, m.blockPosition(), SoundEvents.GRAVEL_PLACE, SoundSource.BLOCKS, 1f, 0.8f);
-        ctx.getItemInHand().consume(1, ctx.getPlayer());
+        com.harddayz.Compat.consume(ctx.getItemInHand(), ctx.getPlayer());
         return InteractionResult.SUCCESS;
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
     }
 }

@@ -13,7 +13,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
 /** Обвес на оружие: ПКМ, держа ствол в другой руке, — поставить (старый обвес возвращается в инвентарь). */
@@ -28,21 +27,21 @@ public class AttachmentItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         ItemStack gun = player.getItemInHand(hand == InteractionHand.MAIN_HAND ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND);
         if (!(gun.getItem() instanceof GunItem g) || g.spec.rocket()) {
             if (player instanceof ServerPlayer sp) {
-                sp.sendOverlayMessage(Component.translatable("message.harddayz.attach_hint").withStyle(ChatFormatting.YELLOW));
+                sp.displayClientMessage(Component.translatable("message.harddayz.attach_hint").withStyle(ChatFormatting.YELLOW), true);
             }
-            return InteractionResult.FAIL;
+            return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
         }
         if (player instanceof ServerPlayer sp) {
             String old = GunItem.part(gun, slot);
             if (old.equals(value)) {
-                return InteractionResult.FAIL;
+                return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.FAIL, player.getItemInHand(hand));
             }
             GunItem.setPart(gun, slot, value);
-            player.getItemInHand(hand).consume(1, player);
+            com.harddayz.Compat.consume(player.getItemInHand(hand), player);
             Item back = switch (old) {
                 case "reddot" -> com.harddayz.registry.ModItems.RED_DOT.get();
                 case "scope" -> com.harddayz.registry.ModItems.SCOPE.get();
@@ -54,16 +53,16 @@ public class AttachmentItem extends Item {
             if (back != null) {
                 ItemStack b = new ItemStack(back);
                 if (!sp.getInventory().add(b)) {
-                    sp.spawnAtLocation(sp.level(), b);
+                    sp.spawnAtLocation(b);
                 }
             }
-            level.playSound(null, sp.blockPosition(), SoundEvents.ARMOR_EQUIP_IRON.value(), SoundSource.PLAYERS, 1f, 1.4f);
+            level.playSound(null, sp.blockPosition(), SoundEvents.ARMOR_EQUIP_IRON, SoundSource.PLAYERS, 1f, 1.4f);
         }
-        return InteractionResult.SUCCESS;
+        return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable("item.harddayz.attachment.desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable("item.harddayz.attachment.desc").withStyle(ChatFormatting.GRAY));
     }
 }

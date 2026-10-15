@@ -5,36 +5,35 @@ import com.harddayz.entity.Mine;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
-import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelLayerLocation;
 import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.model.geom.PartPose;
 import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
-import net.minecraft.client.renderer.entity.state.EntityRenderState;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /** Мины: противопехотная (маленькая, с нажимной крышкой) и противотанковая (большой диск со взрывателем). */
-public class MineRenderer extends EntityRenderer<Mine, MineRenderer.State> {
-    public static final ModelLayerLocation AP = new ModelLayerLocation(Identifier.fromNamespaceAndPath(HardDayz.MODID, "mine_ap"), "main");
-    public static final ModelLayerLocation AT = new ModelLayerLocation(Identifier.fromNamespaceAndPath(HardDayz.MODID, "mine_at"), "main");
+public class MineRenderer extends EntityRenderer<Mine> {
+    public static final ModelLayerLocation AP = new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "mine_ap"), "main");
+    public static final ModelLayerLocation AT = new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, "mine_at"), "main");
 
-    public static class State extends EntityRenderState {
+    public static class State {
+        int lightCoords;
         Mine.Kind kind = Mine.Kind.AP;
         float yaw;
     }
 
-    static class M extends Model<State> {
+    static class M extends HdModel<State> {
         M(ModelPart root) {
-            super(root, RenderTypes::entityCutout);
+            super(root);
         }
     }
 
@@ -74,27 +73,35 @@ public class MineRenderer extends EntityRenderer<Mine, MineRenderer.State> {
         this.shadowRadius = 0.2f;
     }
 
-    @Override
     public State createRenderState() {
         return new State();
     }
 
-    @Override
-    public void extractRenderState(Mine e, State s, float pt) {
-        super.extractRenderState(e, s, pt);
+    private void extractRenderState(Mine e, State s, float pt) {
         s.kind = e.kind();
         s.yaw = e.getYRot();
     }
 
     @Override
-    public void submit(State s, PoseStack pose, SubmitNodeCollector collector, CameraRenderState camera) {
+    public ResourceLocation getTextureLocation(Mine e) {
+        return LauncherRenderer.PALETTE;
+    }
+
+    @Override
+    public void render(Mine e, float yaw, float pt, PoseStack pose, MultiBufferSource buffers, int light) {
+        State s = createRenderState();
+        extractRenderState(e, s, pt);
+        s.lightCoords = light;
+        draw(s, pose, buffers);
+        super.render(e, yaw, pt, pose, buffers, light);
+    }
+
+    private void draw(State s, PoseStack pose, MultiBufferSource buffers) {
         pose.pushPose();
-        pose.rotate(Axis.YP.rotationDegrees(s.yaw));
+        pose.mulPose(Axis.YP.rotationDegrees(s.yaw));
         pose.scale(-1, -1, 1);
         pose.translate(0, -1.501f, 0);
-        collector.submitModel(s.kind == Mine.Kind.AT ? at : ap, s, pose, RenderTypes.entityCutout(LauncherRenderer.PALETTE), s.lightCoords,
-                OverlayTexture.NO_OVERLAY, s.outlineColor);
+        (s.kind == Mine.Kind.AT ? at : ap).render(s, pose, buffers, RenderType.entityCutout(LauncherRenderer.PALETTE), s.lightCoords);
         pose.popPose();
-        super.submit(s, pose, collector, camera);
     }
 }

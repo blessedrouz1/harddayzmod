@@ -29,19 +29,33 @@ public final class WarEvents {
     }
 
     public static void init() {
-        ServerStartedEvent.BUS.addListener(e -> War.load(e.getServer()));
-        ServerStoppingEvent.BUS.addListener(e -> {
+        var bus = net.minecraftforge.common.MinecraftForge.EVENT_BUS;
+        bus.addListener((ServerStartedEvent e) -> War.load(e.getServer()));
+        bus.addListener((ServerStoppingEvent e) -> {
             War.unload();
             RadarNet.clear();
             Frontline.clear();
         });
-        RegisterCommandsEvent.BUS.addListener(WarEvents::commands);
-        TickEvent.ServerTickEvent.Post.BUS.addListener(WarEvents::tick);
-        PlayerEvent.PlayerLoggedInEvent.BUS.addListener(e -> {
+        bus.addListener(WarEvents::commands);
+        bus.addListener((TickEvent.ServerTickEvent e) -> {
+            if (e.phase == TickEvent.Phase.END) {
+                tick(e.getServer());
+            }
+        });
+        bus.addListener((PlayerEvent.PlayerLoggedInEvent e) -> {
             War.syncTeams();
             War.sendLives();
         });
-        net.minecraftforge.event.entity.living.LivingDeathEvent.BUS.addListener(e -> {
+        bus.addListener((net.minecraftforge.event.entity.living.LivingDeathEvent e) -> {
+            if (onDeath(e)) {
+                e.setCanceled(true);
+            }
+        });
+    }
+
+    /** true — отменить смерть (игрок упал раненым). */
+    private static boolean onDeath(net.minecraftforge.event.entity.living.LivingDeathEvent e) {
+        {
             if (e.getEntity() instanceof ServerPlayer p0 && Medic.tryDown(p0, e.getSource())) {
                 return true; // упал раненым — ещё не смерть
             }
@@ -73,13 +87,12 @@ public final class WarEvents {
             }
             War.save();
             return false;
-        });
+        }
     }
 
     // ------------------------------------------------------------------ проверка штабов: уничтожен — снимаем
 
-    private static void tick(TickEvent.ServerTickEvent.Post event) {
-        var server = event.server();
+    private static void tick(net.minecraft.server.MinecraftServer server) {
         RadarNet.tick(server);
         if (server.getTickCount() % 40 == 0) {
             ServerLevel lv = server.overworld();
@@ -175,8 +188,8 @@ public final class WarEvents {
         MutableComponent line = Component.translatable("message.harddayz.war_choose").withStyle(ChatFormatting.GRAY);
         for (War.Faction f : War.factions()) {
             line.append("  ").append(Component.literal("[" + f.name + "]").withStyle(s -> s.withColor(f.format()).withBold(true)
-                    .withClickEvent(new ClickEvent.RunCommand("/war join " + f.id))
-                    .withHoverEvent(new HoverEvent.ShowText(Component.translatable("message.harddayz.war_join_hover", f.name)))));
+                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/war join " + f.id))
+                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("message.harddayz.war_join_hover", f.name)))));
         }
         return line;
     }
@@ -215,7 +228,7 @@ public final class WarEvents {
 
     private static void give(ServerPlayer p, net.minecraft.world.item.ItemStack s) {
         if (!p.getInventory().add(s)) {
-            p.spawnAtLocation(p.level(), s);
+            p.spawnAtLocation(s);
         }
     }
 
@@ -236,7 +249,7 @@ public final class WarEvents {
             c.getSource().sendFailure(Component.translatable("message.harddayz.war_none"));
             return 0;
         }
-        if (!War.isCreator(p.getUUID()) && !c.getSource().permissions().hasPermission(net.minecraft.server.permissions.Permissions.COMMANDS_GAMEMASTER)) {
+        if (!War.isCreator(p.getUUID()) && !c.getSource().hasPermission(2)) {
             c.getSource().sendFailure(Component.translatable("message.harddayz.war_no_rights"));
             return 0;
         }
@@ -263,7 +276,7 @@ public final class WarEvents {
                 if (m.equals(f.commander)) {
                     n = "★" + n;
                 }
-                names.append(names.isEmpty() ? "" : ", ").append(n);
+                names.append(names.length() == 0 ? "" : ", ").append(n);
             }
             Component line = Component.empty().append(f.title())
                     .append(Component.translatable("message.harddayz.war_status_score", f.score, War.targetScore()).withStyle(ChatFormatting.GOLD))
@@ -271,7 +284,7 @@ public final class WarEvents {
                             : Component.empty())
                     .append(Component.translatable("message.harddayz.war_status_line", f.members.size(), f.budget, f.hqs.size(), War.MAX_HQ,
                             f.defeated ? Component.translatable("message.harddayz.war_defeated") : Component.empty()).withStyle(ChatFormatting.GRAY))
-                    .append(Component.literal(names.isEmpty() ? "" : "  " + names).withStyle(ChatFormatting.DARK_GRAY));
+                    .append(Component.literal(names.length() == 0 ? "" : "  " + names).withStyle(ChatFormatting.DARK_GRAY));
             src.sendSuccess(() -> line, false);
         }
         for (Frontline.Point p : War.points()) {

@@ -2,7 +2,7 @@ package com.harddayz.entity;
 
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
@@ -12,8 +12,6 @@ import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.InterpolationHandler;
-import net.minecraft.world.entity.LinearInterpolationHandler;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.entity.player.Player;
@@ -169,20 +167,27 @@ public abstract class Vehicle extends Entity {
         return 1.1f;
     }
 
-    @Override
-    protected InterpolationHandler createInterpolationHandler() {
-        return LinearInterpolationHandler.create(this, 3);
-    }
+    /** Плавное движение машины у других игроков (позиции с сервера). */
+    private final com.harddayz.Compat.Lerp lerp = new com.harddayz.Compat.Lerp(3);
 
     @Override
-    public Vec3 getPassengerRidingPosition(Entity passenger) {
+    public void lerpTo(double x, double y, double z, float yRot, float xRot, int steps, boolean teleport) {
+        lerp.set(x, y, z, yRot, xRot);
+    }
+
+    /** Точка посадки пассажира (как getPassengerRidingPosition в новых версиях): ноги игрока на 0.6 ниже точки места. */
+    public Vec3 seatPosition(Entity passenger) {
         Vec3 s = seat(Math.max(0, getPassengers().indexOf(passenger)));
         return local(s.x, s.y, s.z);
     }
 
     @Override
     protected void positionRider(Entity passenger, MoveFunction move) {
-        super.positionRider(passenger, move);
+        if (!hasPassenger(passenger)) {
+            return;
+        }
+        Vec3 p = seatPosition(passenger);
+        move.accept(passenger, p.x, p.y - (passenger instanceof Player ? 0.6 : 0) + (passenger instanceof Player ? 0 : passenger.getMyRidingOffset()), p.z);
         float dy = Mth.wrapDegrees(getYRot() - yRotO);
         passenger.setYRot(passenger.getYRot() + dy);
         passenger.setYHeadRot(passenger.getYHeadRot() + dy);
@@ -199,10 +204,10 @@ public abstract class Vehicle extends Entity {
     public void tick() {
         super.tick();
         outrig.tick(entityData.get(OUTRIG), false);
-        if (isLocalInstanceAuthoritative()) {
+        if (isControlledByLocalInstance()) {
             drive();
         } else if (level().isClientSide()) {
-            getInterpolation().interpolate();
+            lerp.tick(this);
         }
         if (level().isClientSide()) {
             if (!engineSound && this instanceof Launcher l && com.harddayz.client.VehicleSound.wants(l)) {
@@ -300,7 +305,7 @@ public abstract class Vehicle extends Entity {
     }
 
     @Override
-    public boolean canBeCollidedWith(@Nullable Entity other) {
+    public boolean canBeCollidedWith() {
         return true;
     }
 
@@ -310,9 +315,9 @@ public abstract class Vehicle extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(FACTION, -1);
-        builder.define(HEALTH, 100f);
-        builder.define(OUTRIG, 0f);
+    protected void defineSynchedData() {
+        entityData.define(FACTION, -1);
+        entityData.define(HEALTH, 100f);
+        entityData.define(OUTRIG, 0f);
     }
 }

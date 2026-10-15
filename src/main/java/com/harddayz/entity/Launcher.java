@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.item.DesignatorItem;
 import com.harddayz.registry.ModItems;
@@ -31,8 +31,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
@@ -206,7 +205,7 @@ public class Launcher extends Vehicle implements Threat {
     }
 
     /** Вид дрона по предмету-боеприпасу, или null. */
-    public static Drone.@Nullable Kind droneKind(ItemStack s) {
+    public static @javax.annotation.Nullable Drone.Kind droneKind(ItemStack s) {
         if (s.is(ModItems.SHAHED_DRONE.get())) {
             return Drone.Kind.SHAHED;
         }
@@ -455,7 +454,7 @@ public class Launcher extends Vehicle implements Threat {
     }
 
     /** Луч по сущностям: у техники хитбокс чуть шире, чтобы снаряд не проходил «сквозь» модель. */
-    public static net.minecraft.world.phys.@Nullable EntityHitResult rayEntity(ServerLevel level, Entity shooter, Vec3 from, Vec3 to,
+    public static @javax.annotation.Nullable net.minecraft.world.phys.EntityHitResult rayEntity(ServerLevel level, Entity shooter, Vec3 from, Vec3 to,
             java.util.function.Predicate<Entity> ok) {
         Entity best = null;
         Vec3 bestAt = null;
@@ -504,7 +503,7 @@ public class Launcher extends Vehicle implements Threat {
     // ------------------------------------------------------------------ взаимодействие
 
     @Override
-    public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+    public InteractionResult interact(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
         if (kind().accepts(stack)) {
             if (!level().isClientSide()) {
@@ -512,7 +511,7 @@ public class Launcher extends Vehicle implements Threat {
                 if (kind() == Kind.MG || kind() == Kind.PICKUP_MG) {
                     int belts = Math.min(stack.getCount(), (kind().capacity - ammo()) / 50);
                     if (belts <= 0) {
-                        player.sendOverlayMessage(Component.translatable("message.harddayz.full").withStyle(ChatFormatting.YELLOW));
+                        player.displayClientMessage(Component.translatable("message.harddayz.full").withStyle(ChatFormatting.YELLOW), true);
                         return InteractionResult.SUCCESS;
                     }
                     if (!player.isCreative()) {
@@ -520,7 +519,7 @@ public class Launcher extends Vehicle implements Threat {
                     }
                     entityData.set(AMMO, ammo() + belts * 50);
                     level().playSound(null, blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 1f, 0.8f);
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.loaded", ammo(), kind().capacity).withStyle(ChatFormatting.GREEN));
+                    player.displayClientMessage(Component.translatable("message.harddayz.loaded", ammo(), kind().capacity).withStyle(ChatFormatting.GREEN), true);
                     return InteractionResult.SUCCESS;
                 }
                 if (kind().dronePad()) {
@@ -530,7 +529,7 @@ public class Launcher extends Vehicle implements Threat {
                     }
                 }
                 if (n <= 0) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.full").withStyle(ChatFormatting.YELLOW));
+                    player.displayClientMessage(Component.translatable("message.harddayz.full").withStyle(ChatFormatting.YELLOW), true);
                     return InteractionResult.SUCCESS;
                 }
                 if (!player.isCreative()) {
@@ -538,24 +537,24 @@ public class Launcher extends Vehicle implements Threat {
                 }
                 entityData.set(AMMO, ammo() + n);
                 level().playSound(null, blockPosition(), SoundEvents.IRON_DOOR_CLOSE, SoundSource.BLOCKS, 1f, 0.6f);
-                player.sendOverlayMessage(Component.translatable("message.harddayz.loaded", ammo(), kind().capacity).withStyle(ChatFormatting.GREEN));
+                player.displayClientMessage(Component.translatable("message.harddayz.loaded", ammo(), kind().capacity).withStyle(ChatFormatting.GREEN), true);
             }
             return InteractionResult.SUCCESS;
         }
         if (stack.is(ModItems.JERRYCAN.get()) && usesFuel()) {
             if (!level().isClientSide()) {
                 if (fuel() >= tank() - 0.5f) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.tank_full").withStyle(ChatFormatting.YELLOW));
+                    player.displayClientMessage(Component.translatable("message.harddayz.tank_full").withStyle(ChatFormatting.YELLOW), true);
                 } else {
                     refuel(40);
                     if (!player.isCreative()) {
                         stack.shrink(1);
                         if (!player.getInventory().add(new ItemStack(ModItems.EMPTY_JERRYCAN.get()))) {
-                            spawnAtLocation((ServerLevel) level(), new ItemStack(ModItems.EMPTY_JERRYCAN.get()));
+                            spawnAtLocation(new ItemStack(ModItems.EMPTY_JERRYCAN.get()));
                         }
                     }
                     level().playSound(null, blockPosition(), SoundEvents.BUCKET_EMPTY, SoundSource.PLAYERS, 1f, 0.8f);
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.refueled", (int) fuel(), (int) tank()).withStyle(ChatFormatting.GREEN));
+                    player.displayClientMessage(Component.translatable("message.harddayz.refueled", (int) fuel(), (int) tank()).withStyle(ChatFormatting.GREEN), true);
                 }
             }
             return InteractionResult.SUCCESS;
@@ -599,23 +598,23 @@ public class Launcher extends Vehicle implements Threat {
     /** Приказ на пуск по точке. */
     public void order(ServerPlayer player, BlockPos t) {
         if (kind() == Kind.EW) {
-            player.sendOverlayMessage(Component.translatable("message.harddayz.ew_auto").withStyle(ChatFormatting.YELLOW));
+            player.displayClientMessage(Component.translatable("message.harddayz.ew_auto").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         if (kind().samLike() && kind() != Kind.S400) {
-            player.sendOverlayMessage(Component.translatable("message.harddayz.sam_auto").withStyle(ChatFormatting.YELLOW));
+            player.displayClientMessage(Component.translatable("message.harddayz.sam_auto").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         if (ammo() <= 0) {
-            player.sendOverlayMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED));
+            player.displayClientMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (state != State.IDLE) {
-            player.sendOverlayMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW));
+            player.displayClientMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         if (!stationary()) {
-            player.sendOverlayMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW));
+            player.displayClientMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         Vec3 tv = Vec3.atCenterOf(t);
@@ -624,7 +623,7 @@ public class Launcher extends Vehicle implements Threat {
             case MORTAR -> {
                 Double elev = mortarElevation(tv);
                 if (elev == null) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, MORTAR_RANGE).withStyle(ChatFormatting.RED));
+                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, MORTAR_RANGE).withStyle(ChatFormatting.RED), true);
                     return;
                 }
                 entityData.set(WANT_ELEV, elev.floatValue());
@@ -633,7 +632,7 @@ public class Launcher extends Vehicle implements Threat {
             case GRAD, GRAD_P, TOS -> {
                 Double elev = gradElevation(tv);
                 if (elev == null) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, (int) maxGradRange()).withStyle(ChatFormatting.RED));
+                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, (int) maxGradRange()).withStyle(ChatFormatting.RED), true);
                     return;
                 }
                 entityData.set(WANT_ELEV, elev.floatValue());
@@ -641,7 +640,7 @@ public class Launcher extends Vehicle implements Threat {
             }
             case SHAHED, RAMP -> {
                 if (dist < 80 || dist > Drone.SHAHED_RANGE) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED));
+                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
                     return;
                 }
                 entityData.set(WANT_ELEV, 18f);
@@ -650,7 +649,7 @@ public class Launcher extends Vehicle implements Threat {
             default -> {
                 int max = kind() == Kind.S400 ? 1500 : kind() == Kind.HIMARS ? 1800 : com.harddayz.Config.ballisticRange();
                 if (dist > max || dist < 60) {
-                    player.sendOverlayMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED));
+                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
                     return;
                 }
             }
@@ -660,7 +659,7 @@ public class Launcher extends Vehicle implements Threat {
         entityData.set(OUTRIG, kind().mobile ? 1f : 0f);
         timer = 0;
         shot = 0;
-        player.sendOverlayMessage(Component.translatable("message.harddayz.order", t.getX(), t.getY(), t.getZ(), (int) dist).withStyle(ChatFormatting.GOLD));
+        player.displayClientMessage(Component.translatable("message.harddayz.order", t.getX(), t.getY(), t.getZ(), (int) dist).withStyle(ChatFormatting.GOLD), true);
         level().playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.2f, 0.5f);
     }
 
@@ -742,7 +741,7 @@ public class Launcher extends Vehicle implements Threat {
         }
         // заряженная пусковая держит свой участок мира загруженным
         if ((ammo() > 0 || kind() == Kind.RELAY) && tickCount % 20 == 0) {
-            level.getChunkSource().addTicketWithRadius(net.minecraft.server.level.TicketType.ENDER_PEARL, chunkPosition(), 2);
+            com.harddayz.Compat.ticket(level, chunkPosition(), 2);
         }
         if (flash() > 0) {
             entityData.set(FLASH, flash() - 1);
@@ -752,7 +751,7 @@ public class Launcher extends Vehicle implements Threat {
             boolean moving = !stationary() || (kind().heli() && !onGround());
             entityData.set(FUEL, Math.max(0, fuel() - burn() * (moving ? 1 : 0.33f)));
             if (fuel() <= 0 && getControllingPassenger() instanceof ServerPlayer d) {
-                d.sendOverlayMessage(Component.translatable("message.harddayz.no_fuel").withStyle(ChatFormatting.RED));
+                d.displayClientMessage(Component.translatable("message.harddayz.no_fuel").withStyle(ChatFormatting.RED), true);
             }
         }
         if (kind().dronePad()) {
@@ -868,9 +867,9 @@ public class Launcher extends Vehicle implements Threat {
         }
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 3);
-        level.sendParticles(ParticleTypes.LARGE_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 10, 0.4, 0.4, 0.4, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.LARGE_SMOKE, muzzle.x, muzzle.y, muzzle.z, 10, 0.4, 0.4, 0.4, 0.05);
         Vec3 back = muzzleBase().subtract(dir.scale(1.0));
-        level.sendParticles(ParticleTypes.CLOUD, true, true, back.x, back.y, back.z, 14, 0.6, 0.3, 0.6, 0.12);
+        com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, back.x, back.y, back.z, 14, 0.6, 0.3, 0.6, 0.12);
     }
 
     /** С-400 по наземной цели: одна ракета, большой разброс, слабая БЧ. */
@@ -888,7 +887,7 @@ public class Launcher extends Vehicle implements Threat {
         Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 2.5, 0), new Vec3(0, 0.6, 0), aim, this).owner(owner).powerMul(0.35f).look(2);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8);
-        level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, true, true, g.x, g.y, g.z, 30, 1.5, 0.4, 1.5, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.5, 0.4, 1.5, 0.05);
     }
 
     /** HIMARS: две точные ракеты с интервалом. */
@@ -906,7 +905,7 @@ public class Launcher extends Vehicle implements Threat {
         Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 1.5, 0), new Vec3(0, 0.8, 0), aim, this).owner(owner).powerMul(0.5f).look(1);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 6);
-        level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, true, true, g.x, g.y, g.z, 30, 1.2, 0.4, 1.2, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.2, 0.4, 1.2, 0.05);
         level.playSound(null, g.x, g.y, g.z, com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get(), SoundSource.HOSTILE, 5f, 1.1f);
     }
 
@@ -942,7 +941,7 @@ public class Launcher extends Vehicle implements Threat {
         Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED), Vec3.atCenterOf(target), this).owner(owner).powerMul(0.7f).look(7);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 4);
-        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
     }
 
@@ -1001,7 +1000,7 @@ public class Launcher extends Vehicle implements Threat {
         if (weapon == 9) {
             if (tickCount - lastCrash > 20) {
                 lastCrash = tickCount;
-                hurtServer(level, damageSources().fall(), 25);
+                hurt(damageSources().fall(), 25);
             }
             return;
         }
@@ -1017,7 +1016,7 @@ public class Launcher extends Vehicle implements Threat {
             var hit = rayEntity(level, this, muzzle, stop, e -> e != p && e != this);
             if (hit != null) {
                 stop = hit.getLocation();
-                hit.getEntity().hurtServer(level, damageSources().playerAttack(p), 9f);
+                hit.getEntity().hurt(damageSources().playerAttack(p), 9f);
             }
             if (hit != null || block.getType() != net.minecraft.world.phys.HitResult.Type.MISS) {
                 Blast.detonate(level, stop, 1.2f, true, this);
@@ -1031,7 +1030,7 @@ public class Launcher extends Vehicle implements Threat {
             }
         } else if (weapon == 1 && tickCount >= rocketCooldown) {
             if (ammo() <= 0) {
-                p.sendOverlayMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED));
+                p.displayClientMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
                 rocketCooldown = tickCount + 20;
                 return;
             }
@@ -1056,7 +1055,7 @@ public class Launcher extends Vehicle implements Threat {
         }
         if (timer < 50) {
             if (timer > 20) {
-                level.sendParticles(ParticleTypes.CLOUD, true, true, g.x, g.y + 0.5, g.z, 8, 1.2, 0.3, 1.2, 0.06);
+                com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, g.x, g.y + 0.5, g.z, 8, 1.2, 0.3, 1.2, 0.06);
             }
             return;
         }
@@ -1064,10 +1063,10 @@ public class Launcher extends Vehicle implements Threat {
             Missile.launch(level, Missile.Kind.BALLISTIC, g.add(0, 3.8, 0), new Vec3(0, 0.4, 0), Vec3.atCenterOf(target), this).owner(owner);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 10);
-            level.sendParticles(ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, true, true, g.x, g.y, g.z, 50, 3.0, 0.5, 3.0, 0.06);
-            level.sendParticles(ParticleTypes.EXPLOSION, true, true, g.x, g.y, g.z, 8, 1.8, 0.3, 1.8, 0);
-            level.sendParticles(ParticleTypes.FLAME, true, true, g.x, g.y, g.z, 80, 2.4, 0.3, 2.4, 0.18);
-            level.playSound(null, g.x, g.y, g.z, SoundEvents.GENERIC_EXPLODE.value(), SoundSource.HOSTILE, 4f, 0.5f);
+            com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 50, 3.0, 0.5, 3.0, 0.06);
+            com.harddayz.Compat.particles(level, ParticleTypes.EXPLOSION, g.x, g.y, g.z, 8, 1.8, 0.3, 1.8, 0);
+            com.harddayz.Compat.particles(level, ParticleTypes.FLAME, g.x, g.y, g.z, 80, 2.4, 0.3, 2.4, 0.18);
+            level.playSound(null, g.x, g.y, g.z, SoundEvents.GENERIC_EXPLODE, SoundSource.HOSTILE, 4f, 0.5f);
         }
         stow();
     }
@@ -1097,8 +1096,8 @@ public class Launcher extends Vehicle implements Threat {
             controlOp = null;
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 6);
-            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
-            level.sendParticles(ParticleTypes.FLAME, true, true, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
+            com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
+            com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
             level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 3f, 0.6f);
             stow();
             return;
@@ -1106,23 +1105,23 @@ public class Launcher extends Vehicle implements Threat {
         Drone.launchShahed(level, muzzle, dir, aim, owner, dk);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 6);
-        level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
-        level.sendParticles(ParticleTypes.FLAME, true, true, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
+        com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.HOSTILE, 3f, 0.6f);
     }
 
     /** Пульт оператора по пусковой: дрон стартует и сразу переходит под ручное управление. */
     private void launchControlled(ServerPlayer op) {
         if (ammo() <= 0) {
-            op.sendOverlayMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED));
+            op.displayClientMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (state != State.IDLE) {
-            op.sendOverlayMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW));
+            op.displayClientMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         if (!stationary()) {
-            op.sendOverlayMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW));
+            op.displayClientMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         // как обычный пуск: опоры, разворот, подъём направляющей — и только потом старт под управлением
@@ -1136,7 +1135,7 @@ public class Launcher extends Vehicle implements Threat {
         entityData.set(OUTRIG, kind().mobile ? 1f : 0f);
         timer = 0;
         shot = 0;
-        op.sendOverlayMessage(Component.translatable("message.harddayz.control_prep").withStyle(ChatFormatting.GOLD));
+        op.displayClientMessage(Component.translatable("message.harddayz.control_prep").withStyle(ChatFormatting.GOLD), true);
         level().playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.2f, 0.5f);
     }
 
@@ -1191,7 +1190,7 @@ public class Launcher extends Vehicle implements Threat {
             entityData.set(FLASH, 4);
             engaged.add(t.getId());
             samCooldown = 20;
-            level.sendParticles(ParticleTypes.CLOUD, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.5, 0.5, 0.5, 0.1);
+            com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, muzzle.x, muzzle.y, muzzle.z, 20, 0.5, 0.5, 0.5, 0.1);
         }
         if (engaged.size() > 64) {
             engaged.clear();
@@ -1241,18 +1240,21 @@ public class Launcher extends Vehicle implements Threat {
     // ------------------------------------------------------------------ урон и подбор
 
     @Override
-    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+    public boolean hurt(DamageSource source, float damage) {
+        if (!(level() instanceof ServerLevel level)) {
+            return true;
+        }
         if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.isShiftKeyDown() && getPassengers().isEmpty() && health() > 0) {
-            spawnAtLocation(level, new ItemStack(kind().item()));
+            spawnAtLocation(new ItemStack(kind().item()));
             if (kind().dronePad()) {
                 for (Drone.Kind k : drones) {
-                    spawnAtLocation(level, new ItemStack(droneItem(k)));
+                    spawnAtLocation(new ItemStack(droneItem(k)));
                 }
             } else if (kind() != Kind.EW) {
                 int left = ammo();
                 while (left > 0) {
-                    int n = Math.min(left, kind().ammo().getDefaultMaxStackSize());
-                    spawnAtLocation(level, new ItemStack(kind().ammo(), n));
+                    int n = Math.min(left, kind().ammo().getMaxStackSize());
+                    spawnAtLocation(new ItemStack(kind().ammo(), n));
                     left -= n;
                 }
             }
@@ -1291,31 +1293,31 @@ public class Launcher extends Vehicle implements Threat {
     // ------------------------------------------------------------------ служебное
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        super.defineSynchedData(builder);
-        builder.define(KIND, 0);
-        builder.define(AMMO, 0);
-        builder.define(WANT_TURRET, 0f);
-        builder.define(WANT_ELEV, 0f);
-        builder.define(WANT_ERECT, 0f);
-        builder.define(FLASH, 0);
-        builder.define(DRONES, "");
-        builder.define(FUEL, 0f);
-        builder.define(SLOTS, ";;;;");
-        builder.define(SLOT, 0);
+    protected void defineSynchedData() {
+        super.defineSynchedData();
+        entityData.define(KIND, 0);
+        entityData.define(AMMO, 0);
+        entityData.define(WANT_TURRET, 0f);
+        entityData.define(WANT_ELEV, 0f);
+        entityData.define(WANT_ERECT, 0f);
+        entityData.define(FLASH, 0);
+        entityData.define(DRONES, "");
+        entityData.define(FUEL, 0f);
+        entityData.define(SLOTS, ";;;;");
+        entityData.define(SLOT, 0);
     }
 
     @Override
-    protected void readAdditionalSaveData(ValueInput input) {
-        entityData.set(KIND, input.getIntOr("kind", 0));
-        entityData.set(AMMO, input.getIntOr("ammo", 0));
-        entityData.set(HEALTH, input.getFloatOr("health", kind().health));
-        input.getString("owner").ifPresent(s -> owner = UUID.fromString(s));
-        entityData.set(SLOTS, input.getStringOr("slots", ";;;;"));
-        entityData.set(SLOT, input.getIntOr("slot", 0));
-        entityData.set(FUEL, input.getFloatOr("fuel", tank()));
+    protected void readAdditionalSaveData(CompoundTag input) {
+        entityData.set(KIND, com.harddayz.Compat.getInt(input, "kind", 0));
+        entityData.set(AMMO, com.harddayz.Compat.getInt(input, "ammo", 0));
+        entityData.set(HEALTH, com.harddayz.Compat.getFloat(input, "health", kind().health));
+        com.harddayz.Compat.optString(input, "owner").ifPresent(s -> owner = UUID.fromString(s));
+        entityData.set(SLOTS, com.harddayz.Compat.getString(input, "slots", ";;;;"));
+        entityData.set(SLOT, com.harddayz.Compat.getInt(input, "slot", 0));
+        entityData.set(FUEL, com.harddayz.Compat.getFloat(input, "fuel", tank()));
         drones.clear();
-        for (String k : input.getStringOr("drones", "").split(",")) {
+        for (String k : com.harddayz.Compat.getString(input, "drones", "").split(",")) {
             if (!k.isEmpty()) {
                 drones.add(Drone.Kind.valueOf(k));
             }
@@ -1323,7 +1325,7 @@ public class Launcher extends Vehicle implements Threat {
     }
 
     @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
+    protected void addAdditionalSaveData(CompoundTag output) {
         output.putInt("kind", entityData.get(KIND));
         output.putInt("ammo", ammo());
         output.putFloat("health", health());
@@ -1344,7 +1346,8 @@ public class Launcher extends Vehicle implements Threat {
         if (gunCooldown > 0) {
             gunCooldown--;
         }
-        if (gunnerPassenger() instanceof Player p) {
+        Player p = gunnerPassenger();
+        if (p != null) {
             entityData.set(WANT_TURRET, Mth.wrapDegrees(p.getYRot() - getYRot()));
             entityData.set(WANT_ELEV, Mth.clamp(-p.getXRot(), -12, 80));
         }
@@ -1388,7 +1391,7 @@ public class Launcher extends Vehicle implements Threat {
         if (kind().lockOn()) {
             Entity t = lockTarget(level, p.getEyePosition(), look, p.getUUID());
             if (t == null) {
-                p.sendOverlayMessage(Component.translatable("message.harddayz.no_lock").withStyle(ChatFormatting.RED));
+                p.displayClientMessage(Component.translatable("message.harddayz.no_lock").withStyle(ChatFormatting.RED), true);
                 gunCooldown = 6;
                 return;
             }
@@ -1396,7 +1399,7 @@ public class Launcher extends Vehicle implements Threat {
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 4);
             gunCooldown = 30;
-            level.sendParticles(ParticleTypes.CLOUD, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.4, 0.4, 0.4, 0.1);
+            com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, muzzle.x, muzzle.y, muzzle.z, 20, 0.4, 0.4, 0.4, 0.1);
             return;
         }
         // пулемёт / автопушка: мгновенный выстрел с небольшим разбросом
@@ -1420,15 +1423,15 @@ public class Launcher extends Vehicle implements Threat {
             if (cannon) {
                 dmg = kind().tank() ? 70f : kind() == Kind.BMP2 ? 9f : 7f;
             }
-            e.hurtServer(level, damageSources().playerAttack(p), dmg);
+            e.hurt(damageSources().playerAttack(p), dmg);
         }
         if (cannon && (hit != null || hitBlock)) {
             Blast.detonate(level, stop, kind().tank() ? 3.2f : kind() == Kind.BMP2 ? 1.4f : 1.0f, true, this); // фугасный — рушит укрытия
         }
         if (kind().tank()) {
             level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.TANK_FIRE.get(), SoundSource.PLAYERS, 8f, 0.9f);
-            level.sendParticles(ParticleTypes.EXPLOSION, true, true, muzzle.x, muzzle.y, muzzle.z, 3, 0.3, 0.3, 0.3, 0);
-            level.sendParticles(ParticleTypes.CAMPFIRE_COSY_SMOKE, true, true, muzzle.x, muzzle.y, muzzle.z, 20, 0.8, 0.4, 0.8, 0.03);
+            com.harddayz.Compat.particles(level, ParticleTypes.EXPLOSION, muzzle.x, muzzle.y, muzzle.z, 3, 0.3, 0.3, 0.3, 0);
+            com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.8, 0.4, 0.8, 0.03);
         } else {
             level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.MG_FIRE.get(), SoundSource.PLAYERS, 4f,
                     (kind().cannon() ? 0.6f : 0.95f) + random.nextFloat() * 0.1f);

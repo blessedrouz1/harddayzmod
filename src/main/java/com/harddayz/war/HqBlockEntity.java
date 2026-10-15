@@ -10,13 +10,12 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.ChestMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
+import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.nbt.CompoundTag;
 
 /** Хранилище штаба: сюда приходят поставки, открывают только свои. */
-public class HqBlockEntity extends BaseContainerBlockEntity {
+public class HqBlockEntity extends RandomizableContainerBlockEntity {
     private NonNullList<ItemStack> items = NonNullList.withSize(27, ItemStack.EMPTY);
 
     public HqBlockEntity(BlockPos pos, BlockState state) {
@@ -28,7 +27,7 @@ public class HqBlockEntity extends BaseContainerBlockEntity {
         ItemStack rest = stack.copy();
         for (int i = 0; i < items.size() && !rest.isEmpty(); i++) {
             ItemStack slot = items.get(i);
-            if (!slot.isEmpty() && ItemStack.isSameItemSameComponents(slot, rest)) {
+            if (!slot.isEmpty() && ItemStack.isSameItemSameTags(slot, rest)) {
                 int n = Math.min(rest.getCount(), slot.getMaxStackSize() - slot.getCount());
                 slot.grow(n);
                 rest.shrink(n);
@@ -45,14 +44,14 @@ public class HqBlockEntity extends BaseContainerBlockEntity {
     }
 
     @Override
-    protected void saveAdditional(ValueOutput output) {
+    protected void saveAdditional(CompoundTag output) {
         super.saveAdditional(output);
         ContainerHelper.saveAllItems(output, items);
     }
 
     @Override
-    protected void loadAdditional(ValueInput input) {
-        super.loadAdditional(input);
+    public void load(CompoundTag input) {
+        super.load(input);
         items = NonNullList.withSize(getContainerSize(), ItemStack.EMPTY);
         ContainerHelper.loadAllItems(input, items);
     }

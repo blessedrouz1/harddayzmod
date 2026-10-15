@@ -1,6 +1,6 @@
 package com.harddayz.war;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -25,6 +25,6 @@ public class SirenBlock extends Block {
             return;
         }
         War.addSiren(RadarNet.key(p.getUUID()), pos);
-        p.sendOverlayMessage(Component.translatable("message.harddayz.siren_set").withStyle(ChatFormatting.GREEN));
+        p.displayClientMessage(Component.translatable("message.harddayz.siren_set").withStyle(ChatFormatting.GREEN), true);
     }
 }

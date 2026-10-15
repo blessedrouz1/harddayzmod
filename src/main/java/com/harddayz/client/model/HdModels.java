@@ -8,7 +8,7 @@ import net.minecraft.client.model.geom.builders.CubeListBuilder;
 import net.minecraft.client.model.geom.builders.LayerDefinition;
 import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Геометрия техники, ракет, дронов и взрыва. Текстура — палитра 4x4 цветов (textures/entity/palette.png),
@@ -52,7 +52,7 @@ public final class HdModels {
     }
 
     private static ModelLayerLocation layer(String name) {
-        return new ModelLayerLocation(Identifier.fromNamespaceAndPath(HardDayz.MODID, name), "main");
+        return new ModelLayerLocation(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, name), "main");
     }
 
     /** Набор кубов разных цветов в одной детали. */

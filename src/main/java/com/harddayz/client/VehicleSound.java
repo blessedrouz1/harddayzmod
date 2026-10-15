@@ -60,7 +60,7 @@ public class VehicleSound extends AbstractTickableSoundInstance {
         // лязг гусениц
         if (on && sp > 0.05 && v.tickCount % Math.max(3, (int) (8 - sp * 12)) == 0
                 && (v.kind().tank() || v.kind() == Launcher.Kind.BMP2 || v.kind() == Launcher.Kind.BRADLEY || v.kind() == Launcher.Kind.TOS)) {
-            v.level().playLocalSound(x, y, z, net.minecraft.sounds.SoundEvents.CHAIN_STEP, SoundSource.NEUTRAL, 0.8f, 0.5f + v.getRandom().nextFloat() * 0.2f,
+            v.level().playLocalSound(x, y, z, net.minecraft.sounds.SoundEvents.CHAIN_STEP, SoundSource.NEUTRAL, 0.8f, 0.5f + v.level().random.nextFloat() * 0.2f,
                     false);
         }
     }

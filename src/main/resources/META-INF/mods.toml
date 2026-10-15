@@ -1,10 +1,10 @@
 modLoader="javafml"
-loaderVersion="[66,)"
+loaderVersion="${loader_version_range}"
 license="All Rights Reserved"
 
 [[mods]]
 modId="harddayz"
-version="0.2.1"
+version="${mod_version}"
 displayName="HardDayz"
 description='''
 HardDayz: ракетные комплексы, баллистика, ПВО, РЭБ и ударные дроны. Локальный мод для игры с друзьями.
@@ -17,13 +17,13 @@ KuraiWolf (CC-BY 4.0), dklon (CC-BY 3.0), qubodup (CC-BY 3.0).
 [[dependencies.harddayz]]
     modId="forge"
     mandatory=true
-    versionRange="[66,)"
+    versionRange="${forge_version_range}"
     ordering="NONE"
     side="BOTH"
 
 [[dependencies.harddayz]]
     modId="minecraft"
     mandatory=true
-    versionRange="[26.3,26.4)"
+    versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"

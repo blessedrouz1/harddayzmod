@@ -1,6 +1,6 @@
 package com.harddayz.war;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
@@ -26,11 +26,11 @@ public class WarehouseBlock extends Block {
         }
         War.Faction f = War.of(p.getUUID());
         if (f == null) {
-            p.sendOverlayMessage(Component.translatable("message.harddayz.hq_no_faction").withStyle(ChatFormatting.YELLOW));
+            p.displayClientMessage(Component.translatable("message.harddayz.hq_no_faction").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         f.warehouses.add(new int[] {pos.getX(), pos.getY(), pos.getZ()});
         War.save();
-        p.sendOverlayMessage(Component.translatable("message.harddayz.warehouse_set", pos.getX(), pos.getY(), pos.getZ()).withStyle(ChatFormatting.GREEN));
+        p.displayClientMessage(Component.translatable("message.harddayz.warehouse_set", pos.getX(), pos.getY(), pos.getZ()).withStyle(ChatFormatting.GREEN), true);
     }
 }

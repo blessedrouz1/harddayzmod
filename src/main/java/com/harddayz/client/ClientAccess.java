@@ -11,7 +11,7 @@ public final class ClientAccess {
     }
 
     public static void openLauncher(Launcher l) {
-        Minecraft.getInstance().gui.setScreen(new LauncherScreen(l));
+        Minecraft.getInstance().setScreen(new LauncherScreen(l));
     }
 
     public static java.util.List<String> lives = java.util.List.of();
@@ -30,23 +30,23 @@ public final class ClientAccess {
     }
 
     public static void matchEnd(String winner, java.util.List<String> rows) {
-        Minecraft.getInstance().gui.setScreen(new MatchEndScreen(winner, rows));
+        Minecraft.getInstance().setScreen(new MatchEndScreen(winner, rows));
     }
 
     public static void openTargetLog(boolean offhand) {
-        Minecraft.getInstance().gui.setScreen(new TargetLogScreen(offhand));
+        Minecraft.getInstance().setScreen(new TargetLogScreen(offhand));
     }
 
     /** Ввод водителя: {газ (+1/-1), руль (+1 влево / -1 вправо), тормоз}. */
     public static float[] driveInput() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || mc.gui.screen() != null) {
+        if (mc.player == null || mc.screen != null) {
             return new float[] {0, 0, 0, 0};
         }
-        var in = mc.player.input.keyPresses;
-        float fwd = (in.forward() ? 1 : 0) - (in.backward() ? 1 : 0);
-        float turn = (in.left() ? 1 : 0) - (in.right() ? 1 : 0);
-        return new float[] {fwd, turn, in.jump() ? 1 : 0, in.sprint() ? 1 : 0};
+        var in = mc.player.input;
+        float fwd = (in.up ? 1 : 0) - (in.down ? 1 : 0);
+        float turn = (in.left ? 1 : 0) - (in.right ? 1 : 0);
+        return new float[] {fwd, turn, in.jumping ? 1 : 0, mc.options.keySprint.isDown() ? 1 : 0};
     }
 
     public static boolean isPilotingLocally(Drone d) {

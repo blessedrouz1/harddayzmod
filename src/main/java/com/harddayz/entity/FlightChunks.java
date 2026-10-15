@@ -2,11 +2,10 @@ package com.harddayz.entity;
 
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.TicketType;
 import net.minecraft.util.Mth;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.phys.Vec3;
@@ -28,7 +27,7 @@ public final class FlightChunks {
      */
     public boolean update(ServerLevel level, Vec3 pos, Vec3 vel, @Nullable Vec3 target) {
         var cache = level.getChunkSource();
-        cache.addTicketWithRadius(TicketType.ENDER_PEARL, new ChunkPos(Mth.floor(pos.x) >> 4, Mth.floor(pos.z) >> 4), 2);
+        com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(pos.x) >> 4, Mth.floor(pos.z) >> 4), 2);
         // путь вперёд: на 2 секунды полёта
         double speed = vel.length();
         if (speed > 1.0E-3) {
@@ -36,11 +35,11 @@ public final class FlightChunks {
             double ahead = Math.min(160, speed * 40 + 16);
             for (double d = 8; d <= ahead; d += 8) {
                 Vec3 p = pos.add(dir.scale(d));
-                cache.addTicketWithRadius(TicketType.ENDER_PEARL, new ChunkPos(Mth.floor(p.x) >> 4, Mth.floor(p.z) >> 4), 2);
+                com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(p.x) >> 4, Mth.floor(p.z) >> 4), 2);
             }
         }
         if (target != null && level.getGameTime() % 20 == 0) {
-            cache.addTicketWithRadius(TicketType.ENDER_PEARL, new ChunkPos(Mth.floor(target.x) >> 4, Mth.floor(target.z) >> 4), 1);
+            com.harddayz.Compat.ticket(level, new ChunkPos(Mth.floor(target.x) >> 4, Mth.floor(target.z) >> 4), 1);
         }
         BlockPos next = BlockPos.containing(pos.add(vel));
         int nx = next.getX() >> 4;
@@ -48,7 +47,7 @@ public final class FlightChunks {
         if (!level.hasChunk(nx, nz)) {
             level.getChunk(nx, nz); // загрузить сразу
         }
-        cache.addTicketWithRadius(TicketType.ENDER_PEARL, new ChunkPos(nx, nz), 2);
+        com.harddayz.Compat.ticket(level, new ChunkPos(nx, nz), 2);
         if (level.isPositionEntityTicking(next) || ++waited > 40) {
             waited = 0;
             return true; // готово или ждали достаточно — летим дальше

@@ -3,9 +3,7 @@ package com.harddayz.client;
 import com.harddayz.item.GunItem;
 import com.harddayz.network.Net;
 
-import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.world.item.ItemStack;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.ViewportEvent;
@@ -36,10 +34,10 @@ public final class ClientGuns {
     }
 
     static boolean aiming() {
-        return gun() != null && Minecraft.getInstance().options.keyUse.isDown() && Minecraft.getInstance().gui.screen() == null;
+        return gun() != null && Minecraft.getInstance().options.keyUse.isDown() && Minecraft.getInstance().screen == null;
     }
 
-    static boolean onAttack(InputEvent.InteractionKeyMappingTriggered.Attack event) {
+    static boolean onAttack(InputEvent.InteractionKeyMappingTriggered event) {
         if (rangefinder()) {
             Minecraft mc = Minecraft.getInstance();
             var hit = rangeHit();
@@ -57,7 +55,7 @@ public final class ClientGuns {
         return true; // не бить и не ломать блоки
     }
 
-    static boolean onUse(InputEvent.InteractionKeyMappingTriggered.UseItem event) {
+    static boolean onUse(InputEvent.InteractionKeyMappingTriggered event) {
         if (gun() == null && !rangefinder()) {
             return false;
         }
@@ -65,7 +63,7 @@ public final class ClientGuns {
         return true; // ПКМ — только прицел
     }
 
-    static void onTick(TickEvent.ClientTickEvent.Post event) {
+    static void onTick() {
         Minecraft mc = Minecraft.getInstance();
         GunItem g = gun();
         aimK += ((aiming() ? 1 : 0) - aimK) * 0.35f;
@@ -76,7 +74,7 @@ public final class ClientGuns {
         if (cooldown > 0) {
             cooldown--;
         }
-        if (g == null || mc.gui.screen() != null) {
+        if (g == null || mc.screen != null) {
             wasDown = false;
             return;
         }
@@ -183,7 +181,7 @@ public final class ClientGuns {
     }
 
     /** Мушка и целик при прицеливании. */
-    static void renderSight(GuiGraphicsExtractor g, DeltaTracker dt) {
+    static void renderSight(Gfx g, float dt) {
         Minecraft m0 = Minecraft.getInstance();
         if (rangefinder() && m0.options.keyUse.isDown()) {
             int cx = g.guiWidth() / 2;

@@ -14,7 +14,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 
 /** Запустить пилотируемый дрон (ПКМ) — камера переключается на него. */
@@ -27,19 +26,19 @@ public class DroneItem extends Item {
     }
 
     @Override
-    public InteractionResult use(Level level, Player player, InteractionHand hand) {
+    public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (level instanceof ServerLevel sl && player instanceof ServerPlayer sp) {
             if (kind == Drone.Kind.INTERCEPTOR || kind == Drone.Kind.LANCET || kind == Drone.Kind.WING_RECON) {
                 // ставится на землю; пуск — ПКМ по нему
                 Drone.park(sl, sp, kind);
-                player.getItemInHand(hand).consume(1, player);
-                sp.sendOverlayMessage(Component.translatable("message.harddayz.parked").withStyle(ChatFormatting.GOLD));
-                return InteractionResult.SUCCESS;
+                com.harddayz.Compat.consume(player.getItemInHand(hand), player);
+                sp.displayClientMessage(Component.translatable("message.harddayz.parked").withStyle(ChatFormatting.GOLD), true);
+                return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
             }
             if (kind.autonomous) {
                 // запуск с руки по взгляду: цель — точка целеуказателя или куда смотришь
                 net.minecraft.core.BlockPos mark = null;
-                for (ItemStack s : sp.getInventory()) {
+                for (ItemStack s : sp.getInventory().items) {
                     if (s.is(com.harddayz.registry.ModItems.DESIGNATOR.get()) && DesignatorItem.target(s) != null) {
                         mark = DesignatorItem.target(s);
                         break;
@@ -58,18 +57,18 @@ public class DroneItem extends Item {
                 Drone.launchShahed(sl, sp.getEyePosition().add(look.scale(1.5)), dir, aim, sp.getUUID(), kind);
                 sl.playSound(null, sp.blockPosition(), net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_LAUNCH,
                         net.minecraft.sounds.SoundSource.PLAYERS, 1.5f, 1.2f);
-                player.getItemInHand(hand).consume(1, player);
-                return InteractionResult.SUCCESS;
+                com.harddayz.Compat.consume(player.getItemInHand(hand), player);
+                return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
             }
             Drone.deploy(sl, sp, kind);
-            sp.sendOverlayMessage(Component.translatable("message.harddayz.drone_placed").withStyle(ChatFormatting.GOLD));
-            player.getItemInHand(hand).consume(1, player);
+            sp.displayClientMessage(Component.translatable("message.harddayz.drone_placed").withStyle(ChatFormatting.GOLD), true);
+            com.harddayz.Compat.consume(player.getItemInHand(hand), player);
         }
-        return InteractionResult.SUCCESS;
+        return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable(getDescriptionId() + ".desc").withStyle(ChatFormatting.GRAY));
     }
 }

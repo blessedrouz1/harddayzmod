@@ -2,7 +2,6 @@ package com.harddayz.registry;
 
 import com.harddayz.HardDayz;
 
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
 import net.minecraft.world.entity.LivingEntity;
@@ -25,13 +24,14 @@ public final class ModEffects {
         }
 
         @Override
-        public boolean applyEffectTick(ServerLevel level, LivingEntity mob, int amp) {
-            mob.hurtServer(level, mob.damageSources().generic(), 1f);
-            return true;
+        public void applyEffectTick(LivingEntity mob, int amp) {
+            if (!mob.level().isClientSide()) {
+                mob.hurt(mob.damageSources().generic(), 1f);
+            }
         }
 
         @Override
-        public boolean shouldApplyEffectTickThisTick(int tick, int amp) {
+        public boolean isDurationEffectTick(int tick, int amp) {
             return tick % (amp > 0 ? 20 : 40) == 0;
         }
     }

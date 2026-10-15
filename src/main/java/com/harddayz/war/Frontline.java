@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.registry.ModBlocks;
 
@@ -63,7 +63,7 @@ public final class Frontline {
         War.broadcast(Component.translatable("message.harddayz.point_added", p.name, p.x, p.y, p.z).withStyle(ChatFormatting.GOLD));
     }
 
-    private static BossEvent.BossBarColor color(War.@Nullable Faction f) {
+    private static BossEvent.BossBarColor color(@javax.annotation.Nullable War.Faction f) {
         if (f == null) {
             return BossEvent.BossBarColor.WHITE;
         }
@@ -134,7 +134,7 @@ public final class Frontline {
                 default -> 0xFFE040;
             };
             for (int i = 0; i < 6; i++) {
-                level.sendParticles(new DustParticleOptions(rgb, 2.0f), true, true, p.x + 0.5, p.y + 1.5 + i * 2, p.z + 0.5, 2, 0.15, 0.4, 0.15, 0);
+                com.harddayz.Compat.particles(level, new DustParticleOptions(net.minecraft.world.phys.Vec3.fromRGB24(rgb).toVector3f(), 2.0f), p.x + 0.5, p.y + 1.5 + i * 2, p.z + 0.5, 2, 0.15, 0.4, 0.15, 0);
             }
             bossBar(p, level, near, contested);
         }
@@ -162,7 +162,7 @@ public final class Frontline {
     }
 
     private static void bossBar(Point p, ServerLevel level, List<ServerPlayer> near, boolean contested) {
-        ServerBossEvent bar = BARS.computeIfAbsent(p.name, k -> new ServerBossEvent(java.util.UUID.randomUUID(), Component.empty(), BossEvent.BossBarColor.WHITE,
+        ServerBossEvent bar = BARS.computeIfAbsent(p.name, k -> new ServerBossEvent(Component.empty(), BossEvent.BossBarColor.WHITE,
                 BossEvent.BossBarOverlay.NOTCHED_10));
         War.Faction owner = p.owner == null ? null : War.byId(p.owner);
         War.Faction cap = p.capturing == null ? null : War.byId(p.capturing);

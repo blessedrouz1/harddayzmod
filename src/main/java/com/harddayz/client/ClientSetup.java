@@ -9,8 +9,11 @@ import com.mojang.blaze3d.platform.InputConstants;
 
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.Identifier;
-import net.minecraftforge.client.event.AddGuiOverlayLayersEvent;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraftforge.client.event.RegisterGuiOverlaysEvent;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.client.event.EntityRenderersEvent;
 import net.minecraftforge.client.event.InputEvent;
 import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
@@ -21,7 +24,7 @@ import net.minecraftforge.event.TickEvent;
 
 /** Клиентская часть: рендеры, модели, частицы, клавиши, слои интерфейса и подписки на события. */
 public final class ClientSetup {
-    public static final KeyMapping.Category CATEGORY = new KeyMapping.Category(Identifier.fromNamespaceAndPath(HardDayz.MODID, "main"));
+    public static final String CATEGORY = "key.category.harddayz.main";
     /** V: пульт машины, на которой едешь / выйти из управления дроном. */
     public static final KeyMapping CONTROL = new KeyMapping("key.harddayz.control", InputConstants.KEY_V, CATEGORY);
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
@@ -30,34 +33,59 @@ public final class ClientSetup {
     private ClientSetup() {
     }
 
-    public static void init() {
-        EntityRenderersEvent.RegisterRenderers.BUS.addListener(ClientSetup::onRenderers);
-        EntityRenderersEvent.RegisterLayerDefinitions.BUS.addListener(ClientSetup::onLayers);
-        RegisterParticleProvidersEvent.BUS.addListener(ClientSetup::onParticles);
-        RegisterKeyMappingsEvent.BUS.addListener(e -> {
+    public static void init(IEventBus modBus) {
+        modBus.addListener(ClientSetup::onRenderers);
+        modBus.addListener(ClientSetup::onLayers);
+        modBus.addListener(ClientSetup::onParticles);
+        modBus.addListener((RegisterKeyMappingsEvent e) -> {
             e.register(CONTROL);
             e.register(ENGINE);
             e.register(UNDER);
         });
-        AddGuiOverlayLayersEvent.BUS.addListener(ClientSetup::onGuiLayers);
-        TickEvent.ClientTickEvent.Post.BUS.addListener(ClientSetup::onTick);
-        TickEvent.ClientTickEvent.Post.BUS.addListener(ClientBlasts::onTick);
-        TickEvent.ClientTickEvent.Pre.BUS.addListener(DronePilot::onTick);
-        ViewportEvent.ComputeCameraAngles.BUS.addListener(ClientBlasts::onCamera);
-        ViewportEvent.ComputeFogColor.BUS.addListener(ClientBlasts::onFogColor);
-        ViewportEvent.ComputeCameraAngles.BUS.addListener(DronePilot::onCamera);
-        ViewportEvent.ComputeFov.BUS.addListener(DronePilot::onFov);
-        ViewportEvent.ComputeFov.BUS.addListener(ClientGuns::onFov);
-        TickEvent.ClientTickEvent.Post.BUS.addListener(ClientGuns::onTick);
-        InputEvent.InteractionKeyMappingTriggered.Attack.BUS.addListener(ClientGuns::onAttack);
-        InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(ClientGuns::onUse);
-        InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(ClientGunner::onUse);
-        InputEvent.InteractionKeyMappingTriggered.Attack.BUS.addListener(DronePilot::onAttack);
-        InputEvent.InteractionKeyMappingTriggered.UseItem.BUS.addListener(DronePilot::onUse);
-        InputEvent.MouseScrollingEvent.BUS.addListener(DronePilot::onScroll);
-        RenderHandEvent.BUS.addListener(DronePilot::onHand);
-        InputEvent.InteractionKeyMappingTriggered.Attack.BUS.addListener(ClientGunner::onAttack);
-        TickEvent.ClientTickEvent.Post.BUS.addListener(ClientGunner::onTick);
+        modBus.addListener(ClientSetup::onGuiLayers);
+        modBus.addListener((FMLClientSetupEvent e) -> e.enqueueWork(ItemModels::register));
+        IEventBus bus = MinecraftForge.EVENT_BUS;
+        bus.addListener((TickEvent.ClientTickEvent e) -> {
+            if (e.phase == TickEvent.Phase.START) {
+                DronePilot.onTick();
+            } else {
+                onTick();
+                ClientBlasts.onTick();
+                ClientGuns.onTick();
+                ClientGunner.onTick();
+            }
+        });
+        bus.addListener((ViewportEvent.ComputeCameraAngles e) -> {
+            ClientBlasts.onCamera(e);
+            DronePilot.onCamera(e);
+        });
+        bus.addListener(ClientBlasts::onFogColor);
+        bus.addListener((ViewportEvent.ComputeFov e) -> {
+            DronePilot.onFov(e);
+            ClientGuns.onFov(e);
+        });
+        // ЛКМ / ПКМ: первый, кто вернул true, отменяет обычное действие (удар, использование предмета)
+        bus.addListener((InputEvent.InteractionKeyMappingTriggered e) -> {
+            boolean cancel = false;
+            if (e.isAttack()) {
+                cancel = ClientGuns.onAttack(e) || DronePilot.onAttack(e) || ClientGunner.onAttack(e);
+            } else if (e.isUseItem()) {
+                cancel = ClientGuns.onUse(e) || ClientGunner.onUse(e) || DronePilot.onUse(e);
+            }
+            if (cancel) {
+                e.setCanceled(true);
+            }
+        });
+        bus.addListener((InputEvent.MouseScrollingEvent e) -> {
+            if (DronePilot.onScroll(e)) {
+                e.setCanceled(true);
+            }
+        });
+        bus.addListener((RenderHandEvent e) -> {
+            if (DronePilot.onHand(e)) {
+                e.setCanceled(true);
+            }
+        });
     }
 
     private static void onRenderers(EntityRenderersEvent.RegisterRenderers event) {
@@ -107,18 +135,27 @@ public final class ClientSetup {
         event.registerSpriteSet(ModParticles.GLOW.get(), s -> new HdParticle.Provider(s, HdParticle.Kind.GLOW));
     }
 
-    private static void onGuiLayers(AddGuiOverlayLayersEvent event) {
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "flash"), ClientBlasts::renderFlash);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "drone_hud"), DronePilot::renderHud);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "vehicle_hp"), ClientSetup::renderVehicleHp);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "gunner"), ClientGunner::renderHud);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "alert"), ClientSetup::renderAlert);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "gun_sight"), ClientGuns::renderSight);
-        event.getLayeredDraw().add(Identifier.fromNamespaceAndPath(HardDayz.MODID, "lives"), ClientSetup::renderLives);
+    /** Слой интерфейса: обёртка GuiGraphics в Gfx. */
+    private interface Layer {
+        void render(Gfx g, float pt);
+    }
+
+    private static void overlay(RegisterGuiOverlaysEvent event, String id, Layer layer) {
+        event.registerAboveAll(id, (gui, graphics, pt, w, h) -> layer.render(new Gfx(graphics), pt));
+    }
+
+    private static void onGuiLayers(RegisterGuiOverlaysEvent event) {
+        overlay(event, "flash", ClientBlasts::renderFlash);
+        overlay(event, "drone_hud", DronePilot::renderHud);
+        overlay(event, "vehicle_hp", ClientSetup::renderVehicleHp);
+        overlay(event, "gunner", ClientGunner::renderHud);
+        overlay(event, "alert", ClientSetup::renderAlert);
+        overlay(event, "gun_sight", ClientGuns::renderSight);
+        overlay(event, "lives", ClientSetup::renderLives);
     }
 
     /** Полоса прочности техники, на которую смотришь или в которой едешь. */
-    private static void renderVehicleHp(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker dt) {
+    private static void renderVehicleHp(Gfx g, float dt) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || DronePilot.active()) {
             return;
@@ -152,7 +189,7 @@ public final class ClientSetup {
     }
 
     /** Режим «жизни»: запас каждой команды вверху экрана. */
-    private static void renderLives(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker dt) {
+    private static void renderLives(Gfx g, float dt) {
         Minecraft mc = Minecraft.getInstance();
         if (ClientAccess.lives.isEmpty() || DronePilot.active()) {
             return;
@@ -184,7 +221,7 @@ public final class ClientSetup {
         }
     }
 
-    private static void renderAlert(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker dt) {
+    private static void renderAlert(Gfx g, float dt) {
         if (alertTicks <= 0) {
             return;
         }
@@ -197,7 +234,7 @@ public final class ClientSetup {
         }
     }
 
-    private static void onTick(TickEvent.ClientTickEvent.Post event) {
+    private static void onTick() {
         if (alertTicks > 0) {
             alertTicks--;
         }

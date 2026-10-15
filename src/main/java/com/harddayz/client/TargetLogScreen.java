@@ -5,13 +5,12 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.item.TargetLogItem;
 import com.harddayz.network.Net;
 import com.harddayz.registry.ModItems;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -24,7 +23,7 @@ import net.minecraft.world.item.ItemStack;
  * Журнал целей: список точек, правка координат, удаление, очистка, копирование «x y z» в буфер
  * (в пульте ПУ — кнопка «Вставить»). Изменения сохраняются при закрытии.
  */
-public class TargetLogScreen extends Screen {
+public class TargetLogScreen extends HdScreen {
     private static final int W = 300;
     private static final int ROWS = 8;
     private static final int ROW_H = 22;
@@ -179,15 +178,13 @@ public class TargetLogScreen extends Screen {
     }
 
     @Override
-    public void extractBackground(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractBackground(g, mouseX, mouseY, a);
+    protected void background(Gfx g, int mouseX, int mouseY, float a) {
         g.fill(left(), top(), left() + W, top() + H, 0xE8141810);
         g.outline(left(), top(), W, H, 0xFF7A8A50);
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-        super.extractRenderState(g, mouseX, mouseY, a);
+    protected void content(Gfx g, int mouseX, int mouseY, float a) {
         int l = left();
         int t = top();
         g.text(font, title, l + 8, t + 8, 0xFFD8E0A0, true);

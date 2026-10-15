@@ -17,7 +17,6 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.component.TooltipDisplay;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -48,14 +47,17 @@ public class JavelinItem extends GunItem {
     /** Пуск — только из прицела и по захваченной цели (захват держит клиент, сервер перепроверяет конус). */
     @Override
     public void shoot(ServerPlayer sp, ItemStack stack, boolean aiming) {
-        ServerLevel sl = sp.level();
+        ServerLevel sl = sp.serverLevel();
+        if (!canFire(sp) || sl.getGameTime() < com.harddayz.Compat.getLong(com.harddayz.Compat.data(stack), "next", 0)) {
+            return;
+        }
         if (!aiming) {
-            sp.sendOverlayMessage(Component.translatable("message.harddayz.javelin_aim").withStyle(ChatFormatting.YELLOW));
+            sp.displayClientMessage(Component.translatable("message.harddayz.javelin_aim").withStyle(ChatFormatting.YELLOW), true);
             return;
         }
         Vehicle best = target(sl, sp);
         if (best == null) {
-            sp.sendOverlayMessage(Component.translatable("message.harddayz.javelin_no_lock").withStyle(ChatFormatting.RED));
+            sp.displayClientMessage(Component.translatable("message.harddayz.javelin_no_lock").withStyle(ChatFormatting.RED), true);
             return;
         }
         if (mag(stack) <= 0) {
@@ -71,8 +73,8 @@ public class JavelinItem extends GunItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, TooltipDisplay display, Consumer<Component> builder, TooltipFlag flag) {
-        builder.accept(Component.translatable("item.harddayz.javelin.desc").withStyle(ChatFormatting.GRAY));
-        builder.accept(Component.translatable("item.harddayz.gun.mag", mag(stack), 1).withStyle(ChatFormatting.YELLOW));
+    public void appendHoverText(ItemStack stack, @javax.annotation.Nullable net.minecraft.world.level.Level tooltipLevel, java.util.List<Component> builder, TooltipFlag flag) {
+        builder.add(Component.translatable("item.harddayz.javelin.desc").withStyle(ChatFormatting.GRAY));
+        builder.add(Component.translatable("item.harddayz.gun.mag", mag(stack), 1).withStyle(ChatFormatting.YELLOW));
     }
 }

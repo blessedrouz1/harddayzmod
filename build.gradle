@@ -1,73 +1,104 @@
-// This is a minimal setup of a Forge mod workspace.
-// For complex examples (including AccessTransformers, Jar-in-Jar, and Mixin), see our examples repository.
-// https://github.com/MinecraftForge/MDKExamples
-
 plugins {
-    id 'java'
-    id 'idea'
     id 'eclipse'
-    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+    id 'org.spongepowered.mixin' version '0.7.+'
 }
 
-version = '0.2.1'
-group = 'com.harddayz'
+version = mod_version
+group = mod_group_id
 
-// Mojang ships Java 25 to end users in 26.1+, so your mod should target Java 25.
-java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+base {
+    archivesName = 'harddayz-forge-1.20.1'
+}
 
-// Include generated resources
-sourceSets.main.resources { srcDir 'src/generated/resources' }
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
 minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
+
     runs {
         configureEach {
-            workingDir = layout.projectDirectory.dir('run')
-
-            systemProperty 'eventbus.api.strictRuntimeChecks', 'true'
-            systemProperty 'forge.enabledGameTestNamespaces', 'harddayz'
+            workingDirectory project.file('run')
+            property 'forge.logging.console.level', 'info'
+            property 'forge.enabledGameTestNamespaces', mod_id
+            property 'mixin.env.remapRefMap', 'true'
+            property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
         }
 
-        register('client')
+        client {
+        }
 
-        register('server') {
+        server {
             args '--nogui'
         }
 
-        register('gameTestServer')
+        gameTestServer {
+            workingDirectory project.file('build/gametest-run')
+            mods {
+                "${mod_id}" {
+                    source sourceSets.test
+                }
+            }
+        }
 
-        register('data') {
-            workingDir = layout.projectDirectory.dir('run-data')
-
-            args '--mod', 'harddayz', '--all', '--output', layout.projectDirectory.dir('src/generated/resources'), '--existing', layout.projectDirectory.dir('src/main/resources')
+        data {
+            workingDirectory project.file('run-data')
+            args '--mod', mod_id, '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
         }
     }
 }
 
+// миксин: сущности вокруг дрона видны пилоту (см. TrackedEntityMixin)
+mixin {
+    add sourceSets.main, "${mod_id}.refmap.json"
+    config "${mod_id}.mixins.json"
+}
+
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
 repositories {
-    minecraft.mavenizer(it) // In Kotlin, it = this
-    maven fg.forgeMaven
-    maven fg.minecraftLibsMaven
-    mavenCentral()
 }
 
 dependencies {
-    implementation minecraft.dependency('net.minecraftforge:forge:26.3-66.0.11')
-    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.6'
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+tasks.named('processResources', ProcessResources).configure {
+    var replaceProperties = [
+            minecraft_version      : minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version          : forge_version, forge_version_range: forge_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id, mod_version: mod_version,
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties
+    }
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_id,
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.jar.archiveVersion,
+                'MixinConfigs'          : "${mod_id}.mixins.json"
+        ])
+    }
+    finalizedBy 'reobfJar'
 }
 
 tasks.withType(JavaCompile).configureEach {
-    // Use the UTF-8 charset for Java compilation
-    // This is done by default in Java 18+, but this ensures it no matter the Java or Gradle version
     options.encoding = 'UTF-8'
-}
-
-base {
-    archivesName = 'harddayz-forge'
-}
-
-// миксин: сущности вокруг дрона видны пилоту (см. TrackedEntityMixin)
-jar {
-    manifest {
-        attributes 'MixinConfigs': 'harddayz.mixins.json'
-    }
+    options.compilerArgs << '-Xmaxerrs' << '5000'
 }

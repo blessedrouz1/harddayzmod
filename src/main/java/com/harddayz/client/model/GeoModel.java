@@ -85,7 +85,7 @@ public final class GeoModel {
                 box[k] = Math.min(box[k], min[k]);
                 box[k + 3] = Math.max(box[k + 3], min[k] + s[k]);
             }
-            Map<Direction, float[]> uv = faces(c.getAsJsonObject("uv"));
+            Map<Direction, float[]> uv = c.has("uv") && c.get("uv").isJsonArray() ? boxFaces(c.getAsJsonArray("uv"), s) : faces(c.getAsJsonObject("uv"));
             float[] r = rad(vec(c, "rotation"));
             boolean rotated = r[0] != 0 || r[1] != 0 || r[2] != 0;
             if (!rotated && s[0] * s[1] * s[2] > mainVol) {
@@ -150,48 +150,104 @@ public final class GeoModel {
         return out;
     }
 
+    /**
+     * Box UV (как в Blockbench): развёртка куба w×h×d от точки (u, v). Возвращает те же прямоугольники граней,
+     * что видны в редакторе: восток (u, v+d), север (u+d, v+d), запад (u+d+w, v+d), юг (u+2d+w, v+d),
+     * верх (u+d, v) и низ (u+d+w, v) — у верха и низа картинка перевёрнута по обеим осям.
+     */
+    private static Map<Direction, float[]> boxFaces(JsonArray uvArr, float[] size) {
+        float u = uvArr.get(0).getAsFloat();
+        float v = uvArr.get(1).getAsFloat();
+        float w = (float) Math.floor(size[0]);
+        float h = (float) Math.floor(size[1]);
+        float d = (float) Math.floor(size[2]);
+        Map<Direction, float[]> out = new EnumMap<>(Direction.class);
+        out.put(Direction.EAST, new float[] {u, v + d, u + d, v + d + h});
+        out.put(Direction.NORTH, new float[] {u + d, v + d, u + d + w, v + d + h});
+        out.put(Direction.WEST, new float[] {u + d + w, v + d, u + 2 * d + w, v + d + h});
+        out.put(Direction.SOUTH, new float[] {u + 2 * d + w, v + d, u + 2 * d + 2 * w, v + d + h});
+        out.put(Direction.UP, new float[] {u + d + w, v + d, u + d, v});
+        out.put(Direction.DOWN, new float[] {u + d + 2 * w, v, u + d + w, v + d});
+        return out;
+    }
+
     /** Куб с UV на каждую грань: {u0, v0, u1, v1} — левый верх и правый низ картинки грани. */
     private ModelPart.Cube cube(float x, float y, float z, float w, float h, float d, float g, Map<Direction, float[]> uv) {
         return cube(x, y, z, w, h, d, g, uv, texW, texH);
     }
 
     static ModelPart.Cube cube(float x, float y, float z, float w, float h, float d, float g, Map<Direction, float[]> uv, float tw, float th) {
-        ModelPart.Cube c = new ModelPart.Cube(0, 0, x, y, z, w, h, d, g, g, g, false, tw, th, uv.keySet());
-        float x0 = x - g;
-        float y0 = y - g;
-        float z0 = z - g;
-        float x1 = x + w + g;
-        float y1 = y + h + g;
-        float z1 = z + d + g;
-        int n = 0;
-        // порядок граней как в ModelPart.Cube: низ, верх, запад, север, восток, юг
-        for (Direction dir : new Direction[] {Direction.DOWN, Direction.UP, Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH}) {
-            float[] t = uv.get(dir);
-            if (t == null) {
-                continue;
+        return new FaceCube(x, y, z, w, h, d, g, uv, tw, th);
+    }
+
+    /**
+     * Куб с UV на каждую грань (как в Blockbench). Ванильный куб 1.20.1 умеет только box-UV и прячет полигоны,
+     * поэтому храним свои четырёхугольники и рисуем их сами.
+     */
+    static final class FaceCube extends ModelPart.Cube {
+        /** На каждую грань: 4 вершины × (x, y, z, u, v) и нормаль. */
+        private final float[][] quads;
+        private final Vector3f[] normals;
+
+        FaceCube(float x, float y, float z, float w, float h, float d, float g, Map<Direction, float[]> uv, float tw, float th) {
+            super(0, 0, x, y, z, w, h, d, g, g, g, false, tw, th, java.util.Set.of());
+            float x0 = x - g;
+            float y0 = y - g;
+            float z0 = z - g;
+            float x1 = x + w + g;
+            float y1 = y + h + g;
+            float z1 = z + d + g;
+            List<float[]> qs = new ArrayList<>();
+            List<Vector3f> ns = new ArrayList<>();
+            // порядок граней как в ModelPart.Cube: низ, верх, запад, север, восток, юг
+            for (Direction dir : new Direction[] {Direction.DOWN, Direction.UP, Direction.WEST, Direction.NORTH, Direction.EAST, Direction.SOUTH}) {
+                float[] t = uv.get(dir);
+                if (t == null) {
+                    continue;
+                }
+                float u0 = t[0] / tw;
+                float v0 = t[1] / th;
+                float u1 = t[2] / tw;
+                float v1 = t[3] / th;
+                // вершины: левый верх, левый низ, правый низ, правый верх (если смотреть на грань снаружи)
+                float[][] q = switch (dir) {
+                    case NORTH -> new float[][] {{x1, y1, z0}, {x1, y0, z0}, {x0, y0, z0}, {x0, y1, z0}};
+                    case SOUTH -> new float[][] {{x0, y1, z1}, {x0, y0, z1}, {x1, y0, z1}, {x1, y1, z1}};
+                    case EAST -> new float[][] {{x1, y1, z1}, {x1, y0, z1}, {x1, y0, z0}, {x1, y1, z0}};
+                    case WEST -> new float[][] {{x0, y1, z0}, {x0, y0, z0}, {x0, y0, z1}, {x0, y1, z1}};
+                    case UP -> new float[][] {{x0, y1, z0}, {x0, y1, z1}, {x1, y1, z1}, {x1, y1, z0}};
+                    case DOWN -> new float[][] {{x0, y0, z1}, {x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}};
+                };
+                float[][] uvs = {{u0, v0}, {u0, v1}, {u1, v1}, {u1, v0}};
+                float[] packed = new float[20];
+                for (int k = 0; k < 4; k++) {
+                    packed[k * 5] = q[k][0];
+                    packed[k * 5 + 1] = q[k][1];
+                    packed[k * 5 + 2] = q[k][2];
+                    packed[k * 5 + 3] = uvs[k][0];
+                    packed[k * 5 + 4] = uvs[k][1];
+                }
+                qs.add(packed);
+                ns.add(new Vector3f(dir.getStepX(), dir.getStepY(), dir.getStepZ()));
             }
-            float u0 = t[0] / tw;
-            float v0 = t[1] / th;
-            float u1 = t[2] / tw;
-            float v1 = t[3] / th;
-            // вершины: левый верх, левый низ, правый низ, правый верх (если смотреть на грань снаружи)
-            float[][] q = switch (dir) {
-                case NORTH -> new float[][] {{x1, y1, z0}, {x1, y0, z0}, {x0, y0, z0}, {x0, y1, z0}};
-                case SOUTH -> new float[][] {{x0, y1, z1}, {x0, y0, z1}, {x1, y0, z1}, {x1, y1, z1}};
-                case EAST -> new float[][] {{x1, y1, z1}, {x1, y0, z1}, {x1, y0, z0}, {x1, y1, z0}};
-                case WEST -> new float[][] {{x0, y1, z0}, {x0, y0, z0}, {x0, y0, z1}, {x0, y1, z1}};
-                case UP -> new float[][] {{x0, y1, z0}, {x0, y1, z1}, {x1, y1, z1}, {x1, y1, z0}};
-                case DOWN -> new float[][] {{x0, y0, z1}, {x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}};
-            };
-            ModelPart.Vertex[] v = {
-                    new ModelPart.Vertex(q[0][0], q[0][1], q[0][2], u0, v0),
-                    new ModelPart.Vertex(q[1][0], q[1][1], q[1][2], u0, v1),
-                    new ModelPart.Vertex(q[2][0], q[2][1], q[2][2], u1, v1),
-                    new ModelPart.Vertex(q[3][0], q[3][1], q[3][2], u1, v0)};
-            Vector3f normal = new Vector3f(dir.getStepX(), dir.getStepY(), dir.getStepZ());
-            c.polygons[n++] = new ModelPart.Polygon(v, normal);
+            quads = qs.toArray(new float[0][]);
+            normals = ns.toArray(new Vector3f[0]);
         }
-        return c;
+
+        @Override
+        public void compile(com.mojang.blaze3d.vertex.PoseStack.Pose pose, com.mojang.blaze3d.vertex.VertexConsumer out, int light, int overlay, float r,
+                float gr, float b, float a) {
+            org.joml.Matrix4f m = pose.pose();
+            org.joml.Matrix3f nm = pose.normal();
+            for (int i = 0; i < quads.length; i++) {
+                Vector3f n = nm.transform(new Vector3f(normals[i]));
+                float[] q = quads[i];
+                for (int k = 0; k < 4; k++) {
+                    org.joml.Vector4f p = m.transform(new org.joml.Vector4f(q[k * 5] / 16f, q[k * 5 + 1] / 16f, q[k * 5 + 2] / 16f, 1f));
+                    out.vertex(p.x(), p.y(), p.z(), r, gr, b, a, q[k * 5 + 3], q[k * 5 + 4], overlay, light, n.x(), n.y(), n.z());
+                }
+            }
+        }
     }
 
     private static float[] vec(JsonObject o, String key) {

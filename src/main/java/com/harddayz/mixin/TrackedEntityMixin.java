@@ -25,10 +25,10 @@ import net.minecraft.world.phys.Vec3;
 public abstract class TrackedEntityMixin {
     @Shadow
     @Final
-    private ServerEntity serverEntity;
+    ServerEntity serverEntity;
     @Shadow
     @Final
-    private Entity entity;
+    Entity entity;
     @Shadow
     @Final
     private Set<ServerPlayerConnection> seenBy;
@@ -47,12 +47,11 @@ public abstract class TrackedEntityMixin {
         if (eye == null || player == entity) {
             return;
         }
-        double range = Math.min(getEffectiveRange(), player.level().getServer().getPlayerList().getViewDistance() * 16);
+        double range = Math.min(getEffectiveRange(), player.getServer().getPlayerList().getViewDistance() * 16);
         double dx = entity.getX() - eye.x;
         double dz = entity.getZ() - eye.z;
         boolean pilotedDrone = PilotView.isPiloted(player, entity);
-        boolean visible = (pilotedDrone || dx * dx + dz * dz <= range * range) && entity.broadcastToPlayer(player)
-                && player.getChunkTrackingView().contains(entity.chunkPosition().x(), entity.chunkPosition().z());
+        boolean visible = (pilotedDrone || dx * dx + dz * dz <= range * range) && entity.broadcastToPlayer(player);
         if (visible) {
             if (seenBy.add(player.connection)) {
                 serverEntity.addPairing(player);

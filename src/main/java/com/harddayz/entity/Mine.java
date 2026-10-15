@@ -2,7 +2,7 @@ package com.harddayz.entity;
 
 import java.util.UUID;
 
-import org.jspecify.annotations.Nullable;
+import javax.annotation.Nullable;
 
 import com.harddayz.registry.ModItems;
 import com.harddayz.war.War;
@@ -21,8 +21,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.storage.ValueInput;
-import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.phys.AABB;
 
 /**
@@ -99,10 +98,13 @@ public class Mine extends Entity {
     }
 
     @Override
-    public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+    public boolean hurt(DamageSource source, float damage) {
+        if (!(level() instanceof ServerLevel level)) {
+            return true;
+        }
         if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && (p.isShiftKeyDown() || p.isCreative())
                 && (owner == null || War.allied(owner, p.getUUID()) || p.isCreative())) {
-            spawnAtLocation(level, new ItemStack(kind() == Kind.AT ? ModItems.MINE_AT.get() : ModItems.MINE_AP.get()));
+            spawnAtLocation(new ItemStack(kind() == Kind.AT ? ModItems.MINE_AT.get() : ModItems.MINE_AP.get()));
             discard();
             return true;
         }
@@ -118,19 +120,19 @@ public class Mine extends Entity {
     }
 
     @Override
-    protected void defineSynchedData(SynchedEntityData.Builder builder) {
-        builder.define(KIND, 0);
+    protected void defineSynchedData() {
+        entityData.define(KIND, 0);
     }
 
     @Override
-    protected void readAdditionalSaveData(ValueInput input) {
-        entityData.set(KIND, input.getIntOr("kind", 0));
-        armed = input.getIntOr("armed", 60);
-        input.getString("owner").ifPresent(s -> owner = UUID.fromString(s));
+    protected void readAdditionalSaveData(CompoundTag input) {
+        entityData.set(KIND, com.harddayz.Compat.getInt(input, "kind", 0));
+        armed = com.harddayz.Compat.getInt(input, "armed", 60);
+        com.harddayz.Compat.optString(input, "owner").ifPresent(s -> owner = UUID.fromString(s));
     }
 
     @Override
-    protected void addAdditionalSaveData(ValueOutput output) {
+    protected void addAdditionalSaveData(CompoundTag output) {
         output.putInt("kind", entityData.get(KIND));
         output.putInt("armed", armed);
         if (owner != null) {
