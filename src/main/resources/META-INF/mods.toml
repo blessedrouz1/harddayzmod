@@ -7,7 +7,7 @@ modId="harddayz"
 version="${mod_version}"
 displayName="HardDayz"
 description='''
-Взрывы: ezduzziteh (CC0), 100 CC0 SFX (CC0); полёт: mikeask, pyranostudios (CC0), dklon (CC-BY 3.0).
+Взрывы: реальные записи Fg2, Wikimedia Commons (public domain); полёт: mikeask, pyranostudios (CC0), dklon (CC-BY 3.0).
 HardDayz: ракетные комплексы, баллистика, ПВО, РЭБ и ударные дроны. Локальный мод для игры с друзьями.
 Звуки (OpenGameArt): Joth, TinyWorlds, NenadSimic, pauliuw, mikeask, qubodup, pyranostudios, aquinn (CC0);
 KuraiWolf (CC-BY 4.0), dklon (CC-BY 3.0), qubodup (CC-BY 3.0).

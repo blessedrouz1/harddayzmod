@@ -875,6 +875,7 @@ public class Launcher extends Vehicle {
             case DEPLOY -> {
                 if (outrig.near(kind().mobile ? 1f : 0f, 0.01f, false)) {
                     state = State.AIMING;
+                    prep = 0;
                     if (kind() == Kind.ISKANDER || kind() == Kind.TOCHKA) {
                         entityData.set(WANT_ERECT, 1f);
                     }
@@ -885,7 +886,8 @@ public class Launcher extends Vehicle {
                 if ((kind() == Kind.ISKANDER || kind() == Kind.TOCHKA) && tickCount % 20 == 0) {
                     level.playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.0f, 0.35f);
                 }
-                if (aimed()) {
+                prep++;
+                if (prep >= (kind() == Kind.MORTAR ? 100 : 300) && aimed()) { // ~15 с подготовки к пуску
                     state = State.FIRING;
                     timer = 0;
                 }
@@ -923,6 +925,9 @@ public class Launcher extends Vehicle {
             }
         }
     }
+
+    /** Тики подготовки к пуску в AIMING. */
+    private int prep;
 
     private boolean aimed() {
         return turret.near(entityData.get(WANT_TURRET), 0.4f, true) && elevation.near(entityData.get(WANT_ELEV), 0.4f, false)
