@@ -30,10 +30,39 @@ public final class ClientSetup {
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
     public static final KeyMapping UNDER = new KeyMapping("key.harddayz.under", InputConstants.KEY_G, CATEGORY);
 
+    /**
+     * Embeddium Extras по умолчанию прячет сущности дальше 64 блоков — техника и ракеты пропадают.
+     * Дописываем наш мод в его список исключений (сработает со следующего запуска, если файл уже прочитан).
+     */
+    private static void allowFarRendering() {
+        try {
+            java.nio.file.Path cfg = net.minecraftforge.fml.loading.FMLPaths.CONFIGDIR.get().resolve("sodiumextras-client.toml");
+            if (!java.nio.file.Files.exists(cfg)) {
+                return;
+            }
+            String s = java.nio.file.Files.readString(cfg);
+            int sec = s.indexOf("[embeddiumextras.performance.distanceCulling.entities]");
+            if (sec < 0) {
+                return;
+            }
+            int at = s.indexOf("whitelist = [", sec);
+            int end = at < 0 ? -1 : s.indexOf(']', at);
+            if (end < 0 || s.substring(at, end).contains("harddayz:")) {
+                return;
+            }
+            boolean empty = s.substring(at + "whitelist = [".length(), end).isBlank();
+            s = s.substring(0, end) + (empty ? "" : ", ") + "\"harddayz:*\"" + s.substring(end);
+            java.nio.file.Files.writeString(cfg, s);
+        } catch (Exception e) {
+            com.mojang.logging.LogUtils.getLogger().warn("HardDayz: не удалось поправить sodiumextras-client.toml", e);
+        }
+    }
+
     private ClientSetup() {
     }
 
     public static void init(IEventBus modBus) {
+        allowFarRendering();
         modBus.addListener(ClientSetup::onRenderers);
         modBus.addListener(ClientSetup::onLayers);
         modBus.addListener(ClientSetup::onParticles);
