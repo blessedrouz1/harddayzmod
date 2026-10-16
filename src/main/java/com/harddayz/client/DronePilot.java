@@ -307,7 +307,7 @@ public final class DronePilot {
             case FPV -> new float[] {8f, 7f};
             case SHAHED -> new float[] {1.6f, 1.4f};
             case SHAHED_131, GERBERA -> new float[] {2.0f, 1.7f};
-            case SHAHED_238, GERAN5, BANDEROL -> new float[] {1.2f, 1.0f};
+            case SHAHED_238, GERAN5, BANDEROL -> new float[] {3.2f, 2.8f};
             case CRUISE -> new float[] {0.9f, 0.8f};
             case LANCET, KUB, MOLNIYA -> new float[] {3.0f, 2.6f};
             case INTERCEPTOR -> new float[] {5f, 4.5f};

@@ -730,7 +730,7 @@ public class Drone extends Entity implements Threat {
                 flat = flat.yRot((float) Math.sin(tickCount * 0.05 + getId()) * 0.08f);
                 desired = flat.add(0, Mth.clamp((alt - pos.y) * 0.04, -0.4, 0.4), 0).normalize();
                 speed = kind().cruise;
-                turn = 0.05 / Math.max(1, kind().cruise / 1.3);
+                turn = 0.05 / Math.max(1, kind().cruise / 1.3) * (kind().jetDrone() ? 2.2 : 1); // реактивные вёрткие
             } else {
                 diving = true;
                 int gy = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(target.x), Mth.floor(target.z));

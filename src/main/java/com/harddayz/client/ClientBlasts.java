@@ -354,6 +354,9 @@ public final class ClientBlasts {
             // в воздухе: сбито ПВО или рвануло высоко над землёй
             boolean air = (a.sound & 16) != 0 || a.pos.y - a.ground > 6;
             SoundEvent snd = com.harddayz.registry.ModSounds.blast(type - 1, air, tier);
+            if (tier == 0) {
+                vol = Math.max(vol, a.minor ? 1.8f : 3.5f); // вблизи — во всю громкость
+            }
             mc.level.playLocalSound(at.x, at.y, at.z, snd, SoundSource.BLOCKS, tier == 2 ? (float) Mth.clamp(vol * 1.2, 0.05, 4) : vol,
                     0.95f + R.nextFloat() * 0.1f, false);
         }
