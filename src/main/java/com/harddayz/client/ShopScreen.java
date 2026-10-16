@@ -19,10 +19,11 @@ public class ShopScreen extends HdScreen {
     private Net.ShopState state;
     private int scroll;
     private int refresh;
+    private static int tab;
 
     private List<Integer> catalog() {
         return java.util.stream.IntStream.range(0, Supply.CATALOG.size())
-                .filter(i -> Supply.CATALOG.get(i).available()).boxed().toList();
+                .filter(i -> Supply.CATALOG.get(i).available() && Supply.category(Supply.CATALOG.get(i).item().get()) == tab).boxed().toList();
     }
 
     public ShopScreen(Net.ShopState state) {
@@ -57,10 +58,21 @@ public class ShopScreen extends HdScreen {
         int l = left();
         int t = top();
         List<Integer> catalog = catalog();
+        int tw = (W - 16) / Supply.CATEGORIES;
+        for (int c = 0; c < Supply.CATEGORIES; c++) {
+            int cat = c;
+            Button b = Button.builder(Component.translatable("screen.harddayz.shop_cat." + c), x -> {
+                tab = cat;
+                scroll = 0;
+                rebuild();
+            }).bounds(l + 8 + c * tw, t + 18, tw - 2, 14).build();
+            b.active = c != tab;
+            addRenderableWidget(b);
+        }
         for (int i = 0; i < VISIBLE && scroll + i < catalog.size(); i++) {
             int idx = catalog.get(scroll + i);
             addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.buy"), b -> Net.toServer(new Net.ShopBuy(idx)))
-                    .bounds(l + 168, t + 34 + i * ROW, 52, 18).build());
+                    .bounds(l + 168, t + 38 + i * ROW, 52, 18).build());
         }
         addRenderableWidget(Button.builder(Component.literal("▲"), b -> {
             scroll = Math.max(0, scroll - VISIBLE);
@@ -107,13 +119,13 @@ public class ShopScreen extends HdScreen {
         } else {
             g.text(font, Component.literal(state.faction() + "  ·  " + state.budget() + " ₴"), l + 160, t + 8, 0xFFFFD27A, true);
             if (!state.commander()) {
-                g.text(font, Component.translatable("screen.harddayz.shop_not_commander"), l + 8, t + 20, 0xFF90A090, false);
+                g.text(font, Component.translatable("screen.harddayz.shop_not_commander"), l + 8, t + H - 52, 0xFF90A090, false);
             }
         }
         List<Integer> catalog = catalog();
         for (int i = 0; i < VISIBLE && scroll + i < catalog.size(); i++) {
             Supply.Entry e = Supply.CATALOG.get(catalog.get(scroll + i));
-            int y = t + 34 + i * ROW;
+            int y = t + 38 + i * ROW;
             var stack = e.stack();
             g.item(stack, l + 8, y + 1);
             g.itemDecorations(font, stack, l + 8, y + 1);

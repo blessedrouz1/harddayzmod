@@ -25,6 +25,10 @@ public class LauncherItem extends Item {
         this.kind = kind;
     }
 
+    public Launcher.Kind kind() {
+        return kind;
+    }
+
     public boolean available() {
         return !kind.removed();
     }

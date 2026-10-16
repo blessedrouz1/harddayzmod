@@ -339,7 +339,7 @@ public class Missile extends Entity implements Threat {
         if (dist < 5.0 || miss < 4.5) {
             Vec3 at = position().add(v.scale(s));
             setPos(at);
-            if (random.nextFloat() < Math.min(0.97f, hitChance(t) + bonus)) {
+            if (random.nextFloat() < Math.min(0.92f, (hitChance(t) + bonus) * 0.95f)) {
                 if (t instanceof Missile m) {
                     m.intercepted(level);
                 } else if (t instanceof Drone d) {

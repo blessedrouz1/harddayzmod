@@ -12,6 +12,15 @@ import net.minecraft.sounds.SoundSource;
 public class MissileSound extends AbstractTickableSoundInstance {
     private final Missile m;
     private final float base;
+    private static final java.util.List<MissileSound> ALL = new java.util.ArrayList<>();
+    private int age;
+
+    /** Сколько петель полёта звучит сейчас (остановленные движком тоже выкидываем). */
+    public static int active() {
+        var sm = net.minecraft.client.Minecraft.getInstance().getSoundManager();
+        ALL.removeIf(s -> s.isStopped() || s.age > 10 && !sm.isActive(s));
+        return ALL.size();
+    }
     private float loud;
     private boolean passed;
     private int duck;
@@ -36,6 +45,7 @@ public class MissileSound extends AbstractTickableSoundInstance {
     public MissileSound(Missile m) {
         super(pick(m), SoundSource.HOSTILE, SoundInstance.createUnseededRandom());
         this.m = m;
+        ALL.add(this);
         this.looping = true;
         this.delay = 0;
         this.base = switch (m.kind()) {
@@ -57,6 +67,7 @@ public class MissileSound extends AbstractTickableSoundInstance {
 
     @Override
     public void tick() {
+        age++;
         if (m.isRemoved()) {
             stop();
             return;

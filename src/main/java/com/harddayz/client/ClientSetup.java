@@ -311,7 +311,7 @@ public final class ClientSetup {
         Minecraft mc = Minecraft.getInstance();
         while (WAR_MENU.consumeClick()) {
             if (mc.screen == null && !DronePilot.active()) {
-                mc.setScreen(new WarSetupScreen());
+                com.harddayz.network.Net.toServer(new com.harddayz.network.Net.WarMenuRequest(0)); // сервер решит: выбор режима или ход матча
             }
         }
         while (NIGHT.consumeClick()) {

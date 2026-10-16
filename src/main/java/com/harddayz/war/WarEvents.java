@@ -177,7 +177,8 @@ public final class WarEvents {
                                                 .executes(c -> create(c, IntegerArgumentType.getInteger(c, "factions"),
                                                         IntegerArgumentType.getInteger(c, "budget"), IntegerArgumentType.getInteger(c, "lives"))))))))
                 .then(Commands.literal("menu").executes(c -> {
-                    com.harddayz.network.Net.toPlayer(c.getSource().getPlayerOrException(), new com.harddayz.network.Net.OpenWarMenu());
+                    ServerPlayer p = c.getSource().getPlayerOrException();
+                    com.harddayz.network.Net.toPlayer(p, menuState(p));
                     return 1;
                 }))
                 .then(Commands.literal("siege")
@@ -219,10 +220,52 @@ public final class WarEvents {
                 }))));
     }
 
+    /** Что показать по J: выбор режима или ход идущего матча. */
+    public static com.harddayz.network.Net.OpenWarMenu menuState(ServerPlayer p) {
+        if (!War.active()) {
+            return new com.harddayz.network.Net.OpenWarMenu(false, true, java.util.List.of());
+        }
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        String mode = War.siege() ? "screen.harddayz.war_mode.2" : War.livesMode() ? "screen.harddayz.war_mode.1" : "screen.harddayz.war_mode.0";
+        lines.add(Component.translatable(mode).getString());
+        if (War.siege()) {
+            int left = War.siegeLeft();
+            lines.add(Component.translatable("hud.harddayz.siege", War.objectsAlive(), War.objectsTotal(), left / 1200, String.format("%02d", left / 20 % 60))
+                    .getString());
+            int[] c = War.city();
+            if (c != null) {
+                lines.add(Component.translatable("screen.harddayz.match_city", c[0], c[1], c[2]).getString());
+            }
+        } else if (!War.livesMode()) {
+            lines.add(Component.translatable("screen.harddayz.match_target", War.targetScore()).getString());
+        }
+        lines.add("");
+        War.Faction mine = War.of(p.getUUID());
+        for (War.Faction f : War.factions()) {
+            String hq = f == mine ? " · " + Component.translatable("screen.harddayz.match_hq", f.hqs.size()).getString() : "";
+            String lives = War.livesMode() ? " · " + Component.translatable("screen.harddayz.match_lives", f.lives).getString() : "";
+            lines.add("§" + f.format().getChar() + "§l" + f.name + "§r  " + Component.translatable("screen.harddayz.match_row", f.members.size(), f.score,
+                    f.kills, f.destroyed, f.lost).getString() + lives + hq + (f.defeated ? "  §c" + Component.translatable("message.harddayz.war_defeated").getString() : "")
+                    + (f == mine ? "  §a◀" : ""));
+        }
+        return new com.harddayz.network.Net.OpenWarMenu(true, War.isCreator(p.getUUID()) || p.hasPermissions(2), lines);
+    }
+
+    public static void endFromMenu(ServerPlayer p) {
+        if (War.active() && (War.isCreator(p.getUUID()) || p.hasPermissions(2))) {
+            War.broadcast(Component.translatable("message.harddayz.match_ended_by", p.getDisplayName()).withStyle(ChatFormatting.GOLD));
+            War.sendSummary(null);
+            War.end();
+            War.sendLives();
+        }
+    }
+
     /** Матч из меню: те же правила, что у команд. */
     public static void setup(ServerPlayer p, com.harddayz.network.Net.WarSetup s) {
-        if (War.active() && !War.isCreator(p.getUUID()) && !p.hasPermissions(2)) {
-            p.displayClientMessage(Component.translatable("message.harddayz.city_not_creator").withStyle(ChatFormatting.RED), true);
+        if (War.active()) {
+            // матч уже идёт — заново из меню не запускаем, сначала его надо закончить
+            p.displayClientMessage(Component.translatable("message.harddayz.match_running").withStyle(ChatFormatting.RED), true);
+            com.harddayz.network.Net.toPlayer(p, menuState(p));
             return;
         }
         int budget = Math.max(0, Math.min(1000000, s.budget()));

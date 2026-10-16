@@ -528,6 +528,9 @@ public class Drone extends Entity implements Threat {
         if (e instanceof Missile m && (m.kind() == Missile.Kind.SAM || !m.isThreat())) {
             return false;
         }
+        if (e instanceof Drone d && (d.parked || d.isRemoved())) {
+            return false; // стоящие на земле не трогаем
+        }
         if (owner != null && owner.equals(o)) {
             return false; // свои дроны и ракеты — никогда
         }
@@ -571,23 +574,31 @@ public class Drone extends Entity implements Threat {
      * в 250 блоках и идёт на сближение с упреждением. Без цели 40 с — самоликвидация.
      */
     private void tickInterceptor(ServerLevel level) {
-        if (flight() > 2400) {
-            detonate(level);
-            return;
-        }
         if (home == null) {
             home = position();
         }
         Entity t = hunt >= 0 ? level.getEntity(hunt) : null;
-        if (t == null || !t.isAlive() || t.distanceTo(this) > 300) {
+        if (t == null || !t.isAlive() || t.distanceTo(this) > 500 || !hostile(t)) {
             t = null;
             hunt = -1;
-            double best = 250 * 250;
-            for (Entity e : level.getEntities(this, getBoundingBox().inflate(250), e -> (e instanceof Drone || e instanceof Missile) && hostile(e))) {
+            double best = 400 * 400;
+            for (Entity e : level.getEntities(this, getBoundingBox().inflate(400), e -> (e instanceof Drone || e instanceof Missile) && hostile(e))) {
                 double ds = e.distanceToSqr(this);
                 if (ds < best) {
                     best = ds;
                     t = e;
+                }
+            }
+            // цели, которые видит своя сеть РЛС, — даже дальше собственного обзора
+            if (t == null && owner != null && tickCount % 10 == 0) {
+                String key = com.harddayz.war.RadarNet.key(owner);
+                best = 900 * 900;
+                for (var c : com.harddayz.war.RadarNet.contacts(key, level.getGameTime())) {
+                    Entity e = level.getEntity(c.id);
+                    if (e != null && (e instanceof Drone || e instanceof Missile) && hostile(e) && e.distanceToSqr(this) < best) {
+                        best = e.distanceToSqr(this);
+                        t = e;
+                    }
                 }
             }
             if (t != null) {
@@ -597,26 +608,46 @@ public class Drone extends Entity implements Threat {
         Vec3 v = getDeltaMovement();
         Vec3 desired;
         double speed;
+        int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(getX()), Mth.floor(getZ()));
         if (t == null) {
-            if (++idle > 800) {
-                detonate(level); // цели нет — самоликвидация
-                return;
-            }
-            // патруль: круг радиусом 30 над точкой пуска на высоте ~45 над землёй
-            int ground = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(getX()), Mth.floor(getZ()));
+            idle++;
+            boolean back = idle > 1200 || flight() > 2400;
             Vec3 off = new Vec3(getX() - home.x, 0, getZ() - home.z);
-            Vec3 tangent = off.lengthSqr() < 1 ? new Vec3(1, 0, 0) : new Vec3(-off.z, 0, off.x).normalize();
-            Vec3 pull = off.lengthSqr() < 1 ? Vec3.ZERO : off.normalize().scale((30 - off.length()) * 0.04);
-            desired = tangent.add(pull).add(0, Mth.clamp((ground + 45 - getY()) * 0.05, -0.6, 0.6), 0).normalize();
-            speed = kind().cruise * 0.6;
+            if (back) {
+                // целей нет — возвращается к точке пуска и садится, его можно запустить снова
+                double h = getY() - ground;
+                if (off.length() < 3 && h < 2.5) {
+                    parked = true;
+                    entityData.set(PARKED, true);
+                    setDeltaMovement(Vec3.ZERO);
+                    idle = 0;
+                    home = null;
+                    return;
+                }
+                Vec3 to = home.subtract(position());
+                desired = off.length() < 6 ? new Vec3(to.x * 0.1, -0.6, to.z * 0.1).normalize()
+                        : new Vec3(to.x, 0, to.z).normalize().add(0, Mth.clamp((ground + 20 - getY()) * 0.05, -0.5, 0.5), 0).normalize();
+                speed = off.length() < 6 ? 0.35 : kind().cruise * 0.6;
+            } else {
+                // патруль: круг радиусом 30 над точкой пуска на высоте ~45 над землёй
+                Vec3 tangent = off.lengthSqr() < 1 ? new Vec3(1, 0, 0) : new Vec3(-off.z, 0, off.x).normalize();
+                Vec3 pull = off.lengthSqr() < 1 ? Vec3.ZERO : off.normalize().scale((30 - off.length()) * 0.04);
+                desired = tangent.add(pull).add(0, Mth.clamp((ground + 45 - getY()) * 0.05, -0.6, 0.6), 0).normalize();
+                speed = kind().cruise * 0.6;
+            }
         } else {
             idle = 0;
             double dist = t.distanceTo(this);
-            Vec3 lead = t.position().add(t.getDeltaMovement().scale(dist / kind().cruise));
+            Vec3 lead = Missile.intercept(position(), kind().cruise, t.position(), t.getDeltaMovement());
             desired = lead.subtract(position()).normalize();
             speed = kind().cruise;
-            if (dist < 4) {
-                if (random.nextFloat() < 0.65f) {
+            // неконтактный подрыв: ловим и между тиками
+            Vec3 rel = t.position().subtract(position());
+            Vec3 relV = v.subtract(t.getDeltaMovement());
+            double sMin = relV.lengthSqr() < 1.0E-6 ? 0 : Mth.clamp(rel.dot(relV) / relV.lengthSqr(), 0, 1);
+            if (dist < 4 || rel.subtract(relV.scale(sMin)).length() < 3.5) {
+                setPos(position().add(v.scale(sMin)));
+                if (random.nextFloat() < 0.6f) {
                     if (t instanceof Drone td) {
                         td.shotDown(level);
                     } else if (t instanceof Missile m) {
@@ -628,15 +659,19 @@ public class Drone extends Entity implements Threat {
             }
         }
         v = steer(v, desired, Math.min(speed, v.length() + 0.12), 0.18);
+        Vec3 to = position().add(v);
+        var hit = level.clip(new ClipContext(position(), to.add(v.scale(3)), ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
+        if (flight() > 6 && hit.getType() != HitResult.Type.MISS) {
+            if (t != null && hit.getLocation().distanceTo(position()) < v.length() + 0.5) {
+                setPos(hit.getLocation());
+                detonate(level); // врезался, гоняясь за целью
+                return;
+            }
+            v = new Vec3(v.x * 0.4, Math.max(v.y, 0.7), v.z * 0.4); // впереди склон или дерево — уходит вверх
+            to = position().add(v);
+        }
         setDeltaMovement(v);
         face(v);
-        Vec3 to = position().add(v);
-        var hit = level.clip(new ClipContext(position(), to, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, this));
-        if (flight() > 6 && hit.getType() != HitResult.Type.MISS) {
-            setPos(hit.getLocation());
-            detonate(level);
-            return;
-        }
         setPos(to);
     }
 

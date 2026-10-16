@@ -171,7 +171,7 @@ public final class ModItems {
             .build());
 
     /** Боеприпасы для пусковых: ракеты, снаряды, ленты (дроны для пусковой Шахедов остаются с техникой). */
-    static boolean ammo(Item i) {
+    public static boolean ammo(Item i) {
         return i instanceof AmmoItem && com.harddayz.entity.Launcher.droneKind(new ItemStack(i)) == null && i != JERRYCAN.get()
                 && i != JAVELIN_MISSILE.get();
     }
@@ -199,13 +199,13 @@ public final class ModItems {
             }))
             .build());
 
-    static boolean eng(Item i) {
+    public static boolean eng(Item i) {
         return i instanceof com.harddayz.item.MedItem || i instanceof com.harddayz.item.FieldShovelItem
                 || i instanceof net.minecraft.world.item.BlockItem b && (b.getBlock() instanceof com.harddayz.war.EngBlock
                         || ModBlocks.isBuild(b.getBlock()));
     }
 
-    private static boolean weapon(Item i) {
+    public static boolean weapon(Item i) {
         return i instanceof com.harddayz.item.GrenadeItem || i instanceof com.harddayz.item.JavelinItem || i == JAVELIN_MISSILE.get()
                 || i == RANGEFINDER.get() || i == COMBAT_KNIFE.get() || i == MACHETE.get();
     }

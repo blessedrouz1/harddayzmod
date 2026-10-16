@@ -91,7 +91,7 @@ public final class RadarNet {
         }
         Vec3 o = th.origin();
         double d = o.distanceTo(radar);
-        double err = precise ? Math.min(25, 4 + d * 0.015) : Math.min(140, 15 + d * 0.12);
+        double err = precise ? Math.min(60, 10 + d * 0.03) : Math.min(260, 35 + d * 0.2);
         double ang = RND.nextDouble() * Math.PI * 2, off = err * Math.sqrt(RND.nextDouble()) * 0.8;
         Vec3 est = o.add(Math.cos(ang) * off, 0, Math.sin(ang) * off);
         String type = th.launchType();
@@ -101,7 +101,7 @@ public final class RadarNet {
                 // ещё один пуск оттуда же — точка уточняется
                 double w = l.err * l.err / (l.err * l.err + err * err);
                 l.pos = l.pos.add(est.subtract(l.pos).scale(w));
-                l.err = Math.max(precise ? 3 : 8, Math.min(l.err, err) * 0.75);
+                l.err = Math.max(precise ? 8 : 25, Math.min(l.err, err) * 0.8);
                 l.count++;
                 l.last = now;
                 return;
@@ -190,7 +190,6 @@ public final class RadarNet {
     private static final Map<String, List<int[]>> RADAR_POS = new java.util.HashMap<>();
 
     public static void radarAt(String key, net.minecraft.core.BlockPos p, long now) {
-        RADAR_POS.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new int[] {p.getX(), p.getY(), p.getZ()});
         List<long[]> seen = RADAR_SEEN.computeIfAbsent(key, k -> new ArrayList<>());
         seen.removeIf(r -> r[0] == p.getX() && r[2] == p.getZ() || now - r[3] > 60);
         seen.add(new long[] {p.getX(), p.getY(), p.getZ(), now});

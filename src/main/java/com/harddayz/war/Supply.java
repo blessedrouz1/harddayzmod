@@ -25,6 +25,32 @@ import net.minecraft.world.item.ItemStack;
  * Тяжёлую технику заказывает только командир, одновременно — не больше 3 тяжёлых заказов.
  */
 public final class Supply {
+    /** Раздел магазина: 0 техника, 1 ПВО и РЛС, 2 дроны, 3 боеприпасы, 4 оружие и снаряжение, 5 инженерка. */
+    public static int category(Item i) {
+        if (i instanceof com.harddayz.item.LauncherItem li) {
+            var k = li.kind();
+            return k.samLike() || k == com.harddayz.entity.Launcher.Kind.EW || k == com.harddayz.entity.Launcher.Kind.RADAR
+                    || k == com.harddayz.entity.Launcher.Kind.CBR || k == com.harddayz.entity.Launcher.Kind.RELAY
+                    || k == com.harddayz.entity.Launcher.Kind.MG ? 1 : 0;
+        }
+        if (i instanceof com.harddayz.item.DroneItem || com.harddayz.entity.Launcher.droneKind(new ItemStack(i)) != null) {
+            return 2;
+        }
+        if (i == com.harddayz.registry.ModItems.RADAR_DISPLAY.get() || i == com.harddayz.registry.ModBlocks.RADAR_CONSOLE_ITEM.get()
+                || i == com.harddayz.registry.ModBlocks.SIREN_ITEM.get()) {
+            return 1;
+        }
+        if (com.harddayz.registry.ModItems.ammo(i)) {
+            return 3;
+        }
+        if (com.harddayz.registry.ModItems.eng(i) || i instanceof net.minecraft.world.item.BlockItem) {
+            return 5;
+        }
+        return 4;
+    }
+
+    public static final int CATEGORIES = 6;
+
     public record Entry(Supplier<Item> item, int count, int price, int seconds, boolean heavy) {
         public boolean available() {
             return !(item.get() instanceof com.harddayz.item.LauncherItem launcher) || launcher.available();

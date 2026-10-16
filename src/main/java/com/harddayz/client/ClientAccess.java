@@ -21,8 +21,13 @@ public final class ClientAccess {
     }
 
     public static void missileSound(com.harddayz.entity.Missile m) {
-        if (MissileSound.wants(m)) {
-            Minecraft.getInstance().getSoundManager().play(new MissileSound(m));
+        if (MissileSound.wants(m) && MissileSound.active() < 10) {
+            var mc = Minecraft.getInstance();
+            // в залпе звучат только ближайшие: дальние ракеты всё равно не слышно
+            if (mc.player != null && MissileSound.active() >= 6 && m.distanceTo(mc.player) > 120) {
+                return;
+            }
+            mc.getSoundManager().play(new MissileSound(m));
         }
     }
 
@@ -61,8 +66,15 @@ public final class ClientAccess {
         ClientBlasts.bump(strength);
     }
 
-    public static void openWarMenu() {
-        Minecraft.getInstance().setScreen(new WarSetupScreen());
+    public static void openWarMenu(com.harddayz.network.Net.OpenWarMenu m) {
+        var mc = Minecraft.getInstance();
+        if (mc.screen instanceof MatchScreen ms && m.active()) {
+            ms.update(m);
+        } else if (m.active()) {
+            mc.setScreen(new MatchScreen(m));
+        } else if (!(mc.screen instanceof WarSetupScreen)) {
+            mc.setScreen(new WarSetupScreen());
+        }
     }
 
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {

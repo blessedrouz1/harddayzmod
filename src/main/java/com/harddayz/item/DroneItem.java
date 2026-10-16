@@ -58,6 +58,8 @@ public class DroneItem extends Item {
                     aim = hit.getLocation();
                 }
                 net.minecraft.world.phys.Vec3 dir = look.add(0, 0.35, 0).normalize();
+                var rnd = sp.getRandom();
+                aim = aim.add(rnd.nextGaussian() * 6, 0, rnd.nextGaussian() * 6); // GPS-наведение тоже промахивается
                 Drone.launchShahed(sl, sp.getEyePosition().add(look.scale(1.5)), dir, aim, sp.getUUID(), kind);
                 sl.playSound(null, sp.blockPosition(), kind.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE.get()
                                 : kind.shahedLike() ? com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get()

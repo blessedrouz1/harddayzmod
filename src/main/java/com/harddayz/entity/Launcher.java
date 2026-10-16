@@ -1151,7 +1151,7 @@ public class Launcher extends Vehicle {
             return;
         }
         shot++;
-        Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 2.5, 0, random.nextGaussian() * 2.5);
+        Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 5, 0, random.nextGaussian() * 5);
         Vec3 g = muzzleBase();
         Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.8), aim, this).owner(owner).powerMul(0.5f).look(1);
         entityData.set(AMMO, ammo() - 1);
@@ -1256,8 +1256,7 @@ public class Launcher extends Vehicle {
         Vec3 muzzle = launchMuzzle(); // уже вычисляет правильную позицию шахты
         // Вертикальный старт: ракета летит строго вверх, потом наводится на цель (Drone.Kind.CRUISE)
         Vec3 vertUp = new Vec3(0, 1, 0).scale(0.5);
-        double ang = random.nextDouble() * Math.PI * 2;
-        Vec3 aim = Vec3.atCenterOf(target).add(Math.cos(ang) * 3, 0, Math.sin(ang) * 3);
+        Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 7, 0, random.nextGaussian() * 7);
         Drone.launchShahed(level, muzzle, vertUp, aim, owner, Drone.Kind.CRUISE);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8); // крышка отлетает при flash>0 (рендерер)
@@ -1279,7 +1278,10 @@ public class Launcher extends Vehicle {
             return;
         }
         if (ammo() > 0 && target != null) {
-            Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.4), Vec3.atCenterOf(target), this).owner(owner)
+            // КВО: Искандер ~10 блоков, Точка-У заметно хуже
+            double cep = kind() == Kind.TOCHKA ? 22 : 10;
+            Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * cep, 0, random.nextGaussian() * cep);
+            Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.4), aim, this).owner(owner)
                     .powerMul(kind() == Kind.TOCHKA ? 0.6f : 1f);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 10);

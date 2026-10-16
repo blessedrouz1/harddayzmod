@@ -154,8 +154,12 @@ public final class Net {
     public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius) {
     }
 
-    /** Сервер → клиент: открыть меню матча. */
-    public record OpenWarMenu() {
+    /** Сервер → клиент: открыть меню матча. active=false — выбор режима, иначе ход матча (строки готового текста). */
+    public record OpenWarMenu(boolean active, boolean creator, java.util.List<String> lines) {
+    }
+
+    /** Клиент → сервер: J нажата — что показать. */
+    public record WarMenuRequest(int action) {
     }
 
     public record Alert(String text) {
@@ -201,7 +205,19 @@ public final class Net {
                     }
                 });
         reg(OpenWarMenu.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
-                }, b -> new OpenWarMenu(), (p, ctx) -> com.harddayz.client.ClientAccess.openWarMenu());
+                    b.writeBoolean(m.active());
+                    b.writeBoolean(m.creator());
+                    writeList(b, m.lines());
+                }, b -> new OpenWarMenu(b.readBoolean(), b.readBoolean(), readList(b, 64)), (p, ctx) -> com.harddayz.client.ClientAccess.openWarMenu(p));
+        reg(WarMenuRequest.class, NetworkDirection.PLAY_TO_SERVER, (m, b) -> b.writeVarInt(m.action()), b -> new WarMenuRequest(b.readVarInt()), (p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null) {
+                        if (p.action() == 1) {
+                            com.harddayz.war.WarEvents.endFromMenu(sp);
+                        }
+                        toPlayer(sp, com.harddayz.war.WarEvents.menuState(sp));
+                    }
+                });
         reg(Alert.class, NetworkDirection.PLAY_TO_CLIENT, Net::encAlert, Net::decAlert, (p, ctx) -> com.harddayz.client.ClientSetup.alert(p.text()));
         reg(ShopState.class, NetworkDirection.PLAY_TO_CLIENT, Net::encShopState, Net::decShopState, (p, ctx) -> com.harddayz.client.ShopScreen.onState(p));
         reg(ShopBuy.class, NetworkDirection.PLAY_TO_SERVER, Net::encShopBuy, Net::decShopBuy, (p, ctx) -> {
