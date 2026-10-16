@@ -61,6 +61,10 @@ public final class ClientAccess {
         ClientBlasts.bump(strength);
     }
 
+    public static void openWarMenu() {
+        Minecraft.getInstance().setScreen(new WarSetupScreen());
+    }
+
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {
         var p = Minecraft.getInstance().player;
         return p == null ? null : p.position();

@@ -89,6 +89,7 @@ public class Missile extends Entity implements Threat {
         Missile m = new Missile(ModEntities.MISSILE.get(), level);
         m.entityData.set(KIND, kind.ordinal());
         m.setPos(pos);
+        m.origin = pos;
         m.setDeltaMovement(velocity);
         m.target = target;
         m.launcherId = launcher == null ? -1 : launcher.getId();
@@ -135,7 +136,22 @@ public class Missile extends Entity implements Threat {
     /** Цель для ПВО: всё, что летит не от неё самой. */
     @Override
     public boolean isThreat() {
-        return kind() != Kind.SAM && kind() != Kind.BOMB;
+        return kind() != Kind.SAM && kind() != Kind.BOMB && look() != 8;
+    }
+
+    private @Nullable Vec3 origin;
+
+    @Override
+    public @Nullable Vec3 origin() {
+        return origin;
+    }
+
+    @Override
+    public String launchType() {
+        if (look() == 7) {
+            return "mortar";
+        }
+        return kind() == Kind.BALLISTIC ? "ballistic" : kind() == Kind.GRAD ? "mlrs" : "missile";
     }
 
     private final com.harddayz.Compat.Lerp lerp = new com.harddayz.Compat.Lerp(2);
@@ -235,7 +251,7 @@ public class Missile extends Entity implements Threat {
             // марш на высоте: к точке над целью
             Vec3 way = new Vec3(target.x, apex, target.z);
             desired = way.subtract(pos).normalize();
-            speed = Math.min(5.0, v.length() + 0.08);
+            speed = Math.min(4.2, v.length() + 0.08);
             turn = 0.05;
         } else {
             diving = true;
@@ -244,10 +260,10 @@ public class Missile extends Entity implements Threat {
             double hz = aim.z - pos.z;
             if (hx * hx + hz * hz < 36) {
                 // над целью: просто вниз до удара о землю (высота в координатах — лишь ориентир)
-                return v.normalize().scale(Math.min(7.0, v.length() + 0.15));
+                return v.normalize().scale(Math.min(6.0, v.length() + 0.15));
             }
             desired = aim.subtract(pos).normalize();
-            speed = Math.min(7.0, v.length() + 0.15);
+            speed = Math.min(6.0, v.length() + 0.15);
             turn = 0.14;
         }
         return steer(v, desired, speed, turn);

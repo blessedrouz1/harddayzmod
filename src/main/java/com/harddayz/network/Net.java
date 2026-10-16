@@ -140,35 +140,68 @@ public final class Net {
     }
 
     /** Клиент → сервер: запросить картину радара (open — открыть экран). */
-    public record RadarRequest(boolean open) {
+    /** mode: 0 — обновить, 1 — открыть радар, 2 — открыть экран засечек. */
+    public record RadarRequest(int mode) {
     }
 
     /** Сервер → клиент: метки целей относительно игрока «тип;dx;dz;высота;возраст». */
-    public record RadarState(int radars, java.util.List<String> contacts, boolean open) {
+    /** launches: «тип;x;y;z;погрешность;пусков;возраст», marks: «тип;dx;dz;возраст». */
+    public record RadarState(int radars, java.util.List<String> contacts, java.util.List<String> launches, java.util.List<String> marks, int open) {
     }
 
     /** Сервер → клиент: тревога на экране. */
+    /** Клиент → сервер: начать матч из меню. mode: 0 — штабы, 1 — жизни, 2 — штаб и город. */
+    public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius) {
+    }
+
+    /** Сервер → клиент: открыть меню матча. */
+    public record OpenWarMenu() {
+    }
+
     public record Alert(String text) {
     }
 
-    public static RadarState radarState(ServerPlayer p, boolean open) {
+    public static RadarState radarState(ServerPlayer p, int open) {
         String key = com.harddayz.war.RadarNet.key(p.getUUID());
         long now = p.level().getGameTime();
         java.util.List<String> out = new java.util.ArrayList<>();
         for (var c : com.harddayz.war.RadarNet.contacts(key, now)) {
             out.add(c.type + ";" + (int) (c.pos.x - p.getX()) + ";" + (int) (c.pos.z - p.getZ()) + ";" + (int) c.pos.y + ";" + (now - c.seen));
         }
-        return new RadarState(com.harddayz.war.RadarNet.radarCount(key), out, open);
+        java.util.List<String> ls = new java.util.ArrayList<>();
+        for (var l : com.harddayz.war.RadarNet.launches(key, now)) {
+            ls.add(l.type + ";" + (int) l.pos.x + ";" + (int) l.pos.y + ";" + (int) l.pos.z + ";" + (int) Math.ceil(l.err) + ";" + l.count + ";" + (now - l.last));
+        }
+        java.util.List<String> ms = new java.util.ArrayList<>();
+        for (var m : com.harddayz.war.RadarNet.marks(key, now)) {
+            ms.add(m.type() + ";" + (int) (m.pos().x - p.getX()) + ";" + (int) (m.pos().z - p.getZ()) + ";" + (now - m.time()));
+        }
+        return new RadarState(com.harddayz.war.RadarNet.radarCount(key), out, ls, ms, open);
     }
 
     public static void init() {
         reg(RadarRequest.class, NetworkDirection.PLAY_TO_SERVER, Net::encRadarRequest, Net::decRadarRequest, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null) {
-                        toPlayer(sp, radarState(sp, p.open()));
+                        toPlayer(sp, radarState(sp, p.mode()));
                     }
                 });
         reg(RadarState.class, NetworkDirection.PLAY_TO_CLIENT, Net::encRadarState, Net::decRadarState, (p, ctx) -> com.harddayz.client.RadarScreen.onState(p));
+        reg(WarSetup.class, NetworkDirection.PLAY_TO_SERVER, (m, b) -> {
+                    b.writeVarInt(m.mode());
+                    b.writeVarInt(m.factions());
+                    b.writeVarInt(m.budget());
+                    b.writeVarInt(m.lives());
+                    b.writeVarInt(m.minutes());
+                    b.writeVarInt(m.radius());
+                }, b -> new WarSetup(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt()), (p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null) {
+                        com.harddayz.war.WarEvents.setup(sp, p);
+                    }
+                });
+        reg(OpenWarMenu.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                }, b -> new OpenWarMenu(), (p, ctx) -> com.harddayz.client.ClientAccess.openWarMenu());
         reg(Alert.class, NetworkDirection.PLAY_TO_CLIENT, Net::encAlert, Net::decAlert, (p, ctx) -> com.harddayz.client.ClientSetup.alert(p.text()));
         reg(ShopState.class, NetworkDirection.PLAY_TO_CLIENT, Net::encShopState, Net::decShopState, (p, ctx) -> com.harddayz.client.ShopScreen.onState(p));
         reg(ShopBuy.class, NetworkDirection.PLAY_TO_SERVER, Net::encShopBuy, Net::decShopBuy, (p, ctx) -> {
@@ -451,21 +484,23 @@ public final class Net {
     }
 
     private static void encRadarRequest(RadarRequest m, FriendlyByteBuf b) {
-        b.writeBoolean(m.open());
+        b.writeVarInt(m.mode());
     }
 
     private static RadarRequest decRadarRequest(FriendlyByteBuf b) {
-        return new RadarRequest(b.readBoolean());
+        return new RadarRequest(b.readVarInt());
     }
 
     private static void encRadarState(RadarState m, FriendlyByteBuf b) {
         b.writeVarInt(m.radars());
         writeList(b, m.contacts());
-        b.writeBoolean(m.open());
+        writeList(b, m.launches());
+        writeList(b, m.marks());
+        b.writeVarInt(m.open());
     }
 
     private static RadarState decRadarState(FriendlyByteBuf b) {
-        return new RadarState(b.readVarInt(), readList(b, 4096), b.readBoolean());
+        return new RadarState(b.readVarInt(), readList(b, 4096), readList(b, 256), readList(b, 512), b.readVarInt());
     }
 
     private static void encAlert(Alert m, FriendlyByteBuf b) {

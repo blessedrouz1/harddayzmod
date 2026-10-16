@@ -90,8 +90,16 @@ public final class War {
         java.util.Map<String, List<int[]>> sirens = new java.util.HashMap<>();
         List<Frontline.Point> points = new ArrayList<>();
         int targetScore = 30;
-        /** "hq" — штабы и рубежи; "lives" — общий запас жизней команды. */
+        /** "hq" — штабы и рубежи; "lives" — общий запас жизней команды; "siege" — штаб атаки против города защиты. */
         String mode = "hq";
+        /** Город защиты: x, z, радиус. */
+        @Nullable int[] city;
+        /** Объекты города: x, y, z. */
+        List<int[]> objects = new ArrayList<>();
+        int objectsTotal;
+        int objectsLost;
+        /** Сколько тиков осталось до конца осады (защита выстояла). */
+        int siegeLeft;
     }
 
     public static List<Frontline.Point> points() {
@@ -249,6 +257,107 @@ public final class War {
     private static final String[][] PRESETS = {{"blue", "Синие", "blue"}, {"red", "Красные", "red"}, {"green", "Зелёные", "green"},
             {"yellow", "Жёлтые", "yellow"}};
 
+    // ------------------------------------------------------------------ режим «Штаб и город»
+
+    public static boolean siege() {
+        return active() && "siege".equals(data.mode);
+    }
+
+    /** Атакующие — первая фракция, защита — вторая. */
+    public static @Nullable Faction attack() {
+        return siege() && data.factions.size() > 0 ? data.factions.get(0) : null;
+    }
+
+    public static @Nullable Faction defense() {
+        return siege() && data.factions.size() > 1 ? data.factions.get(1) : null;
+    }
+
+    public static void createSiege(ServerPlayer by, int budget, int minutes) {
+        create(by, 2, budget, 0);
+        data.mode = "siege";
+        data.factions.get(0).name = "Атака";
+        data.factions.get(1).name = "Защита";
+        data.siegeLeft = minutes * 60 * 20;
+        data.objects = new ArrayList<>();
+        syncTeams();
+        save();
+    }
+
+    public static @Nullable int[] city() {
+        return data.city;
+    }
+
+    public static void setCity(BlockPos at, int radius) {
+        data.city = new int[] {at.getX(), at.getZ(), radius};
+        save();
+    }
+
+    public static boolean inCity(BlockPos p) {
+        int[] c = data.city;
+        if (c == null) {
+            return false;
+        }
+        double dx = p.getX() - c[0], dz = p.getZ() - c[1];
+        return dx * dx + dz * dz <= (double) c[2] * c[2];
+    }
+
+    /** Поставить объект города. null — успех, иначе ключ текста ошибки. */
+    public static @Nullable String addObject(ServerPlayer p, BlockPos pos) {
+        if (!siege()) {
+            return "message.harddayz.object_no_siege";
+        }
+        if (defense() == null || !defense().has(p.getUUID())) {
+            return "message.harddayz.object_not_defense";
+        }
+        if (data.city == null) {
+            return "message.harddayz.object_no_city";
+        }
+        if (!inCity(pos)) {
+            return "message.harddayz.object_outside";
+        }
+        objects().add(new int[] {pos.getX(), pos.getY(), pos.getZ()});
+        data.objectsTotal++;
+        save();
+        return null;
+    }
+
+    public static List<int[]> objects() {
+        if (data.objects == null) {
+            data.objects = new ArrayList<>();
+        }
+        return data.objects;
+    }
+
+    public static int objectsAlive() {
+        return objects().size();
+    }
+
+    public static int objectsTotal() {
+        return data.objectsTotal;
+    }
+
+    public static int objectsLost() {
+        return data.objectsLost;
+    }
+
+    public static void objectLost() {
+        data.objectsLost++;
+        Faction a = attack();
+        if (a != null) {
+            a.score++;
+            a.destroyed++;
+        }
+        save();
+    }
+
+    public static int siegeLeft() {
+        return data.siegeLeft;
+    }
+
+    public static void tickSiege(int ticks) {
+        data.siegeLeft = Math.max(0, data.siegeLeft - ticks);
+    }
+
     public static boolean livesMode() {
         return "lives".equals(data.mode);
     }
@@ -354,7 +463,7 @@ public final class War {
 
     /** Зарегистрировать штаб. Возвращает номер (1 — главный) или 0, если мест нет. */
     public static int addHq(Faction f, BlockPos pos) {
-        if (f.hqs.size() >= MAX_HQ) {
+        if (f.hqs.size() >= (siege() && f == attack() ? 1 : MAX_HQ)) {
             return 0;
         }
         f.hqs.add(new int[] {pos.getX(), pos.getY(), pos.getZ()});
@@ -382,7 +491,7 @@ public final class War {
                 int[] h = f.hqs.get(i);
                 if (h[0] == pos.getX() && h[1] == pos.getY() && h[2] == pos.getZ()) {
                     f.hqs.remove(i);
-                    if (f.hqs.isEmpty() && f.hadHq) {
+                    if (f.hqs.isEmpty() && f.hadHq && !(siege() && f == defense())) {
                         f.defeated = true;
                     }
                     save();

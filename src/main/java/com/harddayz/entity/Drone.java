@@ -54,7 +54,7 @@ public class Drone extends Entity implements Threat {
         FPV(4, 3600, 4.5f, 0, 0, false),
         RECON(6, 9600, 0f, 0, 0, false),
         /** «Шахед-238»: реактивный — в 2 раза быстрее, летит высоко, ПВО сбивает хуже. */
-        SHAHED_238(10, 2400, 8f, 2.6, 70, true),
+        SHAHED_238(10, 2400, 8f, 2.3, 70, true),
         /** «Шахед-131»: малый, слабее заряд. */
         SHAHED_131(6, 3000, 4.5f, 1.15, 22, true),
         /** «Гербера»: ложная цель — почти без заряда, отвлекает ПВО. */
@@ -66,9 +66,9 @@ public class Drone extends Entity implements Threat {
         /** Самолётный разведчик: кружит над точкой и передаёт найденных врагов в сеть РЛС фракции. */
         WING_RECON(6, 0, 0f, 1.0, 60, true),
         /** «Герань-5»: реактивная, летит почти как крылатая ракета — быстро и высоко, ПВО её сбивает тяжело. */
-        GERAN5(8, 1800, 9f, 3.6, 90, true),
+        GERAN5(8, 1800, 9f, 3.1, 90, true),
         /** «Бандероль»: малая крылатая ракета, быстрая и низковысотная. */
-        BANDEROL(6, 1800, 6f, 3.0, 35, true),
+        BANDEROL(6, 1800, 6f, 2.6, 35, true),
         /** «Куб»: малый барражирующий боеприпас — запуск с руки, сам летит к точке. */
         KUB(4, 1800, 3f, 2.0, 30, true),
         /** «Молния»: дешёвый самолётный камикадзе, только под оператором (как «Ланцет»). */
@@ -76,7 +76,7 @@ public class Drone extends Entity implements Threat {
         /** «Баба-Яга»: тяжёлый гексакоптер-бомбардировщик, две мощные бомбы. */
         BABA_YAGA(10, 7200, 0f, 0, 0, false),
         /** Крылатая ракета «Калибр» (с пусковой): низко и далеко, мощная БЧ. */
-        CRUISE(7, 0, 12f, 3.2, 25, true),
+        CRUISE(7, 0, 12f, 2.7, 25, true),
         /** FPV на оптоволокне: РЭБ не берёт, но катушка кабеля ограничивает дальность. */
         FPV_FIBER(4, 3600, 4.5f, 0, 0, false);
 
@@ -241,6 +241,7 @@ public class Drone extends Entity implements Threat {
         Drone d = new Drone(ModEntities.DRONE.get(), level);
         d.setKind(kind);
         d.setPos(pos);
+        d.origin = pos;
         d.setDeltaMovement(dir.scale(0.9));
         d.target = target;
         d.owner = owner;
@@ -291,6 +292,19 @@ public class Drone extends Entity implements Threat {
     @Override
     public boolean isThreat() {
         return true;
+    }
+
+    private @Nullable Vec3 origin;
+
+    @Override
+    public @Nullable Vec3 origin() {
+        return origin;
+    }
+
+    @Override
+    public String launchType() {
+        var k = kind();
+        return k == Kind.CRUISE ? "cruise" : k.jetDrone() ? "jetdrone" : k.shahedLike() ? "shahed" : "drone";
     }
 
     @Override
@@ -479,6 +493,7 @@ public class Drone extends Entity implements Threat {
         parked = false;
         entityData.set(PARKED, false);
         launchedAt = tickCount;
+        origin = position();
         owner = p.getUUID();
         target = aim;
         Vec3 flat = aim.subtract(position()).multiply(1, 0, 1);

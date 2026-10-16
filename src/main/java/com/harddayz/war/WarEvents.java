@@ -114,6 +114,34 @@ public final class WarEvents {
             return;
         }
         ServerLevel level = server.overworld();
+        if (War.siege()) {
+            for (int[] h : new java.util.ArrayList<>(War.objects())) {
+                BlockPos pos = new BlockPos(h[0], h[1], h[2]);
+                if (level.isLoaded(pos) && !level.getBlockState(pos).is(ModBlocks.CITY_OBJECT.get())) {
+                    War.objects().remove(h);
+                    War.objectLost();
+                    War.broadcast(Component.translatable("message.harddayz.object_lost", War.objectsAlive(), War.objectsTotal())
+                            .withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                }
+            }
+            int before = War.siegeLeft();
+            War.tickSiege(40);
+            int left = War.siegeLeft();
+            for (int m : new int[] {30, 10, 5, 1}) {
+                if (before > m * 1200 && left <= m * 1200) {
+                    War.broadcast(Component.translatable("message.harddayz.siege_time", m).withStyle(ChatFormatting.GOLD));
+                }
+            }
+            if (server.getTickCount() % 200 == 0) {
+                Component bar = Component.translatable("hud.harddayz.siege", War.objectsAlive(), War.objectsTotal(), left / 1200,
+                        String.format("%02d", left / 20 % 60)).withStyle(ChatFormatting.YELLOW);
+                for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                    if (War.of(p.getUUID()) != null) {
+                        p.displayClientMessage(bar, true);
+                    }
+                }
+            }
+        }
         for (War.Faction f : War.factions()) {
             f.warehouses.removeIf(h -> {
                 BlockPos pos = new BlockPos(h[0], h[1], h[2]);
@@ -148,6 +176,31 @@ public final class WarEvents {
                                         .then(Commands.literal("lives").then(Commands.argument("lives", IntegerArgumentType.integer(1, 10000))
                                                 .executes(c -> create(c, IntegerArgumentType.getInteger(c, "factions"),
                                                         IntegerArgumentType.getInteger(c, "budget"), IntegerArgumentType.getInteger(c, "lives"))))))))
+                .then(Commands.literal("menu").executes(c -> {
+                    com.harddayz.network.Net.toPlayer(c.getSource().getPlayerOrException(), new com.harddayz.network.Net.OpenWarMenu());
+                    return 1;
+                }))
+                .then(Commands.literal("siege")
+                        .executes(c -> createSiege(c, 8000, 60))
+                        .then(Commands.argument("budget", IntegerArgumentType.integer(0, 1000000))
+                                .executes(c -> createSiege(c, IntegerArgumentType.getInteger(c, "budget"), 60))
+                                .then(Commands.argument("minutes", IntegerArgumentType.integer(5, 600))
+                                        .executes(c -> createSiege(c, IntegerArgumentType.getInteger(c, "budget"), IntegerArgumentType.getInteger(c, "minutes"))))))
+                .then(Commands.literal("city").then(Commands.argument("radius", IntegerArgumentType.integer(30, 2000)).executes(c -> {
+                    ServerPlayer p = c.getSource().getPlayerOrException();
+                    if (!War.siege()) {
+                        c.getSource().sendFailure(Component.translatable("message.harddayz.object_no_siege"));
+                        return 0;
+                    }
+                    if (!War.isCreator(p.getUUID()) && !c.getSource().hasPermission(2)) {
+                        c.getSource().sendFailure(Component.translatable("message.harddayz.city_not_creator"));
+                        return 0;
+                    }
+                    int r = IntegerArgumentType.getInteger(c, "radius");
+                    War.setCity(p.blockPosition(), r);
+                    War.broadcast(Component.translatable("message.harddayz.city_set", p.getBlockX(), p.getBlockZ(), r).withStyle(ChatFormatting.GOLD));
+                    return 1;
+                })))
                 .then(Commands.literal("join").then(Commands.argument("faction", StringArgumentType.word())
                         .suggests((c, b) -> SharedSuggestionProvider.suggest(War.factions().stream().map(f -> f.id), b))
                         .executes(WarEvents::join)))
@@ -164,6 +217,42 @@ public final class WarEvents {
                     War.broadcast(Component.translatable("message.harddayz.score_target_set", War.targetScore()).withStyle(ChatFormatting.GOLD));
                     return 1;
                 }))));
+    }
+
+    /** Матч из меню: те же правила, что у команд. */
+    public static void setup(ServerPlayer p, com.harddayz.network.Net.WarSetup s) {
+        if (War.active() && !War.isCreator(p.getUUID()) && !p.hasPermissions(2)) {
+            p.displayClientMessage(Component.translatable("message.harddayz.city_not_creator").withStyle(ChatFormatting.RED), true);
+            return;
+        }
+        int budget = Math.max(0, Math.min(1000000, s.budget()));
+        if (s.mode() == 2) {
+            int minutes = Math.max(5, Math.min(600, s.minutes()));
+            War.createSiege(p, budget, minutes);
+            War.setCity(p.blockPosition(), Math.max(30, Math.min(2000, s.radius())));
+            War.broadcast(Component.translatable("message.harddayz.siege_created", p.getDisplayName(), minutes).withStyle(ChatFormatting.GOLD));
+            War.broadcast(Component.translatable("message.harddayz.city_set", p.getBlockX(), p.getBlockZ(), s.radius()).withStyle(ChatFormatting.GOLD));
+            War.broadcast(Component.translatable("message.harddayz.siege_rules").withStyle(ChatFormatting.GRAY));
+        } else {
+            int lives = s.mode() == 1 ? Math.max(1, Math.min(10000, s.lives())) : 0;
+            War.create(p, Math.max(2, Math.min(4, s.factions())), budget, lives);
+            War.sendLives();
+            if (lives > 0) {
+                War.broadcast(Component.translatable("message.harddayz.lives_mode", lives).withStyle(ChatFormatting.GOLD));
+            }
+            War.broadcast(Component.translatable("message.harddayz.war_created", p.getDisplayName(), budget).withStyle(ChatFormatting.GOLD));
+        }
+        War.broadcast(joinButtons());
+    }
+
+    private static int createSiege(CommandContext<CommandSourceStack> c, int budget, int minutes)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        ServerPlayer p = c.getSource().getPlayerOrException();
+        War.createSiege(p, budget, minutes);
+        War.broadcast(Component.translatable("message.harddayz.siege_created", p.getDisplayName(), minutes).withStyle(ChatFormatting.GOLD));
+        War.broadcast(Component.translatable("message.harddayz.siege_rules").withStyle(ChatFormatting.GRAY));
+        War.broadcast(joinButtons());
+        return 1;
     }
 
     private static int create(CommandContext<CommandSourceStack> c, int count, int budget) throws com.mojang.brigadier.exceptions.CommandSyntaxException {

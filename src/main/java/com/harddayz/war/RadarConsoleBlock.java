@@ -1,0 +1,27 @@
+package com.harddayz.war;
+
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+
+/** Большой экран РЛС в штабе: ПКМ — список засечек пусков сети с координатами. */
+public class RadarConsoleBlock extends Block {
+    public RadarConsoleBlock(Properties properties) {
+        super(properties);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        if (!level.isClientSide() && player instanceof ServerPlayer sp) {
+            com.harddayz.network.Net.toPlayer(sp, com.harddayz.network.Net.radarState(sp, 2));
+        }
+        return InteractionResult.sidedSuccess(level.isClientSide());
+    }
+}

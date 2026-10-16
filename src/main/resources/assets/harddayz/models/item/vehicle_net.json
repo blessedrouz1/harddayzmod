@@ -1,1 +1,1 @@
-{"parent": "minecraft:item/generated", "textures": {"layer0": "minecraft:block/azalea_leaves"}}
+{"parent": "minecraft:item/generated", "textures": {"layer0": "harddayz:item/vehicle_net"}}

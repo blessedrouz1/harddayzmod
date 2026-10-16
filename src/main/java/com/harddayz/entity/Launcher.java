@@ -102,7 +102,9 @@ public class Launcher extends Vehicle {
         /** «Калибр» (береговой): 4 крылатые ракеты, летят низко над землёй далеко. */
         KALIBR(4, 220),
         /** Надувной макет «Града»: ложная цель для разведки, дронов и ракет. Ничего не умеет, лопается от попадания. */
-        DECOY(0, 30, false);
+        DECOY(0, 30, false),
+        /** Контрбатарейная РЛС: засекает огневые позиции миномётов, РСЗО и баллистики. */
+        CBR(0, 140, true);
 
         public final int capacity;
         public final float health;
@@ -130,7 +132,7 @@ public class Launcher extends Vehicle {
             if (dronePad()) {
                 return droneKind(s) != null;
             }
-            return this != EW && this != RADAR && this != RELAY && (s.is(ammo()) || this == MORTAR && s.is(ModItems.MORTAR_ILLUM.get()));
+            return this != EW && this != RADAR && this != RELAY && this != CBR && (s.is(ammo()) || this == MORTAR && s.is(ModItems.MORTAR_ILLUM.get()));
         }
 
         /** Стрелковые установки: на них садятся и стреляют сами. */
@@ -184,6 +186,7 @@ public class Launcher extends Vehicle {
                 case MORTAR -> ModItems.MORTAR_SHELL.get();
                 case RELAY -> ModItems.DESIGNATOR.get();
                 case DECOY -> net.minecraft.world.item.Items.AIR;
+                case CBR -> ModItems.DESIGNATOR.get();
             };
         }
 
@@ -217,6 +220,7 @@ public class Launcher extends Vehicle {
                 case MORTAR -> ModItems.MORTAR.get();
                 case RELAY -> ModItems.RELAY.get();
                 case DECOY -> ModItems.DECOY.get();
+                case CBR -> ModItems.CBR_TRUCK.get();
             };
         }
     }
@@ -894,6 +898,7 @@ public class Launcher extends Vehicle {
         }
         return switch (kind()) {
             case GRAD, DECOY -> local(0, 2.0, -1.5);
+            case CBR -> local(0, 2.0, -1.5);
             case ISKANDER -> local(0, 1.75, -2.75);
             case TOCHKA -> local(0, 1.75, -1.9);
             case SMERCH, URAGAN -> local(0, 2.0, -1.9);
@@ -987,6 +992,10 @@ public class Launcher extends Vehicle {
         }
         if (kind() == Kind.RADAR) {
             tickRadar(level);
+            return;
+        }
+        if (kind() == Kind.CBR) {
+            tickCbr(level);
             return;
         }
         if (kind() == Kind.DECOY) {
@@ -1803,7 +1812,7 @@ public class Launcher extends Vehicle {
         long now = level.getGameTime();
         if (tickCount % 20 == 0) {
             com.harddayz.war.RadarNet.radarAlive(key, now);
-            com.harddayz.war.RadarNet.radarAt(key, blockPosition());
+            com.harddayz.war.RadarNet.radarAt(key, blockPosition(), now);
         }
         int r = com.harddayz.war.RadarNet.RADAR_RANGE;
         for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r, 600, r), e -> e instanceof Threat)) {
@@ -1811,7 +1820,38 @@ public class Launcher extends Vehicle {
             if (!th.isThreat() || com.harddayz.war.War.allied(owner, th.owner()) || e.getY() < getY() - 4) {
                 continue; // низко у земли РЛС не видит
             }
+            boolean fresh = !com.harddayz.war.RadarNet.tracked(key, e, now);
             com.harddayz.war.RadarNet.report(key, e, now);
+            if (fresh) {
+                com.harddayz.war.RadarNet.detectLaunch(key, e, position(), false, now);
+            }
+        }
+    }
+
+    /** Контрбатарейная РЛС: ловит мины, снаряды РСЗО и баллистику по траектории и точно считает место стрельбы. */
+    public static final int CBR_RANGE = 1300;
+
+    private void tickCbr(ServerLevel level) {
+        entityData.set(WANT_TURRET, (float) ((tickCount * 2) % 360));
+        if (tickCount % 5 != 0) {
+            return;
+        }
+        String key = com.harddayz.war.RadarNet.key(owner);
+        long now = level.getGameTime();
+        if (tickCount % 20 == 0) {
+            com.harddayz.war.RadarNet.radarAlive(key, now);
+            com.harddayz.war.RadarNet.radarAt(key, blockPosition(), now);
+        }
+        for (Missile m : level.getEntitiesOfClass(Missile.class, new AABB(position(), position()).inflate(CBR_RANGE, 600, CBR_RANGE),
+                m -> m.isThreat() && (m.kind() == Missile.Kind.GRAD || m.kind() == Missile.Kind.BALLISTIC))) {
+            if (com.harddayz.war.War.allied(owner, m.owner())) {
+                continue;
+            }
+            boolean fresh = !com.harddayz.war.RadarNet.tracked(key, m, now);
+            com.harddayz.war.RadarNet.report(key, m, now);
+            if (fresh) {
+                com.harddayz.war.RadarNet.detectLaunch(key, m, position(), true, now);
+            }
         }
     }
 

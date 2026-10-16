@@ -1,0 +1,1 @@
+{"parent": "minecraft:block/cube_bottom_top", "textures": {"side": "harddayz:block/radar_console_side", "top": "harddayz:block/siren_top", "bottom": "harddayz:block/siren_top"}}

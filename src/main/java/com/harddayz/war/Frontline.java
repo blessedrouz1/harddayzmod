@@ -201,7 +201,17 @@ public final class Frontline {
                 winner = f;
             }
         }
-        if (winner == null) {
+        if (War.siege()) {
+            int total = War.objectsTotal();
+            if (total >= 3 && War.objectsLost() >= Math.ceil(total * 0.8)) {
+                winner = War.attack(); // город разрушен
+            } else if (War.siegeLeft() <= 0) {
+                winner = War.defense(); // город выстоял
+            } else if (War.attack() != null && War.attack().defeated) {
+                winner = War.defense(); // штаб атаки найден и уничтожен
+            }
+        }
+        if (winner == null && !War.siege()) {
             List<War.Faction> alive = War.factions().stream().filter(f -> !f.defeated && !f.members.isEmpty()).toList();
             boolean anyHq = War.factions().stream().anyMatch(f -> f.hadHq);
             if ((anyHq || War.livesMode()) && alive.size() == 1) {

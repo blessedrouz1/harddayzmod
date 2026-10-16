@@ -38,6 +38,16 @@ public final class ModBlocks {
     public static final RegistryObject<Item> SIREN_ITEM = ModItems.ITEMS.register("siren",
             () -> new BlockItem(SIREN.get(), new Item.Properties()));
 
+    public static final RegistryObject<Block> CITY_OBJECT = BLOCKS.register("city_object", () -> new com.harddayz.war.CityObjectBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(6f, 8f).sound(SoundType.STONE).requiresCorrectToolForDrops()));
+    public static final RegistryObject<Item> CITY_OBJECT_ITEM = ModItems.ITEMS.register("city_object",
+            () -> new BlockItem(CITY_OBJECT.get(), new Item.Properties()));
+
+    public static final RegistryObject<Block> RADAR_CONSOLE = BLOCKS.register("radar_console", () -> new com.harddayz.war.RadarConsoleBlock(
+            BlockBehaviour.Properties.of().mapColor(MapColor.METAL).strength(4f, 6f).sound(SoundType.METAL).lightLevel(s -> 7)));
+    public static final RegistryObject<Item> RADAR_CONSOLE_ITEM = ModItems.ITEMS.register("radar_console",
+            () -> new BlockItem(RADAR_CONSOLE.get(), new Item.Properties()));
+
     public static final DeferredRegister<net.minecraft.world.level.block.entity.BlockEntityType<?>> BLOCK_ENTITIES =
             DeferredRegister.create(ForgeRegistries.BLOCK_ENTITY_TYPES, HardDayz.MODID);
 

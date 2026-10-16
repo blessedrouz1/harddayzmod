@@ -355,6 +355,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         geo.put(Launcher.Kind.MORTAR, new GeoLauncherModel("mortar", null, true));
         geo.put(Launcher.Kind.EW, new GeoLauncherModel("ew", cab, true));
         geo.put(Launcher.Kind.RADAR, new GeoLauncherModel("radar", cab, true));
+        geo.put(Launcher.Kind.CBR, new GeoLauncherModel("radar", cab, true));
         geo.put(Launcher.Kind.RELAY, new GeoLauncherModel("relay", base, true));
         geo.put(Launcher.Kind.GRAD_P, new GeoLauncherModel("grad_p", null, true));
         geo.put(Launcher.Kind.SAM_POST, new GeoLauncherModel("sam_post", base, true));

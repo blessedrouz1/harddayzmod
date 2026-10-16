@@ -76,9 +76,10 @@ public class ReviewGameTests {
         }
         var buf = new FriendlyByteBuf(Unpooled.buffer());
         try {
-            buf.writeVarInt(2).writeVarInt(1).writeUtf("contact").writeBoolean(true);
+            buf.writeVarInt(2).writeVarInt(1).writeUtf("contact").writeVarInt(1).writeUtf("ballistic;1;2;3;20;1;0").writeVarInt(0).writeVarInt(2);
             var result = (Net.RadarState) decode("decRadarState", buf);
-            h.assertTrue(result.open() && result.contacts().equals(java.util.List.of("contact")) && !buf.isReadable(), "Trailing flag corrupted");
+            h.assertTrue(result.open() == 2 && result.contacts().equals(java.util.List.of("contact")) && result.launches().size() == 1
+                    && result.marks().isEmpty() && !buf.isReadable(), "Trailing flag corrupted");
         } finally { buf.release(); }
         h.succeed();
     }

@@ -21,6 +21,7 @@ public final class LauncherGeometry {
             case RAMP -> "shahed_ground";
             case PICKUP_SAM -> "pickup_sam";
             case DECOY -> "grad";
+            case CBR -> "radar";
             default -> kind.name().toLowerCase(java.util.Locale.ROOT);
         };
     }

@@ -24,7 +24,7 @@ public class RadarDisplayItem extends Item {
     @Override
     public net.minecraft.world.InteractionResultHolder<ItemStack> use(Level level, Player player, InteractionHand hand) {
         if (player instanceof ServerPlayer sp) {
-            Net.toPlayer(sp, Net.radarState(sp, true));
+            Net.toPlayer(sp, Net.radarState(sp, 1));
         }
         return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
     }

@@ -103,7 +103,7 @@ public final class Blast {
             if (d > radius || d < 0.01) {
                 continue;
             }
-            double f = 1 - d / radius;
+            double f = (1 - d / radius) * cover(level, at, e);
             if (!(e instanceof com.harddayz.entity.Vehicle) && !(e instanceof com.harddayz.entity.Drone)) {
                 double k = e instanceof Player ? 0.3 : 1;
                 Vec3 push = e.position().subtract(at).normalize().scale(f * (0.6 + p * 0.12) * k).add(0, f * 0.5 * k, 0);
@@ -122,6 +122,7 @@ public final class Blast {
             }
         }
 
+        com.harddayz.war.RadarNet.blast(at, !breakBlocks || at.y - ground > 6, level.getGameTime());
         Net.BlastFx fx = new Net.BlastFx(at.x, at.y, at.z, p, soundOf(source, breakBlocks));
         for (ServerPlayer pl : level.players()) {
             if (pl.position().distanceTo(at) < 900) {
@@ -152,6 +153,22 @@ public final class Blast {
             out = out.normalize().scale(0.25 + r.nextDouble() * (0.3 + p * 0.04));
             fb.setDeltaMovement(out.x, 0.55 + r.nextDouble() * (0.4 + p * 0.05), out.z);
         }
+    }
+
+    /** Сколько ударной волны доходит до цели: за бетоном бункера почти ничего, за обычной стеной треть. */
+    private static double cover(ServerLevel level, Vec3 at, Entity e) {
+        Vec3 to = e.getBoundingBox().getCenter();
+        var hit = level.clip(new net.minecraft.world.level.ClipContext(at.add(0, 0.3, 0), to, net.minecraft.world.level.ClipContext.Block.COLLIDER,
+                net.minecraft.world.level.ClipContext.Fluid.NONE, e));
+        if (hit.getType() == net.minecraft.world.phys.HitResult.Type.MISS || hit.getLocation().distanceToSqr(to) < 0.25) {
+            return 1;
+        }
+        BlockState st = level.getBlockState(hit.getBlockPos());
+        if (st.is(com.harddayz.registry.ModBlocks.BUNKER_CONCRETE.get()) || st.is(com.harddayz.registry.ModBlocks.ARMOR_PLATE.get())
+                || st.is(com.harddayz.registry.ModBlocks.CONCRETE_FORT.get()) || st.getBlock().getExplosionResistance() >= 600) {
+            return 0.08;
+        }
+        return st.getBlock().getExplosionResistance() >= 6 ? 0.35 : 0.6;
     }
 
     /** Воронка-чаша: мина — мелкая ямка, баллистика — глубокая яма в несколько блоков. */

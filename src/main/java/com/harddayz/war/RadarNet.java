@@ -30,7 +30,7 @@ import net.minecraft.world.phys.Vec3;
  * Сирены сети воют, когда цель подлетает к ним.
  */
 public final class RadarNet {
-    public static final int RADAR_RANGE = 600;
+    public static final int RADAR_RANGE = 1000;
     public static final int SIREN_RANGE = 400;
 
     public static final class Contact {
@@ -46,6 +46,106 @@ public final class RadarNet {
     }
 
     private static final Map<String, Map<Integer, Contact>> NETS = new HashMap<>();
+
+    /** Засечка точки пуска: оценка места, погрешность, сколько пусков слилось. */
+    public static final class Launch {
+        public final String type;
+        public Vec3 pos;
+        public double err;
+        public int count = 1;
+        public long last;
+
+        Launch(String type, Vec3 pos, double err, long now) {
+            this.type = type;
+            this.pos = pos;
+            this.err = err;
+            this.last = now;
+        }
+    }
+
+    /** Отметка на радаре: разрыв на земле или сбитая цель. */
+    public record Mark(String type, Vec3 pos, long time) {
+    }
+
+    private static final Map<String, List<Launch>> LAUNCHES = new HashMap<>();
+    private static final Map<String, java.util.Set<java.util.UUID>> DETECTED = new HashMap<>();
+    private static final Map<String, List<Mark>> MARKS = new HashMap<>();
+    /** Позиции РЛС за последние секунды: кто «видит» разрывы. */
+    private static final Map<String, List<long[]>> RADAR_SEEN = new HashMap<>();
+    private static final java.util.Random RND = new java.util.Random();
+
+    /**
+     * РЛС впервые увидела снаряд: по траектории считаем, откуда он вылетел. Обычная РЛС ошибается тем больше, чем дальше пуск,
+     * контрбатарейная ({@code precise}) — на несколько блоков.
+     */
+    public static void detectLaunch(String key, Entity e, Vec3 radar, boolean precise, long now) {
+        if (!(e instanceof com.harddayz.entity.Threat th) || th.origin() == null) {
+            return;
+        }
+        java.util.Set<java.util.UUID> seen = DETECTED.computeIfAbsent(key, k -> new java.util.HashSet<>());
+        if (!seen.add(e.getUUID())) {
+            return;
+        }
+        if (seen.size() > 4000) {
+            seen.clear();
+        }
+        Vec3 o = th.origin();
+        double d = o.distanceTo(radar);
+        double err = precise ? Math.min(25, 4 + d * 0.015) : Math.min(140, 15 + d * 0.12);
+        double ang = RND.nextDouble() * Math.PI * 2, off = err * Math.sqrt(RND.nextDouble()) * 0.8;
+        Vec3 est = o.add(Math.cos(ang) * off, 0, Math.sin(ang) * off);
+        String type = th.launchType();
+        List<Launch> list = LAUNCHES.computeIfAbsent(key, k -> new ArrayList<>());
+        for (Launch l : list) {
+            if (l.type.equals(type) && l.pos.distanceTo(est) < l.err + err) {
+                // ещё один пуск оттуда же — точка уточняется
+                double w = l.err * l.err / (l.err * l.err + err * err);
+                l.pos = l.pos.add(est.subtract(l.pos).scale(w));
+                l.err = Math.max(precise ? 3 : 8, Math.min(l.err, err) * 0.75);
+                l.count++;
+                l.last = now;
+                return;
+            }
+        }
+        list.add(new Launch(type, est, err, now));
+        if (list.size() > 40) {
+            list.remove(0);
+        }
+    }
+
+    public static List<Launch> launches(String key, long now) {
+        List<Launch> list = LAUNCHES.getOrDefault(key, List.of());
+        if (!list.isEmpty()) {
+            list.removeIf(l -> now - l.last > 20 * 60 * 15); // 15 минут
+        }
+        return list;
+    }
+
+    /** Взрыв: отметка у всех сетей, чьи РЛС видят это место. */
+    public static void blast(Vec3 at, boolean air, long now) {
+        for (var e : RADAR_SEEN.entrySet()) {
+            e.getValue().removeIf(r -> now - r[3] > 60);
+            for (long[] r : e.getValue()) {
+                double dx = at.x - r[0], dz = at.z - r[2];
+                if (dx * dx + dz * dz < (double) RADAR_RANGE * RADAR_RANGE) {
+                    List<Mark> m = MARKS.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                    m.add(new Mark(air ? "down" : "hit", at, now));
+                    if (m.size() > 80) {
+                        m.remove(0);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    public static List<Mark> marks(String key, long now) {
+        List<Mark> m = MARKS.getOrDefault(key, List.of());
+        if (!m.isEmpty()) {
+            m.removeIf(x -> now - x.time() > 20 * 60);
+        }
+        return m;
+    }
     private static final Map<String, Integer> RADARS = new HashMap<>();
     private static final Map<String, Long> LAST_ALERT = new HashMap<>();
 
@@ -89,8 +189,11 @@ public final class RadarNet {
     /** Где стоят живые РЛС фракции (они тоже воют сиреной при налёте). */
     private static final Map<String, List<int[]>> RADAR_POS = new java.util.HashMap<>();
 
-    public static void radarAt(String key, net.minecraft.core.BlockPos p) {
+    public static void radarAt(String key, net.minecraft.core.BlockPos p, long now) {
         RADAR_POS.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new int[] {p.getX(), p.getY(), p.getZ()});
+        List<long[]> seen = RADAR_SEEN.computeIfAbsent(key, k -> new ArrayList<>());
+        seen.removeIf(r -> r[0] == p.getX() && r[2] == p.getZ() || now - r[3] > 60);
+        seen.add(new long[] {p.getX(), p.getY(), p.getZ(), now});
     }
 
     public static void radarAlive(String key, long now) {
@@ -183,6 +286,9 @@ public final class RadarNet {
     }
 
     public static void clear() {
+        LAUNCHES.clear();
+        MARKS.clear();
+        RADAR_SEEN.clear();
         NETS.clear();
         RADARS.clear();
         RADAR_COUNT.clear();

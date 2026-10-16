@@ -10,7 +10,7 @@ import net.minecraft.util.Mth;
 
 /** Радарный экран: круговая развёртка вокруг игрока, метки целей, которые реально видят РЛС сети. */
 public class RadarScreen extends HdScreen {
-    private static final int[] RANGES = {150, 300, 600, 1200};
+    private static final int[] RANGES = {150, 300, 600, 1200, 2000};
     private Net.RadarState state;
     private int range = 2;
     private int ticks;
@@ -58,8 +58,12 @@ public class RadarScreen extends HdScreen {
         Minecraft mc = Minecraft.getInstance();
         if (mc.screen instanceof RadarScreen r) {
             r.state = s;
-        } else if (s.open()) {
+        } else if (mc.screen instanceof LaunchScreen l) {
+            l.update(s);
+        } else if (s.open() == 1) {
             mc.setScreen(new RadarScreen(s));
+        } else if (s.open() == 2) {
+            mc.setScreen(new LaunchScreen(s));
         }
     }
 
@@ -70,13 +74,15 @@ public class RadarScreen extends HdScreen {
         addRenderableWidget(Button.builder(Component.literal("−"), b -> range = Math.min(RANGES.length - 1, range + 1))
                 .bounds(cx - 120, bottom, 20, 20).build());
         addRenderableWidget(Button.builder(Component.literal("+"), b -> range = Math.max(0, range - 1)).bounds(cx - 96, bottom, 20, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.launches_btn"), b -> Minecraft.getInstance().setScreen(new LaunchScreen(state)))
+                .bounds(cx - 64, bottom, 80, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), b -> onClose()).bounds(cx + 20, bottom, 100, 20).build());
     }
 
     @Override
     public void tick() {
         if (++ticks % 10 == 0) {
-            Net.toServer(new Net.RadarRequest(false));
+            Net.toServer(new Net.RadarRequest(0));
         }
     }
 
@@ -178,6 +184,40 @@ public class RadarScreen extends HdScreen {
                 g.text(font, Component.literal((int) dist + "м  h" + alt), x + 6, y + 5, 0xFF809080, false);
             }
             shown++;
+        }
+        // разрывы и сбитые за последнюю минуту
+        double k0 = r / (double) rangeBlocks;
+        for (String s : state.marks()) {
+            String[] p = s.split(";");
+            double dx = Double.parseDouble(p[1]), dz = Double.parseDouble(p[2]);
+            if (dx * dx + dz * dz > (double) rangeBlocks * rangeBlocks) {
+                continue;
+            }
+            int x = cx + (int) (dx * k0), y = cy + (int) (dz * k0);
+            int alpha = Mth.clamp(255 - Integer.parseInt(p[3]) / 5, 60, 255);
+            int col = (alpha << 24) | (p[0].equals("down") ? 0x60C0FF : 0xFF7030);
+            g.fill(x - 1, y - 1, x + 2, y + 2, col);
+        }
+        // точки пуска: крест и круг погрешности
+        if (mc.player != null) {
+            for (String s : state.launches()) {
+                String[] p = s.split(";");
+                double dx = Double.parseDouble(p[1]) - mc.player.getX(), dz = Double.parseDouble(p[3]) - mc.player.getZ();
+                if (dx * dx + dz * dz > (double) rangeBlocks * rangeBlocks) {
+                    continue;
+                }
+                int x = cx + (int) (dx * k0), y = cy + (int) (dz * k0);
+                int er = Math.max(2, (int) (Integer.parseInt(p[4]) * k0));
+                int col = 0xFFFF3030;
+                for (int i = -3; i <= 3; i++) {
+                    g.fill(x + i, y + i, x + i + 1, y + i + 1, col);
+                    g.fill(x + i, y - i, x + i + 1, y - i + 1, col);
+                }
+                if (er > 3) {
+                    circle(g, x, y, er, 0xA0FF3030);
+                }
+                g.text(font, Component.translatable("launch.harddayz." + p[0]), x + 6, y + 2, 0xFFFF7060, false);
+            }
         }
         if (state.contacts().isEmpty()) {
             Component none = Component.translatable("screen.harddayz.radar_clear");

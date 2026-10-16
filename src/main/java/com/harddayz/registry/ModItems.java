@@ -94,6 +94,8 @@ public final class ModItems {
 
     public static final RegistryObject<Item> RADAR_TRUCK = item("radar_truck", p -> new LauncherItem(p, Launcher.Kind.RADAR),
             p -> p.stacksTo(1).rarity(Rarity.UNCOMMON));
+    public static final RegistryObject<Item> CBR_TRUCK = item("cbr_truck", p -> new LauncherItem(p, Launcher.Kind.CBR),
+            p -> p.stacksTo(1).rarity(Rarity.UNCOMMON));
     public static final RegistryObject<Item> RADAR_DISPLAY = item("radar_display", com.harddayz.item.RadarDisplayItem::new,
             p -> p.stacksTo(1).rarity(Rarity.UNCOMMON));
 
