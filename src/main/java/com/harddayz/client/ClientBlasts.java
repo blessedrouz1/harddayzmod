@@ -159,6 +159,7 @@ public final class ClientBlasts {
 
     static void onTick() {
         Minecraft mc = Minecraft.getInstance();
+        ClientGunner.tickTracers();
         if (flash > 0) {
             flash = Math.max(0, flash - 0.08f);
         }
@@ -366,6 +367,15 @@ public final class ClientBlasts {
             shake = Math.max(shake * shakeTicks / Math.max(1, shakeDuration), s);
             shakeTicks = shakeDuration = (int) (10 + Math.min(25, a.power * 1.5));
         }
+    }
+
+    /** Короткий толчок камеры (удар машины). */
+    public static void bump(float s) {
+        if (!com.harddayz.ClientConfig.shake()) {
+            return;
+        }
+        shake = Math.max(shake * shakeTicks / Math.max(1, shakeDuration), s);
+        shakeTicks = shakeDuration = 8;
     }
 
     static void onCamera(net.minecraftforge.client.event.ViewportEvent.ComputeCameraAngles event) {

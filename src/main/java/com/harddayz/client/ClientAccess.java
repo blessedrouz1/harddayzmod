@@ -56,6 +56,11 @@ public final class ClientAccess {
                 : k.shahedLike() ? com.harddayz.registry.ModSounds.INCOMING_SHAHED.get() : com.harddayz.registry.ModSounds.INCOMING_DRONE.get(), net.minecraft.sounds.SoundSource.HOSTILE, 5f, 1f, false);
     }
 
+    /** Толчок камеры водителя при ударе машины. */
+    public static void bump(float strength) {
+        ClientBlasts.bump(strength);
+    }
+
     public static net.minecraft.world.phys.Vec3 localPlayerPos() {
         var p = Minecraft.getInstance().player;
         return p == null ? null : p.position();

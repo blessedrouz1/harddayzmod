@@ -334,6 +334,7 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         models.put(Launcher.Kind.SAM_MANUAL, new LauncherModel(ctx.bakeLayer(HdModels.SAM_MANUAL)));
         GeoModel.Marks cab = new GeoModel.Marks("cab", GeoModel.Mode.SIDES_TOP);
         geo.put(Launcher.Kind.GRAD, new GeoLauncherModel("grad", cab, true));
+        geo.put(Launcher.Kind.DECOY, new GeoLauncherModel("grad", cab, true));
         geo.put(Launcher.Kind.ISKANDER, new GeoLauncherModel("iskander", cab, true));
         geo.put(Launcher.Kind.TOCHKA, new GeoLauncherModel("tochka", cab, true));
         geo.put(Launcher.Kind.SMERCH, new GeoLauncherModel("smerch", cab, true));
@@ -422,7 +423,41 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         extractRenderState(e, s, pt);
         s.lightCoords = light;
         draw(s, pose, buffers);
+        if (e.netOn() && !s.inside) {
+            drawNet(e, s, pose, buffers, light);
+        }
         super.render(e, yaw, pt, pose, buffers, light);
+    }
+
+    private static final ResourceLocation NET = new ResourceLocation("minecraft", "textures/block/azalea_leaves.png");
+
+    /** Маскировочная сеть шатром над кузовом. */
+    private static void drawNet(Launcher e, State s, PoseStack pose, MultiBufferSource buffers, int light) {
+        var b = e.body();
+        double f = b.front() + 0.4, k = b.back() + 0.4, w = b.half() + 0.5, h = 3.4, out = 0.7;
+        var vc = buffers.getBuffer(RenderType.entityCutoutNoCull(NET));
+        pose.pushPose();
+        pose.mulPose(Axis.YP.rotationDegrees(-s.bodyYaw));
+        var m = pose.last();
+        // верх
+        quad(vc, m, light, -w, h, f, w, h, f, w, h, -k, -w, h, -k);
+        // скаты до земли
+        quad(vc, m, light, -w, h, f, w, h, f, w + out, 0, f + out, -w - out, 0, f + out);
+        quad(vc, m, light, w, h, -k, -w, h, -k, -w - out, 0, -k - out, w + out, 0, -k - out);
+        quad(vc, m, light, w, h, f, w, h, -k, w + out, 0, -k - out, w + out, 0, f + out);
+        quad(vc, m, light, -w, h, -k, -w, h, f, -w - out, 0, f + out, -w - out, 0, -k - out);
+        pose.popPose();
+    }
+
+    private static void quad(com.mojang.blaze3d.vertex.VertexConsumer vc, PoseStack.Pose m, int light, double x1, double y1, double z1, double x2, double y2,
+            double z2, double x3, double y3, double z3, double x4, double y4, double z4) {
+        float u = (float) Math.hypot(x2 - x1, z2 - z1), v = (float) Math.sqrt((x3 - x2) * (x3 - x2) + (y3 - y2) * (y3 - y2) + (z3 - z2) * (z3 - z2));
+        float[][] p = {{(float) x1, (float) y1, (float) z1, 0, 0}, {(float) x2, (float) y2, (float) z2, u, 0}, {(float) x3, (float) y3, (float) z3, u, v},
+                {(float) x4, (float) y4, (float) z4, 0, v}};
+        for (float[] q : p) {
+            vc.vertex(m.pose(), q[0], q[1], q[2]).color(255, 255, 255, 255).uv(q[3], q[4])
+                    .overlayCoords(net.minecraft.client.renderer.texture.OverlayTexture.NO_OVERLAY).uv2(light).normal(m.normal(), 0, 1, 0).endVertex();
+        }
     }
 
     private void draw(State s, PoseStack pose, MultiBufferSource buffers) {

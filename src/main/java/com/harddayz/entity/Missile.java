@@ -163,6 +163,9 @@ public class Missile extends Entity implements Threat {
         if (level() instanceof ServerLevel level) {
             v = guide(level, v);
             setDeltaMovement(v);
+            if (look() == 8 && flare(level, v)) {
+                return;
+            }
             if (tickCount > 4000 || getY() < level.getMinBuildHeight() - 20) {
                 detonate(level, position());
                 return;
@@ -282,8 +285,13 @@ public class Missile extends Entity implements Threat {
         }
         Vec3 aim = t.position();
         double dist = aim.distanceTo(position());
-        if (dist < 5.0) {
-            Vec3 at = position();
+        Vec3 rel = aim.subtract(position());
+        Vec3 relV = v.subtract(t.getDeltaMovement());
+        double s = relV.lengthSqr() < 1.0E-6 ? 0 : Mth.clamp(rel.dot(relV) / relV.lengthSqr(), 0, 1);
+        double miss = rel.subtract(relV.scale(s)).length();
+        if (dist < 5.0 || miss < 4.5) {
+            Vec3 at = position().add(v.scale(s));
+            setPos(at);
             if (random.nextFloat() < Math.min(0.97f, hitChance(t) + bonus)) {
                 if (t instanceof Missile m) {
                     m.intercepted(level);
@@ -346,7 +354,7 @@ public class Missile extends Entity implements Threat {
                 case RECON, WING_RECON -> 0.9f;
                 case INTERCEPTOR -> 0.5f;
                 case LANCET -> 0.85f;
-                case FPV -> 0.8f;
+                case FPV, FPV_FIBER -> 0.8f;
             };
         }
         if (t instanceof Missile m) {
@@ -459,7 +467,69 @@ public class Missile extends Entity implements Threat {
         return this;
     }
 
+    // ------------------------------------------------------------------ осветительная мина
+
+    private boolean flareLit;
+    private int flareTicks;
+    private final java.util.List<net.minecraft.core.BlockPos> lights = new java.util.ArrayList<>();
+
+    /** На вершине дуги раскрывается парашют: факел медленно опускается ~35 с и освещает землю под собой. */
+    private boolean flare(ServerLevel level, Vec3 v) {
+        if (!flareLit) {
+            if (tickCount < 8 || v.y > 0.05) {
+                return false; // ещё летит вверх обычной миной
+            }
+            flareLit = true;
+            level.playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_BLAST, net.minecraft.sounds.SoundSource.HOSTILE, 4f, 0.7f);
+        }
+        Vec3 drift = new Vec3(v.x * 0.92, -0.055, v.z * 0.92);
+        setDeltaMovement(drift);
+        setPos(position().add(drift));
+        int ground = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, getBlockX(), getBlockZ());
+        if (++flareTicks > 700 || getY() <= ground + 0.5) {
+            clearLights(level);
+            discardSafely(level);
+            return true;
+        }
+        if (flareTicks % 10 == 1) {
+            clearLights(level);
+            if (getY() - ground < 140) {
+                int cx = getBlockX(), cz = getBlockZ();
+                int lvl = flareTicks > 600 ? 9 : 15; // догорает — тускнеет
+                for (int dx = -24; dx <= 24; dx += 12) {
+                    for (int dz = -24; dz <= 24; dz += 12) {
+                        if (dx * dx + dz * dz > 26 * 26) {
+                            continue;
+                        }
+                        int x = cx + dx, z = cz + dz;
+                        var p = new net.minecraft.core.BlockPos(x, level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, x, z), z);
+                        if (level.isLoaded(p) && level.getBlockState(p).isAir()) {
+                            level.setBlock(p, net.minecraft.world.level.block.Blocks.LIGHT.defaultBlockState()
+                                    .setValue(net.minecraft.world.level.block.LightBlock.LEVEL, lvl), 3);
+                            lights.add(p);
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private void clearLights(ServerLevel level) {
+        for (var p : lights) {
+            if (level.isLoaded(p) && level.getBlockState(p).is(net.minecraft.world.level.block.Blocks.LIGHT)) {
+                level.setBlock(p, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), 3);
+            }
+        }
+        lights.clear();
+    }
+
     private void detonate(ServerLevel level, Vec3 at) {
+        if (look() == 8) {
+            clearLights(level);
+            discardSafely(level);
+            return; // осветительная — без взрыва
+        }
         if (smoke) {
             com.harddayz.Compat.particles(level, com.harddayz.registry.ModParticles.SMOKE_HUGE.get(), at.x, at.y + 1.5, at.z, 70, 3.5, 1.8, 3.5, 0.01);
             com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, at.x, at.y + 1, at.z, 60, 3, 1, 3, 0.01);
@@ -498,6 +568,7 @@ public class Missile extends Entity implements Threat {
     @Override
     public void remove(RemovalReason reason) {
         if (level() instanceof ServerLevel level) {
+            clearLights(level);
             releaseChunks(level);
         }
         super.remove(reason);
@@ -537,6 +608,19 @@ public class Missile extends Entity implements Threat {
     }
 
     private void trail(Vec3 v) {
+        if (look() == 8) {
+            if (v.y > -0.1 && v.y < 0) { // горит под парашютом
+                Level lv = level();
+                lv.addAlwaysVisibleParticle(com.harddayz.registry.ModParticles.GLOW.get(), true, getX(), getY(), getZ(), 0, 0, 0);
+                lv.addAlwaysVisibleParticle(com.harddayz.registry.ModParticles.FLASH.get(), true, getX(), getY(), getZ(), 0, 0, 0);
+                if (random.nextFloat() < 0.5f) {
+                    lv.addAlwaysVisibleParticle(net.minecraft.core.particles.ParticleTypes.FIREWORK, true, getX(), getY() - 0.3, getZ(),
+                            random.nextGaussian() * 0.03, -0.12, random.nextGaussian() * 0.03);
+                }
+                lv.addAlwaysVisibleParticle(com.harddayz.registry.ModParticles.SMOKE_WHITE.get(), true, getX(), getY() + 0.4, getZ(), 0, 0.02, 0);
+            }
+            return;
+        }
         Level level = level();
         Vec3 dir = v.lengthSqr() < 1.0E-6 ? new Vec3(0, 1, 0) : v.normalize();
         double len = switch (kind()) {

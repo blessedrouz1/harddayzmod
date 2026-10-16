@@ -100,7 +100,9 @@ public class Launcher extends Vehicle {
         /** «Ураган»: РСЗО 220 мм, 16 ракет — между «Градом» и «Смерчем». */
         URAGAN(16, 220),
         /** «Калибр» (береговой): 4 крылатые ракеты, летят низко над землёй далеко. */
-        KALIBR(4, 220);
+        KALIBR(4, 220),
+        /** Надувной макет «Града»: ложная цель для разведки, дронов и ракет. Ничего не умеет, лопается от попадания. */
+        DECOY(0, 30, false);
 
         public final int capacity;
         public final float health;
@@ -128,7 +130,7 @@ public class Launcher extends Vehicle {
             if (dronePad()) {
                 return droneKind(s) != null;
             }
-            return this != EW && this != RADAR && this != RELAY && s.is(ammo());
+            return this != EW && this != RADAR && this != RELAY && (s.is(ammo()) || this == MORTAR && s.is(ModItems.MORTAR_ILLUM.get()));
         }
 
         /** Стрелковые установки: на них садятся и стреляют сами. */
@@ -181,6 +183,7 @@ public class Launcher extends Vehicle {
                 case T72, ABRAMS, KA52, MI8 -> net.minecraft.world.item.Items.AIR; // удалены
                 case MORTAR -> ModItems.MORTAR_SHELL.get();
                 case RELAY -> ModItems.DESIGNATOR.get();
+                case DECOY -> net.minecraft.world.item.Items.AIR;
             };
         }
 
@@ -213,6 +216,7 @@ public class Launcher extends Vehicle {
                 case T72, ABRAMS, KA52, MI8 -> net.minecraft.world.item.Items.AIR; // удалены
                 case MORTAR -> ModItems.MORTAR.get();
                 case RELAY -> ModItems.RELAY.get();
+                case DECOY -> ModItems.DECOY.get();
             };
         }
     }
@@ -267,6 +271,55 @@ public class Launcher extends Vehicle {
     public final float[] capLaunched = {-1, -1, -1, -1, -1, -1, -1, -1};
     /** Клиент: боезапас на прошлом кадре — по убыли видно, что был пуск. */
     public int capLastAmmo = -1;
+
+    /** Сгоревший остов: секунд с момента гибели, 0 — живая машина. */
+    private static final EntityDataAccessor<Integer> WRECK = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    /** Через сколько тиков рванёт боекомплект (-1 — нечему). */
+    private int cookoff = -1;
+    private float cookPower;
+    private int wreckTicks;
+
+    public int wreck() {
+        return entityData.get(WRECK);
+    }
+
+    public boolean wrecked() {
+        return wreck() > 0;
+    }
+
+    /** Маскировочная сеть: 0 — нет, 1 — накрыта и не видна разведке, 2 — накрыта, но выдала себя пуском. */
+    private static final EntityDataAccessor<Integer> CAMO = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    private int revealUntil;
+
+    public int camo() {
+        return entityData.get(CAMO);
+    }
+
+    /** Под сетью и давно не стреляла: разведка, тепловизор и самонаведение её не видят. */
+    public boolean hidden() {
+        return camo() == 1 || camo() == 3;
+    }
+
+    /** Своя сеть на технике (не навес из блоков). */
+    public boolean netOn() {
+        return camo() == 1 || camo() == 2;
+    }
+
+    /** Стоит под навесом из маскировочных сетей (блоки). */
+    private boolean underNetBlocks() {
+        var c = blockPosition();
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                for (int dy = 1; dy <= 6; dy++) {
+                    var st = level().getBlockState(c.offset(dx, dy, dz));
+                    if (st.is(com.harddayz.registry.ModBlocks.CAMO_NET.get()) || st.is(com.harddayz.registry.ModBlocks.CAMO_NET_WALL.get())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
 
     private static final EntityDataAccessor<Integer> FLASH = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
     /** Сохранённые цели пульта: 5 слотов «x,y,z» через «;» (пустой — нет цели). */
@@ -442,7 +495,20 @@ public class Launcher extends Vehicle {
     }
 
     @Override
+    public VehicleBody body() {
+        return kind().removed() ? VehicleBody.DEFAULT : LauncherGeometry.body(kind());
+    }
+
+    @Override
+    protected boolean burning() {
+        return !wrecked() || wreck() < 180; // остов горит три минуты, потом только тлеет
+    }
+
+    @Override
     protected boolean canDrive() {
+        if (wrecked()) {
+            return false;
+        }
         if (usesFuel() && fuel() <= 0) {
             return false; // бак пуст
         }
@@ -558,7 +624,32 @@ public class Launcher extends Vehicle {
 
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
+        if (wrecked() || kind() == Kind.DECOY) {
+            return InteractionResult.PASS;
+        }
         ItemStack stack = player.getItemInHand(hand);
+        if (stack.is(ModItems.CAMO_NET.get()) && !netOn()) {
+            if (!level().isClientSide()) {
+                entityData.set(CAMO, 1);
+                revealUntil = 0;
+                if (!player.isCreative()) {
+                    stack.shrink(1);
+                }
+                level().playSound(null, blockPosition(), SoundEvents.WOOL_PLACE, SoundSource.BLOCKS, 1.5f, 0.7f);
+                player.displayClientMessage(Component.translatable("message.harddayz.camo_on").withStyle(ChatFormatting.GREEN), true);
+            }
+            return InteractionResult.SUCCESS;
+        }
+        if (netOn() && stack.isEmpty() && player.isSecondaryUseActive()) {
+            if (!level().isClientSide()) {
+                entityData.set(CAMO, 0);
+                if (!player.getInventory().add(new ItemStack(ModItems.CAMO_NET.get()))) {
+                    spawnAtLocation(new ItemStack(ModItems.CAMO_NET.get()));
+                }
+                level().playSound(null, blockPosition(), SoundEvents.WOOL_BREAK, SoundSource.BLOCKS, 1.5f, 0.7f);
+            }
+            return InteractionResult.SUCCESS;
+        }
         if (kind() == Kind.MORTAR && !player.isSecondaryUseActive() && (stack.isEmpty() || kind().accepts(stack))) {
             if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && player instanceof ServerPlayer sp) {
                 if (stack.isEmpty()) {
@@ -802,7 +893,7 @@ public class Launcher extends Vehicle {
             return position().add(LauncherGeometry.pivot(kind(), getYRot(), turretSmooth().value, elevation.value, erect.value));
         }
         return switch (kind()) {
-            case GRAD -> local(0, 2.0, -1.5);
+            case GRAD, DECOY -> local(0, 2.0, -1.5);
             case ISKANDER -> local(0, 1.75, -2.75);
             case TOCHKA -> local(0, 1.75, -1.9);
             case SMERCH, URAGAN -> local(0, 2.0, -1.9);
@@ -844,6 +935,27 @@ public class Launcher extends Vehicle {
             discard(); // танки и вертолёты убраны из мода
             return;
         }
+        if (wrecked()) {
+            if (camo() > 0) {
+                entityData.set(CAMO, 0); // сеть сгорела
+            }
+            tickWreck(level);
+            return;
+        }
+        if (flash() > 0) {
+            revealUntil = tickCount + 600; // пуск видно: 30 с сеть не спасает
+        }
+        if (!netOn() && tickCount % 20 == 0) {
+            entityData.set(CAMO, tickCount >= revealUntil && underNetBlocks() ? 3 : 0);
+        }
+        if (netOn()) {
+            if (!stationary() && getControllingPassenger() != null) {
+                entityData.set(CAMO, 0); // поехала — сеть слетела
+                spawnAtLocation(new ItemStack(ModItems.CAMO_NET.get()));
+            } else if (tickCount % 10 == 0) {
+                entityData.set(CAMO, tickCount < revealUntil ? 2 : 1);
+            }
+        }
         // заряженная пусковая держит свой участок мира загруженным
         if ((ammo() > 0 || kind() == Kind.RELAY) && tickCount % 20 == 0) {
             com.harddayz.Compat.ticket(level, chunkPosition(), 2);
@@ -876,6 +988,9 @@ public class Launcher extends Vehicle {
         if (kind() == Kind.RADAR) {
             tickRadar(level);
             return;
+        }
+        if (kind() == Kind.DECOY) {
+            return; // макет просто стоит
         }
         if (kind() == Kind.RELAY) {
             return; // работает самим фактом существования (см. Drone.linked)
@@ -1065,8 +1180,9 @@ public class Launcher extends Vehicle {
         float yaw = yawSet + (float) random.nextGaussian() * 0.5f;
         Vec3 dir = forward(yaw, elevSet + (float) random.nextGaussian() * 0.35f);
         Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
+        boolean illum = stack.is(ModItems.MORTAR_ILLUM.get());
         Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED * (1 + random.nextGaussian() * 0.008)), muzzle.add(dir.scale(80)), this)
-                .owner(owner != null ? owner : sp.getUUID()).powerMul(0.7f).look(7);
+                .owner(owner != null ? owner : sp.getUUID()).powerMul(0.7f).look(illum ? 8 : 7);
         if (!sp.isCreative()) {
             stack.shrink(1);
         }
@@ -1432,6 +1548,12 @@ public class Launcher extends Vehicle {
         if (!(level() instanceof ServerLevel level)) {
             return true;
         }
+        if (wrecked()) {
+            if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.isShiftKeyDown() && wreck() > 5) {
+                discard();
+            }
+            return true;
+        }
         if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.isShiftKeyDown() && getPassengers().isEmpty() && health() > 0) {
             spawnAtLocation(new ItemStack(kind().item()));
             if (kind().dronePad()) {
@@ -1451,6 +1573,12 @@ public class Launcher extends Vehicle {
         }
         float hp = health() - damage;
         entityData.set(HEALTH, hp);
+        if (hp <= 0 && kind() == Kind.DECOY) {
+            com.harddayz.Compat.particles(level, ParticleTypes.POOF, getX(), getY() + 1.5, getZ(), 40, 1.8, 0.8, 1.8, 0.05);
+            level.playSound(null, getX(), getY(), getZ(), SoundEvents.SLIME_SQUISH, SoundSource.NEUTRAL, 2f, 0.5f);
+            discard();
+            return true;
+        }
         if (hp <= 0) {
             Vec3 c = position().add(0, 1.2, 0);
             com.harddayz.war.War.Faction lostBy = com.harddayz.war.War.of(owner);
@@ -1465,7 +1593,6 @@ public class Launcher extends Vehicle {
                 com.harddayz.war.War.save();
             }
             ejectPassengers();
-            discard();
             float bk = switch (kind()) {
                 case ISKANDER -> ammo() * 7f;
                 case GRAD, GRAD_P, TOS -> ammo() * 0.18f;
@@ -1473,9 +1600,39 @@ public class Launcher extends Vehicle {
                 case MG, PICKUP_MG -> 0;
                 default -> ammo() * 0.12f;
             };
-            Blast.detonate(level, c, 1.2f + Math.min(12f, bk), bk > 0.5f, this);
+            entityData.set(HEALTH, 0f);
+            entityData.set(WRECK, 1);
+            entityData.set(AMMO, 0);
+            drones.clear();
+            state = State.IDLE;
+            // сам подрыв машины — небольшой, а боекомплект детонирует через несколько секунд
+            Blast.detonate(level, c, 1.6f, false, this);
+            cookPower = bk;
+            cookoff = bk > 0.3f ? 50 + random.nextInt(110) : -1;
         }
         return true;
+    }
+
+    /** Остов: горит, рвёт боекомплект, через 10 минут исчезает. */
+    private void tickWreck(ServerLevel level) {
+        if (++wreckTicks % 20 == 0) {
+            entityData.set(WRECK, wreck() + 1);
+        }
+        if (cookoff > 0 && --cookoff == 0) {
+            Vec3 c = position().add(0, 1.2, 0);
+            Blast.detonate(level, c, 1.2f + Math.min(12f, cookPower), cookPower > 0.5f, this);
+            // ракеты в пакете рвутся ещё какое-то время хлопками
+            if (cookPower > 1) {
+                cookoff = -2 - (int) Math.min(8, cookPower * 0.6);
+            }
+        } else if (cookoff < -1 && wreckTicks % (8 + random.nextInt(14)) == 0) {
+            cookoff++;
+            Vec3 c = position().add((random.nextDouble() - 0.5) * 4, 1.5, (random.nextDouble() - 0.5) * 4);
+            Blast.detonate(level, c, 1.2f + random.nextFloat(), false, this);
+        }
+        if (wreck() > 600) {
+            discard();
+        }
     }
 
     // ------------------------------------------------------------------ служебное
@@ -1489,6 +1646,8 @@ public class Launcher extends Vehicle {
         entityData.define(WANT_ELEV, 0f);
         entityData.define(WANT_ERECT, 0f);
         entityData.define(FLASH, 0);
+        entityData.define(WRECK, 0);
+        entityData.define(CAMO, 0);
         entityData.define(DRONES, "");
         entityData.define(FUEL, 0f);
         entityData.define(SLOTS, ";;;;");
@@ -1504,6 +1663,10 @@ public class Launcher extends Vehicle {
         entityData.set(SLOTS, com.harddayz.Compat.getString(input, "slots", ";;;;"));
         entityData.set(SLOT, com.harddayz.Compat.getInt(input, "slot", 0));
         entityData.set(FUEL, com.harddayz.Compat.getFloat(input, "fuel", tank()));
+        entityData.set(WRECK, com.harddayz.Compat.getInt(input, "wreck", 0));
+        entityData.set(CAMO, com.harddayz.Compat.getInt(input, "camo", 0));
+        cookoff = com.harddayz.Compat.getInt(input, "cookoff", -1);
+        cookPower = com.harddayz.Compat.getFloat(input, "cookPower", 0f);
         drones.clear();
         for (String k : com.harddayz.Compat.getString(input, "drones", "").split(",")) {
             if (!k.isEmpty()) {
@@ -1522,6 +1685,10 @@ public class Launcher extends Vehicle {
         }
         output.putString("drones", String.join(",", drones.stream().map(Enum::name).toList()));
         output.putFloat("fuel", fuel());
+        output.putInt("wreck", wreck());
+        output.putInt("camo", netOn() ? 1 : 0);
+        output.putInt("cookoff", cookoff);
+        output.putFloat("cookPower", cookPower);
         output.putString("slots", entityData.get(SLOTS));
         output.putInt("slot", selectedSlot());
     }
@@ -1636,6 +1803,7 @@ public class Launcher extends Vehicle {
         long now = level.getGameTime();
         if (tickCount % 20 == 0) {
             com.harddayz.war.RadarNet.radarAlive(key, now);
+            com.harddayz.war.RadarNet.radarAt(key, blockPosition());
         }
         int r = com.harddayz.war.RadarNet.RADAR_RANGE;
         for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r, 600, r), e -> e instanceof Threat)) {

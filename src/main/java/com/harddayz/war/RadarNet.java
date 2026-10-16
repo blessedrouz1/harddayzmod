@@ -86,6 +86,13 @@ public final class RadarNet {
         c.seen = now;
     }
 
+    /** Где стоят живые РЛС фракции (они тоже воют сиреной при налёте). */
+    private static final Map<String, List<int[]>> RADAR_POS = new java.util.HashMap<>();
+
+    public static void radarAt(String key, net.minecraft.core.BlockPos p) {
+        RADAR_POS.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new int[] {p.getX(), p.getY(), p.getZ()});
+    }
+
     public static void radarAlive(String key, long now) {
         RADARS.merge(key, 1, Integer::sum);
     }
@@ -124,7 +131,11 @@ public final class RadarNet {
         RADAR_COUNT.putAll(RADARS);
         RADARS.clear();
         ServerLevel level = server.overworld();
-        for (Map.Entry<String, List<int[]>> e : War.sirens().entrySet()) {
+        Map<String, List<int[]>> all = new java.util.HashMap<>();
+        War.sirens().forEach((k, v) -> all.computeIfAbsent(k, x -> new java.util.ArrayList<>()).addAll(v));
+        RADAR_POS.forEach((k, v) -> all.computeIfAbsent(k, x -> new java.util.ArrayList<>()).addAll(v));
+        RADAR_POS.clear();
+        for (Map.Entry<String, List<int[]>> e : all.entrySet()) {
             String key = e.getKey();
             List<Contact> cs = contacts(key, now);
             int near = 0;

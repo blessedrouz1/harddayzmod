@@ -88,6 +88,10 @@ public final class Net {
     }
 
     /** Клиент пилота → сервер: записать точку, куда смотрит камера разведдрона. */
+    /** Клиент водителя → сервер: удар машины. type: 0 стена, 1 техника, 2 человек/моб, 3 снёс мягкий блок (pos). */
+    public record VehicleHit(int vehicle, int target, float impact, int type, long pos) {
+    }
+
     public record DroneMark(int entity, int x, int y, int z) {
     }
 
@@ -217,6 +221,19 @@ public final class Net {
         reg(BlastFx.class, NetworkDirection.PLAY_TO_CLIENT, Net::encBlastFx, Net::decBlastFx, (p, ctx) -> com.harddayz.client.ClientBlasts.add(p));
         reg(FireOrder.class, NetworkDirection.PLAY_TO_SERVER, Net::encFireOrder, Net::decFireOrder, Net::onFireOrder);
         reg(DroneMove.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneMove, Net::decDroneMove, Net::onDroneMove);
+        reg(VehicleHit.class, NetworkDirection.PLAY_TO_SERVER, (m, b) -> {
+                    b.writeVarInt(m.vehicle());
+                    b.writeVarInt(m.target());
+                    b.writeFloat(m.impact());
+                    b.writeByte(m.type());
+                    b.writeLong(m.pos());
+                }, b -> new VehicleHit(b.readVarInt(), b.readVarInt(), b.readFloat(), b.readByte(), b.readLong()), (p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null && sp.level().getEntity(p.vehicle()) instanceof com.harddayz.entity.Vehicle v && v.getControllingPassenger() == sp
+                            && Float.isFinite(p.impact()) && p.impact() >= 0) {
+                        v.serverHit(sp, p.target(), p.impact(), p.type(), p.pos());
+                    }
+                });
         reg(DroneMark.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneMark, Net::decDroneMark, (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null && sp.level().getEntity(p.entity()) instanceof Drone d) {

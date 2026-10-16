@@ -69,6 +69,29 @@ public final class ClientGunner {
         }
     }
 
+    /** Летящие трассеры: x, y, z, dx, dy, dz, длина трассы, пройдено. */
+    private static final java.util.List<double[]> FLYING = new java.util.ArrayList<>();
+
+    /** Каждый тик: светящаяся головка трассера с хвостом продвигается на ~22 блока. */
+    public static void tickTracers() {
+        var level = Minecraft.getInstance().level;
+        if (level == null) {
+            FLYING.clear();
+            return;
+        }
+        for (var it = FLYING.iterator(); it.hasNext(); ) {
+            double[] t = it.next();
+            double from = t[7];
+            t[7] = Math.min(t[6], t[7] + 22);
+            for (double s = from; s <= t[7]; s += 0.6) {
+                level.addAlwaysVisibleParticle(com.harddayz.registry.ModParticles.GLOW.get(), true, t[0] + t[3] * s, t[1] + t[4] * s, t[2] + t[5] * s, 0, 0, 0);
+            }
+            if (t[7] >= t[6]) {
+                it.remove();
+            }
+        }
+    }
+
     public static void tracer(Net.Tracer fx) {
         var level = Minecraft.getInstance().level;
         if (level == null) {
@@ -81,9 +104,8 @@ public final class ClientGunner {
         Vec3 dir = len < 0.01 ? Vec3.ZERO : d.scale(1 / len);
         level.addParticle(ParticleTypes.FLAME, a.x, a.y, a.z, dir.x * 0.1, dir.y * 0.1, dir.z * 0.1);
         level.addParticle(ParticleTypes.SMOKE, a.x, a.y, a.z, 0, 0.02, 0);
-        for (int i = 1; i < Math.min(60, len / 2.5); i++) {
-            Vec3 p = a.add(dir.scale(i * 2.5));
-            level.addAlwaysVisibleParticle(ParticleTypes.ELECTRIC_SPARK, true, p.x, p.y, p.z, dir.x * 0.4, dir.y * 0.4, dir.z * 0.4);
+        if (FLYING.size() < 200) {
+            FLYING.add(new double[] {a.x, a.y, a.z, dir.x, dir.y, dir.z, len, 0});
         }
         if (fx.block()) {
             var state = level.getBlockState(BlockPos.containing(b.add(dir.scale(0.05))));

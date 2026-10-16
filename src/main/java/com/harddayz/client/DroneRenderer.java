@@ -112,6 +112,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
         super(ctx);
         models.put(Drone.Kind.SHAHED, new DroneModel(ctx.bakeLayer(HdModels.SHAHED)));
         models.put(Drone.Kind.FPV, new DroneModel(ctx.bakeLayer(HdModels.FPV)));
+        models.put(Drone.Kind.FPV_FIBER, new DroneModel(ctx.bakeLayer(HdModels.FPV)));
         models.put(Drone.Kind.RECON, new DroneModel(ctx.bakeLayer(HdModels.RECON)));
         models.put(Drone.Kind.SHAHED_238, new DroneModel(ctx.bakeLayer(HdModels.SHAHED_238)));
         models.put(Drone.Kind.SHAHED_131, new DroneModel(ctx.bakeLayer(HdModels.SHAHED)));
@@ -123,6 +124,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
         geo.put(Drone.Kind.SHAHED_238, new GeoDroneModel("shahed238", wings));
         geo.put(Drone.Kind.GERBERA, new GeoDroneModel("gerbera", wings));
         geo.put(Drone.Kind.FPV, new GeoDroneModel("fpv", frame));
+        geo.put(Drone.Kind.FPV_FIBER, new GeoDroneModel("fpv", frame));
         geo.put(Drone.Kind.INTERCEPTOR, new GeoDroneModel("interceptor", frame));
         geo.put(Drone.Kind.LANCET, new GeoDroneModel("lancet", wings));
         geo.put(Drone.Kind.WING_RECON, new GeoDroneModel("wing_recon", wings));
@@ -201,7 +203,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
         } else {
             // квадрокоптер наклоняется носом при движении, а не по взгляду камеры
             pose.mulPose(Axis.XP.rotationDegrees(Math.max(-25, Math.min(25, s.pitch * 0.3f))));
-            float scale = s.kind == Drone.Kind.FPV ? 1.8f : 1.6f;
+            float scale = s.kind.fpv() ? 1.8f : 1.6f;
             pose.scale(scale, scale, scale);
         }
         models.get(s.kind).render(s, pose, buffers, RenderType.entityCutout(LauncherRenderer.PALETTE), s.lightCoords);

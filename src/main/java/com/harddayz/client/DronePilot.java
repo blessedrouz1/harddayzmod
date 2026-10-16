@@ -40,14 +40,24 @@ public final class DronePilot {
     private static double savedViewScale;
 
     /** N: ночной режим камеры — всё видно в темноте, картинка зелёная, как у настоящего ПНВ. */
+    /** Тепловизор: тёплые цели светятся белым контуром, картинка серая. */
+    private static boolean thermal;
+
+    public static boolean thermalOn() {
+        return drone != null && thermal;
+    }
+
     public static void toggleNightVision() {
         Minecraft mc = Minecraft.getInstance();
         if (drone == null || mc.player == null) {
             return;
         }
-        if (nightVision) {
+        if (thermal) {
+            thermal = false;
             mc.player.removeEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION);
             nightVision = false;
+        } else if (nightVision) {
+            thermal = true; // ночь → тепловизор (ночное зрение остаётся, чтобы видеть местность)
         } else {
             if (!mc.player.hasEffect(net.minecraft.world.effect.MobEffects.NIGHT_VISION)) {
                 mc.player.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.NIGHT_VISION, 1_000_000, 0,
@@ -55,7 +65,7 @@ public final class DronePilot {
             }
             nightVision = true;
         }
-        mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_HAT.value(), 0.6f, nightVision ? 1.8f : 1.2f);
+        mc.player.playSound(net.minecraft.sounds.SoundEvents.NOTE_BLOCK_HAT.value(), 0.6f, thermal ? 2f : nightVision ? 1.6f : 1.2f);
     }
 
     public static boolean nightMode() {
@@ -76,8 +86,12 @@ public final class DronePilot {
 
     /** Насколько помехи мешают сейчас (0..1): слабая связь + РЭБ. */
     static float noise(Drone d) {
+        if (d.kind() == Drone.Kind.FPV_FIBER) {
+            return 0; // по кабелю картинка чистая
+        }
         float s = d.link();
-        return Math.max(Math.max(0.35f - s, 0) / 0.35f * 0.85f, d.interference());
+        // аналоговая картинка портится постепенно: с половины дальности снег, у края почти ничего не видно
+        return Math.max(Math.max(0.55f - s, 0) / 0.55f * 0.9f, d.interference());
     }
 
     static void start(Drone d) {
@@ -110,6 +124,7 @@ public final class DronePilot {
         Drone d = drone;
         drone = null;
         headSet = false;
+        thermal = false;
         if (mc.player != null) {
             if (savedInput != null) {
                 mc.player.input = savedInput;
@@ -213,7 +228,7 @@ public final class DronePilot {
             flyShahed(mc, d);
             return;
         }
-        boolean fpv = d.kind() == Drone.Kind.FPV;
+        boolean fpv = d.kind().fpv();
         double max = fpv ? 1.5 : 0.65;
         double acc = fpv ? 0.12 : 0.06;
         float nz = noise(d);
@@ -304,7 +319,7 @@ public final class DronePilot {
     /** Градусов за тик: рыскание и тангаж. Тяжёлые и быстрые — медленно, FPV — резко. */
     private static float[] turnRate(Drone.Kind k) {
         return switch (k) {
-            case FPV -> new float[] {8f, 7f};
+            case FPV, FPV_FIBER -> new float[] {8f, 7f};
             case SHAHED -> new float[] {1.6f, 1.4f};
             case SHAHED_131, GERBERA -> new float[] {2.0f, 1.7f};
             case SHAHED_238, GERAN5, BANDEROL -> new float[] {3.2f, 2.8f};
@@ -417,7 +432,7 @@ public final class DronePilot {
 
     static void onFov(net.minecraftforge.client.event.ViewportEvent.ComputeFov event) {
         if (drone != null) {
-            event.setFOV((float) (event.getFOV() / zoom * (drone.kind() == Drone.Kind.FPV ? 1.15 : 1.0)));
+            event.setFOV((float) (event.getFOV() / zoom * (drone.kind().fpv() ? 1.15 : 1.0)));
         }
     }
 
@@ -463,6 +478,15 @@ public final class DronePilot {
                 int y = r.nextInt(h);
                 g.fill(0, y, w, y + 1 + r.nextInt(3), ((int) (noise * 90) << 24) | 0xD0D0D0);
             }
+            // РЭБ: картинку рвёт полосами и сдвигает строки
+            if (d.interference() > 0.15f) {
+                int tears = (int) (d.interference() * 6);
+                for (int i = 0; i < tears; i++) {
+                    int y = r.nextInt(h), hh = 2 + r.nextInt(10), sh = (int) ((r.nextFloat() - 0.5f) * 40 * d.interference());
+                    g.fill(Math.max(0, sh), y, Math.min(w, w + sh), y + hh, ((int) (d.interference() * 120) << 24) | 0x707070);
+                }
+                g.fill(0, 0, w, h, ((int) (d.interference() * 70) << 24) | 0x404040); // цвет выцветает
+            }
             if (noise > 0.6f && r.nextFloat() < (noise - 0.6f) * 0.8f) {
                 g.fill(0, 0, w, h, 0xC0101010); // кадр пропал
             }
@@ -470,7 +494,10 @@ public final class DronePilot {
                 g.text(mc.font, Component.translatable("hud.harddayz.jamming", (int) (d.interference() * 100)), w / 2 - 40, 30, 0xFFFF6040, true);
             }
         }
-        if (nightVision) {
+        if (thermal) {
+            g.fill(0, 0, w, h, 0x90303030); // серая картинка, тёплое — белым контуром
+            g.text(mc.font, Component.literal("WHT"), 24, 76, 0xFFFFFFFF, true);
+        } else if (nightVision) {
             // зелёная картинка ПНВ и лёгкое «зерно»
             g.fill(0, 0, w, h, 0x5520FF40);
             var rnd = mc.player.getRandom();
@@ -478,7 +505,7 @@ public final class DronePilot {
                 int x = rnd.nextInt(w), y = rnd.nextInt(h);
                 g.fill(x, y, x + 1, y + 1, 0x60C0FFC0);
             }
-            g.text(mc.font, Component.literal("NV"), 24, 24, 0xFF60FF60, true);
+            g.text(mc.font, Component.literal("NV"), 24, 76, 0xFF60FF60, true);
         }
         if (headSet && turnRate(d.kind()) != null) {
             // кружок «куда хочу»: показывает, куда сейчас доворачивает аппарат
@@ -505,13 +532,20 @@ public final class DronePilot {
         double speed = d.getDeltaMovement().length() * 20;
         int bat = d.kind().battery <= 0 ? 0 : d.battery() * 100 / d.kind().battery;
         var font = mc.font;
-        g.text(font, Component.translatable(d.kind().autonomous ? "hud.harddayz.shahed" : d.kind() == Drone.Kind.FPV ? "hud.harddayz.fpv" : "hud.harddayz.recon"),
+        g.text(font, Component.translatable(d.kind().autonomous ? "hud.harddayz.shahed" : d.kind().fpv() ? "hud.harddayz.fpv" : "hud.harddayz.recon"),
                 24, 24, 0xFFFFD040, true);
         g.text(font, Component.translatable("hud.harddayz.alt", (int) (d.getY() - ground)), 24, 38, col, true);
         g.text(font, Component.translatable("hud.harddayz.speed", (int) speed), 24, 50, col, true);
         g.text(font, Component.translatable("hud.harddayz.dist", (int) dist), 24, 62, col, true);
-        g.text(font, Component.translatable("hud.harddayz.battery", bat), w - 110, 24, bat < 20 ? 0xFFFF5040 : col, true);
-        g.text(font, Component.translatable("hud.harddayz.signal", (int) (signal * 100)), w - 110, 36, signal < 0.3f ? 0xFFFF5040 : col, true);
+        // у «Шахедов» бак с бензином, у реактивных — топливо, у коптеров — АКБ
+        String tank = d.kind().jet() ? "hud.harddayz.fuel_jet" : d.kind().shahedLike() ? "hud.harddayz.fuel" : "hud.harddayz.battery";
+        g.text(font, Component.translatable(tank, bat), w - 110, 24, bat < 20 ? 0xFFFF5040 : col, true);
+        if (d.kind() == Drone.Kind.FPV_FIBER) {
+            int left = (int) Math.max(0, Drone.FIBER_RANGE - dist);
+            g.text(font, Component.translatable("hud.harddayz.fiber", left), w - 110, 36, left < 60 ? 0xFFFF6040 : col, true);
+        } else {
+            g.text(font, Component.translatable("hud.harddayz.signal", (int) (signal * 100)), w - 110, 36, signal < 0.3f ? 0xFFFF5040 : col, true);
+        }
         if (!d.kind().autonomous) {
             g.text(font, Component.translatable(d.engineOn() ? "hud.harddayz.engine_on" : "hud.harddayz.engine_off"), w - 110, 72,
                     d.engineOn() ? col : 0xFFFFB040, true);
@@ -519,7 +553,7 @@ public final class DronePilot {
         if (d.kind() == Drone.Kind.RECON) {
             g.text(font, Component.literal(String.format("x%.1f", zoom)), w - 110, 60, col, true);
         }
-        g.text(font, Component.translatable(d.kind().autonomous ? "hud.harddayz.help_shahed" : d.kind() == Drone.Kind.FPV ? "hud.harddayz.help_fpv"
+        g.text(font, Component.translatable(d.kind().autonomous ? "hud.harddayz.help_shahed" : d.kind().fpv() ? "hud.harddayz.help_fpv"
                 : d.kind() == Drone.Kind.RECON ? "hud.harddayz.help_recon" : "hud.harddayz.help_bomber"), 24, h - 34, 0xB0FFFFFF, true);
         if (mc.player.tickCount % 20 < 10) {
             g.fill(w - 40, h - 36, w - 34, h - 30, 0xFFFF3030);

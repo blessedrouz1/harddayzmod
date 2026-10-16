@@ -78,7 +78,9 @@ public final class Blast {
                 near.put(pl, pl.getDeltaMovement());
             }
         }
-        var ex = new net.minecraft.world.level.Explosion(level, source, null, null, at.x, at.y, at.z, Math.min(p, 16f), false,
+        // ломает блоки радиусом заметно меньше силы: FPV — ямка, баллистика — большая воронка (форму доделывает crater())
+        float holeR = Math.min(10f, 0.45f + 0.075f * p * p / (1 + p * 0.06f));
+        var ex = new net.minecraft.world.level.Explosion(level, source, null, null, at.x, at.y, at.z, blocks ? holeR : Math.min(p, 16f), false,
                 blocks ? net.minecraft.world.level.Explosion.BlockInteraction.DESTROY_WITH_DECAY : net.minecraft.world.level.Explosion.BlockInteraction.KEEP);
         if (!net.minecraftforge.event.ForgeEventFactory.onExplosionStart(level, ex)) {
             ex.explode();
@@ -90,6 +92,7 @@ public final class Blast {
             pl.setDeltaMovement(before.add(now.subtract(before).scale(0.3)));
         });
         if (blocks && nearGround) {
+            crater(level, at, p, r);
             scorch(level, at, p, r);
         }
 
@@ -114,7 +117,7 @@ public final class Blast {
                 e.hurt(level.damageSources().explosion(source, null), (float) (f * p * 3.0));
                 continue;
             }
-            if (e instanceof LivingEntity && d > p * 1.8) {
+            if (e instanceof LivingEntity && d > (blocks ? holeR * 1.8 : p * 1.8)) { // за пределами ванильного урона — ударная волна
                 e.hurt(level.damageSources().explosion(source, null), (float) (f * p * 1.2));
             }
         }
@@ -148,6 +151,46 @@ public final class Blast {
             out = out.lengthSqr() < 0.01 ? new Vec3(r.nextGaussian(), 0, r.nextGaussian()) : out;
             out = out.normalize().scale(0.25 + r.nextDouble() * (0.3 + p * 0.04));
             fb.setDeltaMovement(out.x, 0.55 + r.nextDouble() * (0.4 + p * 0.05), out.z);
+        }
+    }
+
+    /** Воронка-чаша: мина — мелкая ямка, баллистика — глубокая яма в несколько блоков. */
+    private static void crater(ServerLevel level, Vec3 at, float p, RandomSource r) {
+        // растёт быстрее силы: мина/FPV — неглубокая ямка, Шахед — воронка, баллистика — яма в несколько блоков
+        double rad = Mth.clamp(0.28 * Math.pow(p, 1.15), 0.8, 7.5);
+        double depth = Mth.clamp(0.07 * Math.pow(p, 1.45), 0, 4.8);
+        if (depth < 0.45) {
+            return;
+        }
+        int cx = Mth.floor(at.x), cz = Mth.floor(at.z);
+        int ir = (int) Math.ceil(rad);
+        for (int dx = -ir; dx <= ir; dx++) {
+            for (int dz = -ir; dz <= ir; dz++) {
+                double d = Math.sqrt(dx * dx + dz * dz) / rad;
+                if (d > 1) {
+                    continue;
+                }
+                double dep = depth * (1 - d * d) * (0.85 + r.nextDouble() * 0.3);
+                int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, cx + dx, cz + dz) - 1;
+                if (Math.abs(top - at.y) > p) {
+                    continue;
+                }
+                int bottom = (int) Math.round(top - dep);
+                for (int y = top; y > bottom; y--) {
+                    BlockPos pos = new BlockPos(cx + dx, y, cz + dz);
+                    BlockState st = level.getBlockState(pos);
+                    if (st.isAir() || st.getDestroySpeed(level, pos) < 0 || !st.getFluidState().isEmpty()
+                            || st.getBlock().getExplosionResistance() > p * 4 || level.getBlockEntity(pos) != null) {
+                        break;
+                    }
+                    level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+                }
+                BlockPos floor = new BlockPos(cx + dx, bottom, cz + dz);
+                BlockState f = level.getBlockState(floor);
+                if (f.is(Blocks.GRASS_BLOCK) || f.is(Blocks.DIRT) || f.is(Blocks.STONE)) {
+                    level.setBlock(floor, (r.nextFloat() < 0.5f ? Blocks.COARSE_DIRT : Blocks.ROOTED_DIRT).defaultBlockState(), 3);
+                }
+            }
         }
     }
 

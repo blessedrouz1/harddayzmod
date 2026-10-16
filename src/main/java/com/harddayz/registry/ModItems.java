@@ -79,6 +79,9 @@ public final class ModItems {
     public static final RegistryObject<Item> RELAY = item("relay", p -> new LauncherItem(p, Launcher.Kind.RELAY), p -> p.stacksTo(2));
     public static final RegistryObject<Item> MORTAR = item("mortar", p -> new LauncherItem(p, Launcher.Kind.MORTAR), p -> p.stacksTo(2));
     public static final RegistryObject<Item> MORTAR_SHELL = item("mortar_shell", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> CAMO_NET = item("vehicle_net", Item::new, p -> p.stacksTo(4));
+    public static final RegistryObject<Item> DECOY = item("decoy", p -> new LauncherItem(p, Launcher.Kind.DECOY), p -> p.stacksTo(2));
+    public static final RegistryObject<Item> MORTAR_ILLUM = item("mortar_illum", AmmoItem::new, p -> p.stacksTo(12));
     public static final RegistryObject<Item> JERRYCAN = item("jerrycan", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> EMPTY_JERRYCAN = item("empty_jerrycan", Item::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> SAM_POST = item("sam_post", p -> new LauncherItem(p, Launcher.Kind.SAM_POST), p -> p.stacksTo(4));
@@ -118,6 +121,7 @@ public final class ModItems {
     public static final RegistryObject<Item> LANCET = item("lancet", p -> new DroneItem(p, Drone.Kind.LANCET), p -> p.stacksTo(2));
     public static final RegistryObject<Item> WING_RECON = item("wing_recon", p -> new DroneItem(p, Drone.Kind.WING_RECON), p -> p.stacksTo(1));
     public static final RegistryObject<Item> FPV_DRONE = item("fpv_drone", p -> new DroneItem(p, Drone.Kind.FPV), p -> p.stacksTo(4));
+    public static final RegistryObject<Item> FPV_FIBER = item("fpv_fiber", p -> new DroneItem(p, Drone.Kind.FPV_FIBER), p -> p.stacksTo(4));
     public static final RegistryObject<Item> RECON_DRONE = item("recon_drone", p -> new DroneItem(p, Drone.Kind.RECON),
             p -> p.stacksTo(1).rarity(Rarity.UNCOMMON));
 

@@ -76,7 +76,14 @@ public class Drone extends Entity implements Threat {
         /** «Баба-Яга»: тяжёлый гексакоптер-бомбардировщик, две мощные бомбы. */
         BABA_YAGA(10, 7200, 0f, 0, 0, false),
         /** Крылатая ракета «Калибр» (с пусковой): низко и далеко, мощная БЧ. */
-        CRUISE(7, 0, 12f, 3.2, 25, true);
+        CRUISE(7, 0, 12f, 3.2, 25, true),
+        /** FPV на оптоволокне: РЭБ не берёт, но катушка кабеля ограничивает дальность. */
+        FPV_FIBER(4, 3600, 4.5f, 0, 0, false);
+
+        /** Квадрокоптер-камикадзе с камерой (обычный или на оптоволокне). */
+        public boolean fpv() {
+            return this == FPV || this == FPV_FIBER;
+        }
 
         public final float health;
         /** Поршневые «Шахеды»: мопедный мотор, свой звук взрыва. */
@@ -163,7 +170,13 @@ public class Drone extends Entity implements Threat {
     /** РЭБ: помехи нарастают постепенно — сначала сильный «снег» и рывки, потом связь рвётся. */
     private int lastJammed = -100;
 
+    /** Длина кабеля оптоволоконного FPV, блоков. */
+    public static final int FIBER_RANGE = 450;
+
     public void interfere(ServerLevel level, float k) {
+        if (kind() == Kind.FPV_FIBER) {
+            return; // по кабелю помехи не идут
+        }
         lastJammed = tickCount;
         float v = Math.min(1f, Math.max(interference(), k * 0.5f) + k * 0.06f);
         entityData.set(INTERFERENCE, v);
@@ -181,6 +194,10 @@ public class Drone extends Entity implements Threat {
 
     /** Связь с оператором: квадрокоптер — напрямую, «Шахед»/«Ланцет» — напрямую или через ближайший свой ретранслятор. */
     private float linkQuality(ServerPlayer op) {
+        if (kind() == Kind.FPV_FIBER) {
+            // картинка чистая до самого конца катушки, потом кабель рвётся
+            return (float) Mth.clamp((FIBER_RANGE - op.distanceTo(this)) / 15, 0, 1);
+        }
         if (!kind().autonomous) {
             return (float) Mth.clamp(1 - op.distanceTo(this) / SIGNAL_RANGE, 0, 1);
         }
@@ -640,7 +657,7 @@ public class Drone extends Entity implements Threat {
             String key = com.harddayz.war.RadarNet.key(owner);
             long now = level.getGameTime();
             for (Entity e : level.getEntities(this, getBoundingBox().inflate(150, 120, 150), e -> (e instanceof Player || e instanceof Vehicle
-                    || e instanceof Drone) && !com.harddayz.war.War.allied(owner, e instanceof Player p ? p.getUUID()
+                    || e instanceof Drone) && !(e instanceof Launcher l && (l.wrecked() || l.hidden())) && !com.harddayz.war.War.allied(owner, e instanceof Player p ? p.getUUID()
                             : e instanceof Vehicle vh ? vh.owner() : ((Drone) e).owner()))) {
                 com.harddayz.war.RadarNet.report(key, e, now);
             }
@@ -850,7 +867,7 @@ public class Drone extends Entity implements Threat {
         if (from.getId() != pilotId() || !(level() instanceof ServerLevel level)) {
             return;
         }
-        if (kind() == Kind.FPV || kind().autonomous) {
+        if (kind().fpv() || kind().autonomous) {
             detonate(level);
         } else if (kind() == Kind.BABA_YAGA && grenades() > 0) {
             entityData.set(GRENADES, grenades() - 1);
@@ -974,6 +991,7 @@ public class Drone extends Entity implements Threat {
                 && p.getVehicle() == null && p.distanceTo(this) < 5 && (p.isShiftKeyDown() || p.isCreative())) {
             spawnAtLocation(new ItemStack(switch (kind()) {
                 case FPV -> ModItems.FPV_DRONE.get();
+                case FPV_FIBER -> ModItems.FPV_FIBER.get();
                 case INTERCEPTOR -> ModItems.INTERCEPTOR.get();
                 case LANCET -> ModItems.LANCET.get();
                 case WING_RECON -> ModItems.WING_RECON.get();

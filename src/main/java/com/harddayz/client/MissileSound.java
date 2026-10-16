@@ -64,7 +64,7 @@ public class MissileSound extends AbstractTickableSoundInstance {
         x = m.getX();
         y = m.getY();
         z = m.getZ();
-        if (!passed && m.kind() != Missile.Kind.SAM && m.look() != 5 && m.look() != 6) {
+        if (!passed && m.kind() != Missile.Kind.SAM && m.look() != 5 && m.look() != 6 && m.look() != 8) {
             var s = m.look() == 7 ? ModSounds.FLYBY_MORTAR.get() : m.kind() == Missile.Kind.BALLISTIC ? ModSounds.FLYBY_BALLISTIC.get()
                     : ModSounds.FLYBY_MLRS.get();
             if (Flyby.check(m, s, m.kind() == Missile.Kind.BALLISTIC ? 60 : 40, m.kind() == Missile.Kind.BALLISTIC ? 5f : 3f)) {

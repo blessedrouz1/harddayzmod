@@ -34,6 +34,9 @@ public class JavelinItem extends GunItem {
         Vehicle best = null;
         double bestCos = Math.cos(Math.toRadians(4));
         for (Vehicle v : level.getEntitiesOfClass(Vehicle.class, new AABB(eye, eye).inflate(300))) {
+            if (v instanceof com.harddayz.entity.Launcher l && (l.hidden() || l.wrecked() && l.wreck() > 180)) {
+                continue; // под сетью / остывший остов — тепловой ГСН не захватывает
+            }
             Vec3 to = v.position().add(0, 1, 0).subtract(eye);
             double cos = to.normalize().dot(look);
             if (cos > bestCos && to.length() < 300) {

@@ -20,6 +20,7 @@ public final class LauncherGeometry {
             case SHAHED -> "shahed_launcher";
             case RAMP -> "shahed_ground";
             case PICKUP_SAM -> "pickup_sam";
+            case DECOY -> "grad";
             default -> kind.name().toLowerCase(java.util.Locale.ROOT);
         };
     }
@@ -83,6 +84,31 @@ public final class LauncherGeometry {
             name = b.parent;
         }
         return rotate(p.scale(1.0 / 16), 0, Math.toRadians(180 - bodyYaw), 0);
+    }
+
+    private static final Map<Launcher.Kind, VehicleBody> BODIES = new java.util.EnumMap<>(Launcher.Kind.class);
+
+    /** Кузов в плане по всем костям модели в покое: перёд — это −Z модели. */
+    public static VehicleBody body(Launcher.Kind kind) {
+        return BODIES.computeIfAbsent(kind, k -> {
+            try {
+                double minX = 0, maxX = 0, minZ = 0, maxZ = 0;
+                for (Bone b : rig(k).values()) {
+                    if (b.min.x > b.max.x) {
+                        continue; // кость без кубов
+                    }
+                    minX = Math.min(minX, b.min.x); maxX = Math.max(maxX, b.max.x);
+                    minZ = Math.min(minZ, b.min.z); maxZ = Math.max(maxZ, b.max.z);
+                }
+                double half = Math.max(-minX, maxX) / 16, front = -minZ / 16, back = maxZ / 16;
+                if (half < 0.3 || front + back < 0.6) {
+                    return VehicleBody.DEFAULT;
+                }
+                return new VehicleBody(front * 0.95, back * 0.95, half * 0.9);
+            } catch (RuntimeException e) {
+                return VehicleBody.DEFAULT;
+            }
+        });
     }
 
     public static Vec3 pivot(Launcher.Kind kind, float bodyYaw, float turret, float elevation, float erect) {

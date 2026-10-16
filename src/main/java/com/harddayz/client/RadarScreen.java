@@ -14,6 +14,40 @@ public class RadarScreen extends HdScreen {
     private Net.RadarState state;
     private int range = 2;
     private int ticks;
+    /** Карта местности под развёрткой: цвета блоков сверху, пересчёт раз в 2 с. */
+    private static final int CELLS = 52;
+    private final int[] map = new int[CELLS * CELLS];
+    private int mapRange = -1;
+    private int mapAge = 1000;
+
+    private void rebuildMap(int rangeBlocks) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level == null || mc.player == null) {
+            return;
+        }
+        var lvl = mc.level;
+        double cell = rangeBlocks * 2.0 / CELLS;
+        for (int i = 0; i < CELLS; i++) {
+            for (int j = 0; j < CELLS; j++) {
+                int x = (int) Math.floor(mc.player.getX() + (i + 0.5 - CELLS / 2.0) * cell);
+                int z = (int) Math.floor(mc.player.getZ() + (j + 0.5 - CELLS / 2.0) * cell);
+                if (!lvl.hasChunk(x >> 4, z >> 4)) {
+                    map[i * CELLS + j] = 0;
+                    continue;
+                }
+                int y = lvl.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.WORLD_SURFACE, x, z) - 1;
+                var pos = new net.minecraft.core.BlockPos(x, y, z);
+                var mc2 = lvl.getBlockState(pos).getMapColor(lvl, pos);
+                int rgb = mc2 == null ? 0 : mc2.col;
+                // приглушаем под тон экрана и отмечаем рельеф
+                float shade = Mth.clamp(0.35f + (y - (float) mc.player.getY()) * 0.01f, 0.2f, 0.55f);
+                int r = (int) (((rgb >> 16) & 255) * shade), gg = (int) (((rgb >> 8) & 255) * shade), b = (int) ((rgb & 255) * shade);
+                map[i * CELLS + j] = 0xFF000000 | (r << 16) | (gg << 8) | b;
+            }
+        }
+        mapRange = rangeBlocks;
+        mapAge = 0;
+    }
 
     public RadarScreen(Net.RadarState s) {
         super(Component.translatable("screen.harddayz.radar"));
@@ -53,6 +87,26 @@ public class RadarScreen extends HdScreen {
         int r = 104;
         g.fill(cx - r - 14, cy - r - 22, cx + r + 14, cy + r + 44, 0xEE0A1410);
         g.outline(cx - r - 14, cy - r - 22, 2 * r + 28, 2 * r + 66, 0xFF2E6A50);
+        // местность
+        int rangeBlocks = RANGES[range];
+        if (mapRange != rangeBlocks || ++mapAge > 40) {
+            rebuildMap(rangeBlocks);
+        }
+        double px = 2.0 * r / CELLS;
+        for (int i = 0; i < CELLS; i++) {
+            for (int j = 0; j < CELLS; j++) {
+                int c = map[i * CELLS + j];
+                if (c == 0) {
+                    continue;
+                }
+                double ox = (i + 0.5 - CELLS / 2.0) * px, oy = (j + 0.5 - CELLS / 2.0) * px;
+                if (ox * ox + oy * oy > r * r) {
+                    continue;
+                }
+                int x0 = cx - r + (int) Math.floor(i * px), y0 = cy - r + (int) Math.floor(j * px);
+                g.fill(x0, y0, cx - r + (int) Math.floor((i + 1) * px), cy - r + (int) Math.floor((j + 1) * px), c);
+            }
+        }
         // кольца и оси
         for (int ring = 1; ring <= 3; ring++) {
             circle(g, cx, cy, r * ring / 3, 0xFF1E4A38);
