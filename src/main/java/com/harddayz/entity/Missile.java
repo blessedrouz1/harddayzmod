@@ -55,7 +55,7 @@ public class Missile extends Entity implements Threat {
         }
     }
 
-    public static final double GRAD_SPEED = 4.0;
+    public static final double GRAD_SPEED = 6.3;
 
     private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(Missile.class, EntityDataSerializers.INT);
     /** Как выглядит в полёте: 0 — по виду ракеты, 1 GMLRS, 2 С-400, 3 Patriot, 4 NASAMS, 5 Javelin, 6 выстрел РПГ. */
@@ -221,11 +221,42 @@ public class Missile extends Entity implements Threat {
 
     private Vec3 guide(ServerLevel level, Vec3 v) {
         return switch (kind()) {
-            case GRAD -> v.add(0, -Kind.GRAD.gravity, 0);
+            case GRAD -> grad(level, v);
             case BOMB -> v.add(0, -Kind.BOMB.gravity, 0).scale(0.99);
             case BALLISTIC -> ballistic(level, v);
             case SAM -> sam(level, v);
         };
+    }
+
+    /** РСЗО выровнялась под потолком и летит горизонтально. */
+    private boolean leveled;
+
+    /**
+     * Неуправляемая ракета РСЗО: обычная баллистическая дуга, но не выше потолка — там ракета идёт горизонтально и
+     * снова начинает падать, когда дуга с этой высоты как раз приведёт её в точку цели. Мина летит чистой дугой.
+     */
+    private Vec3 grad(ServerLevel level, Vec3 v) {
+        double g = Kind.GRAD.gravity;
+        if (look() == 7 || look() == 8 || target == null) {
+            return v.add(0, -g, 0);
+        }
+        double cap = Math.min(level.getMaxBuildHeight() - 16, (origin != null ? origin.y : getY()) + 150);
+        if (!leveled && v.y > 0 && getY() + v.y >= cap) {
+            leveled = true;
+            setPos(getX(), cap, getZ());
+            return new Vec3(v.x, 0, v.z);
+        }
+        if (leveled) {
+            double h = Math.max(0, getY() - target.y);
+            double u = Math.sqrt(v.x * v.x + v.z * v.z);
+            double drop = u * Math.sqrt(2 * h / g);
+            double dx = target.x - getX(), dz = target.z - getZ();
+            if (dx * dx + dz * dz > drop * drop) {
+                return new Vec3(v.x, 0, v.z); // ещё рано падать
+            }
+            leveled = false;
+        }
+        return v.add(0, -g, 0);
     }
 
     private Vec3 ballistic(ServerLevel level, Vec3 v) {
@@ -235,7 +266,7 @@ public class Missile extends Entity implements Threat {
         double dh = Math.sqrt(dx * dx + dz * dz);
         // высокая дуга: минимум — почти под потолок мира, на дальние цели ещё выше
         double ceiling = level.getMaxBuildHeight() - 12;
-        double apex = Math.min(1500, Math.max(ceiling, target.y + 160 + dh * 0.35));
+        double apex = ceiling; // не выше потолка мира: дальняя цель — длиннее марш на высоте, а не выше дуга
         if (tickCount < 40 || (!diving && tickCount < 260 && pos.y < Math.min(apex, ceiling) - 30)) {
             double speed = Math.min(3.2, 0.4 + tickCount * 0.08);
             // Clear the rail along its actual axis before gradually pitching up.

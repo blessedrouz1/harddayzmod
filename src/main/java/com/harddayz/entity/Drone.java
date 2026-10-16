@@ -119,12 +119,12 @@ public class Drone extends Entity implements Threat {
         }
     }
 
-    public static final int SHAHED_RANGE = 3000;
-    public static final int SIGNAL_RANGE = 320;
+    public static final int SHAHED_RANGE = 5000;
+    public static final int SIGNAL_RANGE = 800;
     /** Дальность ручного управления «Шахедом» с пульта оператора. */
-    public static final int SHAHED_LINK_RANGE = 700;
+    public static final int SHAHED_LINK_RANGE = 1500;
     /** Ретранслятор продлевает связь на столько блоков вокруг себя. */
-    public static final int RELAY_RANGE = 900;
+    public static final int RELAY_RANGE = 1500;
 
     /** Реальная дальность связи: не дальше прорисовки сервера (иначе пилот видит пустоту). */
     public static int linkRange(net.minecraft.server.MinecraftServer server) {
@@ -171,7 +171,7 @@ public class Drone extends Entity implements Threat {
     private int lastJammed = -100;
 
     /** Длина кабеля оптоволоконного FPV, блоков. */
-    public static final int FIBER_RANGE = 450;
+    public static final int FIBER_RANGE = 1000;
 
     public void interfere(ServerLevel level, float k) {
         if (kind() == Kind.FPV_FIBER) {

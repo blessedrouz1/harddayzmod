@@ -14,7 +14,7 @@ public final class Config {
             .defineInRange("blastScale", 1.0, 0.1, 5.0);
     public static final ForgeConfigSpec.IntValue BALLISTIC_RANGE = B
             .comment("Максимальная дальность баллистической ракеты, блоков")
-            .defineInRange("ballisticRange", 2000, 200, 10000);
+            .defineInRange("ballisticRange", 4000, 200, 10000);
 
     public static final ForgeConfigSpec SPEC = B.build();
 
@@ -30,6 +30,6 @@ public final class Config {
     }
 
     public static int ballisticRange() {
-        return SPEC.isLoaded() ? BALLISTIC_RANGE.get() : 2000;
+        return SPEC.isLoaded() ? BALLISTIC_RANGE.get() : 4000;
     }
 }

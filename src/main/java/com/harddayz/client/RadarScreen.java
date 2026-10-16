@@ -10,7 +10,7 @@ import net.minecraft.util.Mth;
 
 /** Радарный экран: круговая развёртка вокруг игрока, метки целей, которые реально видят РЛС сети. */
 public class RadarScreen extends HdScreen {
-    private static final int[] RANGES = {150, 300, 600, 1200, 2000};
+    private static final int[] RANGES = {200, 500, 1000, 2000, 3000};
     private Net.RadarState state;
     private int range = 2;
     private int ticks;

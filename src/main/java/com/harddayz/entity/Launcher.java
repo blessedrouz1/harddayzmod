@@ -818,7 +818,7 @@ public class Launcher extends Vehicle {
                 entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
             }
             default -> {
-                int max = kind() == Kind.S400 ? 1500 : kind() == Kind.HIMARS ? 1800 : kind() == Kind.TOCHKA ? com.harddayz.Config.ballisticRange() / 2
+                int max = kind() == Kind.S400 ? 2500 : kind() == Kind.HIMARS ? 3000 : kind() == Kind.TOCHKA ? com.harddayz.Config.ballisticRange() / 2
                         : com.harddayz.Config.ballisticRange();
                 if (dist > max || dist < 60) {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
@@ -1203,8 +1203,8 @@ public class Launcher extends Vehicle {
                 .withStyle(ChatFormatting.GOLD), true);
     }
 
-    public static final double MORTAR_SPEED = 2.4;
-    public static final int MORTAR_RANGE = 115;
+    public static final double MORTAR_SPEED = 3.8;
+    public static final int MORTAR_RANGE = 290;
 
     /** Миномёт: крутая (навесная) траектория — верхнее решение. */
     private @Nullable Double mortarElevation(Vec3 t) {
@@ -1829,7 +1829,7 @@ public class Launcher extends Vehicle {
     }
 
     /** Контрбатарейная РЛС: ловит мины, снаряды РСЗО и баллистику по траектории и точно считает место стрельбы. */
-    public static final int CBR_RANGE = 1300;
+    public static final int CBR_RANGE = 2000;
 
     private void tickCbr(ServerLevel level) {
         entityData.set(WANT_TURRET, (float) ((tickCount * 2) % 360));

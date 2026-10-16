@@ -30,7 +30,7 @@ import net.minecraft.world.phys.Vec3;
  * Сирены сети воют, когда цель подлетает к ним.
  */
 public final class RadarNet {
-    public static final int RADAR_RANGE = 1000;
+    public static final int RADAR_RANGE = 1600;
     public static final int SIREN_RANGE = 400;
 
     public static final class Contact {

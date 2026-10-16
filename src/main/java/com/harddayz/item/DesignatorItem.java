@@ -25,7 +25,7 @@ import net.minecraft.world.phys.Vec3;
  * Потом ПКМ им по пусковой — она получает цель.
  */
 public class DesignatorItem extends Item {
-    public static final int RANGE = 1000;
+    public static final int RANGE = 2000;
 
     public DesignatorItem(Properties properties) {
         super(properties);
