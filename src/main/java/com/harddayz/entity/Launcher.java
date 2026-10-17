@@ -124,6 +124,11 @@ public class Launcher extends Vehicle {
             return this == SHAHED || this == RAMP;
         }
 
+        /** Ракеты в трубах под крышками: перед пуском крышка слетает и ракета выезжает. */
+        public boolean container() {
+            return this == S400 || this == PATRIOT || this == NASAMS;
+        }
+
         public boolean samLike() {
             return this == SAM || this == SAM_POST || this == S400 || this == PATRIOT || this == NASAMS;
         }
@@ -269,10 +274,14 @@ public class Launcher extends Vehicle {
     private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Integer> AMMO = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> WANT_TURRET = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
+    /** Угол подъёма модуля «Калибра» при пуске, градусы: вертикаль только у баллистики и ПВО. */
+    private static final float KALIBR_LAUNCH_ELEV = 35f;
     private static final EntityDataAccessor<Float> WANT_ELEV = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Float> WANT_ERECT = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.FLOAT);
     /** Клиент: когда отлетела крышка каждого контейнера (тик), -1 — на месте. */
     public final float[] capLaunched = {-1, -1, -1, -1, -1, -1, -1, -1};
+    /** Клиент: старт полёта крышки i в осях корпуса — x, y, z, кватернион (x, y, z, w), скорость (x, y, z); null — ещё не вылетала. */
+    public final float[][] capStart = new float[8][];
     /** Клиент: боезапас на прошлом кадре — по убыли видно, что был пуск. */
     public int capLastAmmo = -1;
 
@@ -326,6 +335,10 @@ public class Launcher extends Vehicle {
     }
 
     private static final EntityDataAccessor<Integer> FLASH = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    /** Контейнерные пусковые: тики вскрытия очередной трубы (крышка слетает, ракета выезжает), 0 — труба закрыта. */
+    private static final EntityDataAccessor<Integer> ARM = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    /** Сколько тиков от вскрытия трубы до старта: 0-6 крышка, 6-22 ракета выезжает, дальше выдержка. */
+    public static final int ARM_TICKS = 26;
     /** Сохранённые цели пульта: 5 слотов «x,y,z» через «;» (пустой — нет цели). */
     private static final EntityDataAccessor<String> SLOTS = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.STRING);
     /** Типы дронов на направляющих (для моделей), порядковые номера через запятую. */
@@ -366,6 +379,13 @@ public class Launcher extends Vehicle {
 
     public void refuel(float liters) {
         entityData.set(FUEL, Math.min(tank(), fuel() + liters));
+    }
+
+    private void syncDrones() {
+        String ds = String.join(",", drones.stream().map(k -> String.valueOf(k.ordinal())).toList());
+        if (!ds.equals(entityData.get(DRONES))) {
+            entityData.set(DRONES, ds);
+        }
     }
 
     public int[] droneKinds() {
@@ -624,6 +644,11 @@ public class Launcher extends Vehicle {
         return entityData.get(FLASH);
     }
 
+    /** Тики вскрытия текущей трубы контейнерной пусковой (0 — закрыта, ARM_TICKS — готова к пуску). */
+    public int arm() {
+        return entityData.get(ARM);
+    }
+
     // ------------------------------------------------------------------ взаимодействие
 
     @Override
@@ -685,6 +710,7 @@ public class Launcher extends Vehicle {
                     n = Math.min(n, 1);
                     if (n > 0) {
                         drones.add(droneKind(stack));
+                        syncDrones(); // вместе с AMMO, иначе клиент тик рисует дефолтный белый «Шахед»
                     }
                 }
                 if (n <= 0) {
@@ -793,9 +819,9 @@ public class Launcher extends Vehicle {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
                     return;
                 }
-                // контейнер поднимается гидроцилиндром в вертикаль, ракеты уходят из ячеек вверх
-                entityData.set(WANT_ELEV, 90f);
-                entityData.set(WANT_TURRET, 0f);
+                // крылатые ракеты: модуль поднимается гидроцилиндрами под стартовый угол и разворачивается на цель
+                entityData.set(WANT_ELEV, KALIBR_LAUNCH_ELEV);
+                entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
             }
             case GRAD, GRAD_P, TOS, SMERCH, URAGAN -> {
                 Double elev = gradElevation(tv);
@@ -863,13 +889,47 @@ public class Launcher extends Vehicle {
         double v = rocketSpeed();
         double g = Missile.Kind.GRAD.gravity;
         Vec3 from = muzzleBase();
-        double x = Math.sqrt((t.x - from.x) * (t.x - from.x) + (t.z - from.z) * (t.z - from.z));
-        double y = t.y - from.y;
-        double disc = v * v * v * v - g * (g * x * x + 2 * y * v * v);
-        if (disc < 0 || x < 20) {
+        double dx = t.x - from.x, dz = t.z - from.z;
+        double x = Math.sqrt(dx * dx + dz * dz);
+        if (x < 20) {
             return null;
         }
-        return Math.max(8, Math.toDegrees(Math.atan((v * v - Math.sqrt(disc)) / (g * x))));
+        // The rocket leaves the tip of the rail (~2 blocks past the pivot), not the pivot, and flies the exact per-tick
+        // integration of Missile.grad (gravity first, then move) - solve that, not the continuous parabola.
+        float turretDeg = Mth.wrapDegrees(yawTo(t) - getYRot());
+        double ux = dx / x, uz = dz / x;
+        double lo = 1.5, hi = 45;
+        if (landing(v, g, lo, t.y - from.y, ux, uz, turretDeg) > x) {
+            return lo; // closer than the flattest shot reaches
+        }
+        if (landing(v, g, hi, t.y - from.y, ux, uz, turretDeg) < x) {
+            return null;
+        }
+        for (int i = 0; i < 40; i++) {
+            double mid = (lo + hi) / 2;
+            if (landing(v, g, mid, t.y - from.y, ux, uz, turretDeg) < x) {
+                lo = mid;
+            } else {
+                hi = mid;
+            }
+        }
+        return (lo + hi) / 2;
+    }
+
+    /** Horizontal distance from the pivot at which a rocket fired at {@code elev} degrees comes down to height {@code ty}. */
+    private double landing(double v, double g, double elev, double ty, double ux, double uz, float turretDeg) {
+        Vec3 off = LauncherGeometry.muzzle(kind(), ammo(), getYRot(), turretDeg, (float) elev, erect.value)
+                .subtract(LauncherGeometry.pivot(kind(), getYRot(), turretDeg, (float) elev, erect.value));
+        double r = Math.toRadians(elev);
+        double vx = v * Math.cos(r), vy = v * Math.sin(r);
+        double h = off.y - ty; // muzzle height above the target
+        double a = vy - g / 2;
+        double disc = a * a + 2 * g * h;
+        if (disc < 0) {
+            return -1; // never gets down to the target height
+        }
+        double n = (a + Math.sqrt(disc)) / g; // ticks until y(n) = y0 + vy*n - g*n*(n+1)/2 reaches the target height
+        return off.x * ux + off.z * uz + vx * n;
     }
 
     // ------------------------------------------------------------------ геометрия
@@ -977,10 +1037,7 @@ public class Launcher extends Vehicle {
             }
         }
         if (kind().dronePad()) {
-            String ds = String.join(",", drones.stream().map(k -> String.valueOf(k.ordinal())).toList());
-            if (!ds.equals(entityData.get(DRONES))) {
-                entityData.set(DRONES, ds);
-            }
+            syncDrones();
         }
         if (kind().samLike() && !(kind() == Kind.S400 && state != State.IDLE)) {
             tickSam(level);
@@ -1071,7 +1128,34 @@ public class Launcher extends Vehicle {
                 && erect.near(entityData.get(WANT_ERECT), 0.005f, false);
     }
 
+    /**
+     * Контейнерные пусковые: сначала слетает крышка трубы и ракета выезжает наружу, и только потом пуск.
+     * Вызывать каждый тик, пока цель выбрана; true — труба вскрыта до конца, можно стартовать.
+     */
+    private boolean armed(ServerLevel level) {
+        if (!kind().container()) {
+            return true;
+        }
+        int a = entityData.get(ARM);
+        if (a >= ARM_TICKS) {
+            return true;
+        }
+        if (a == 0 || a == 6) {
+            Vec3 m = launchMuzzle();
+            if (a == 0) { // крышку выбивает газом
+                level.playSound(null, m.x, m.y, m.z, SoundEvents.IRON_TRAPDOOR_OPEN, SoundSource.HOSTILE, 3f, 0.6f);
+                level.playSound(null, m.x, m.y, m.z, SoundEvents.DISPENSER_LAUNCH, SoundSource.HOSTILE, 3f, 0.5f);
+                com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, m.x, m.y, m.z, 10, 0.25, 0.25, 0.25, 0.08);
+            } else { // ракета ползёт из трубы
+                level.playSound(null, m.x, m.y, m.z, SoundEvents.PISTON_EXTEND, SoundSource.HOSTILE, 2f, 1.5f);
+            }
+        }
+        entityData.set(ARM, a + 1);
+        return false;
+    }
+
     private void stow() {
+        entityData.set(ARM, 0);
         state = State.STOW;
         timer = 0;
         reloadUntil = tickCount + switch (kind()) {
@@ -1103,11 +1187,11 @@ public class Launcher extends Vehicle {
         shot++;
         // Spread changes velocity, never the launcher's physical tube position.
         Vec3 axis = launchDirection();
-        float yaw = (float) Math.toDegrees(Math.atan2(-axis.x, axis.z)) + (float) random.nextGaussian() * 1.7f;
-        float pitch = (float) Math.toDegrees(Math.asin(axis.y)) + (float) random.nextGaussian() * 0.8f;
+        float yaw = (float) Math.toDegrees(Math.atan2(-axis.x, axis.z)) + (float) random.nextGaussian() * 0.25f;
+        float pitch = (float) Math.toDegrees(Math.asin(axis.y)) + (float) random.nextGaussian() * 0.15f;
         Vec3 dir = forward(yaw, pitch);
         Vec3 muzzle = launchMuzzle();
-        Vec3 vel = dir.scale(rocketSpeed() * (1 + random.nextGaussian() * 0.022));
+        Vec3 vel = dir.scale(rocketSpeed() * (1 + random.nextGaussian() * 0.004));
         Missile m = Missile.launch(level, Missile.Kind.GRAD, muzzle, vel, Vec3.atCenterOf(target), this).owner(owner);
         if (kind() == Kind.TOS) {
             m.thermobaric();
@@ -1125,18 +1209,24 @@ public class Launcher extends Vehicle {
 
     /** С-400 по наземной цели: одна ракета, большой разброс, слабая БЧ. */
     private void fireS400Ground(ServerLevel level) {
-        if (timer++ % 40 != 0) {
+        if (timer % 40 != 0) {
+            timer++;
             return;
         }
         if (ammo() <= 0 || target == null || shot >= 1) {
             stow();
             return;
         }
+        if (!armed(level)) {
+            return; // крышка слетает, ракета выезжает; таймер стоит
+        }
+        timer++;
         shot++;
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 22, 0, random.nextGaussian() * 22);
         Vec3 g = muzzleBase();
         Missile.launch(level, Missile.Kind.BALLISTIC, launchMuzzle(), launchDirection().scale(0.6), aim, this).owner(owner).powerMul(0.35f).look(2);
         entityData.set(AMMO, ammo() - 1);
+        entityData.set(ARM, 0);
         entityData.set(FLASH, 8);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, g.x, g.y, g.z, 30, 1.5, 0.4, 1.5, 0.05);
     }
@@ -1241,7 +1331,7 @@ public class Launcher extends Vehicle {
         level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
     }
 
-    /** «Калибр»: вертикальный пуск из шахт контейнера. Крышки отлетают при выстреле. */
+    /** «Калибр»: пуск из ячеек модуля под углом подъёма. Крышки отлетают при выстреле. */
     private void fireKalibr(ServerLevel level) {
         if (timer++ % 40 != 0) {
             return;
@@ -1251,13 +1341,12 @@ public class Launcher extends Vehicle {
             return;
         }
         shot++;
-        // Позиция текущей ракеты в контейнере: 2 ряда по 2
-        // В LauncherGeometry.muzzle() для KALIBR: i%2==0 -> x=-9, иначе x=9; y=43+i/2*18
-        Vec3 muzzle = launchMuzzle(); // уже вычисляет правильную позицию шахты
-        // Вертикальный старт: ракета летит строго вверх, потом наводится на цель (Drone.Kind.CRUISE)
-        Vec3 vertUp = new Vec3(0, 1, 0).scale(0.5);
+        // Ячейки 2 x 2; точка носа текущей ракеты берётся из кости tipN модели (LauncherGeometry.muzzle)
+        Vec3 muzzle = launchMuzzle();
+        // Старт под углом подъёма модуля, потом ракета наводится на цель (Drone.Kind.CRUISE)
+        Vec3 launchDir = launchDirection().scale(0.5);
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 7, 0, random.nextGaussian() * 7);
-        Drone.launchShahed(level, muzzle, vertUp, aim, owner, Drone.Kind.CRUISE);
+        Drone.launchShahed(level, muzzle, launchDir, aim, owner, Drone.Kind.CRUISE);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8); // крышка отлетает при flash>0 (рендерер)
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, muzzle.x, muzzle.y, muzzle.z, 30, 0.8, 0.4, 0.8, 0.05);
@@ -1472,6 +1561,9 @@ public class Launcher extends Vehicle {
         }
         boolean vertical = kind() == Kind.S400; // С-400: вертикальный пуск, башня не крутится
         if (t == null) {
+            if (arm() > 0) {
+                entityData.set(ARM, Math.max(0, arm() - 2)); // цель пропала: ракета уезжает обратно в трубу
+            }
             entityData.set(WANT_ELEV, vertical ? 0f : 12f);
             if (vertical) {
                 entityData.set(WANT_TURRET, 0f);
@@ -1492,14 +1584,19 @@ public class Launcher extends Vehicle {
         }
         int salvo = t instanceof Missile m && m.kind() == Missile.Kind.BALLISTIC ? 2 : 1;
         boolean ready = vertical ? elevation.value > 80 : Math.abs(Mth.wrapDegrees(entityData.get(WANT_TURRET) - samTurret.value)) < 12;
-        if (samCooldown == 0 && ammo() > 0 && !busyWith(t, now) && ready) {
+        boolean engage = ammo() > 0 && !busyWith(t, now) && ready;
+        // контейнерные: крышка и выезд ракеты идут во время перезарядки стрельбы, старт — когда труба вскрыта
+        boolean opened = !engage || armed(level);
+        if (samCooldown == 0 && engage && opened) {
             shot++;
             Vec3 dir = launchDirection();
             Vec3 muzzle = launchMuzzle();
             Missile.launch(level, Missile.Kind.SAM, muzzle, dir.scale(speed), p, this).hunt(t)
                     .owner(owner).bonus(samBonus(t))
-                    .look(kind() == Kind.S400 ? 2 : kind() == Kind.PATRIOT ? 3 : kind() == Kind.NASAMS ? 4 : 0);
+                    .look(kind() == Kind.S400 ? 2 : kind() == Kind.PATRIOT ? 3 : kind() == Kind.NASAMS ? 4
+                            : kind() == Kind.SAM_POST ? 9 : kind() == Kind.SAM_MANUAL || kind() == Kind.PICKUP_SAM ? 10 : 0);
             entityData.set(AMMO, ammo() - 1);
+            entityData.set(ARM, 0);
             entityData.set(FLASH, 4);
             int n = fired.merge(t.getId(), 1, Integer::sum);
             // ракета долетит примерно за столько тиков; до этого по цели не стреляем (кроме залпа по баллистике)
@@ -1657,6 +1754,7 @@ public class Launcher extends Vehicle {
         entityData.define(WANT_ELEV, 0f);
         entityData.define(WANT_ERECT, 0f);
         entityData.define(FLASH, 0);
+        entityData.define(ARM, 0);
         entityData.define(WRECK, 0);
         entityData.define(CAMO, 0);
         entityData.define(DRONES, "");
@@ -1761,7 +1859,7 @@ public class Launcher extends Vehicle {
                 gunCooldown = 6;
                 return;
             }
-            Missile.launch(level, Missile.Kind.SAM, muzzle, launchDirection().scale(1.4), t.position(), this).hunt(t).owner(p.getUUID());
+            Missile.launch(level, Missile.Kind.SAM, muzzle, launchDirection().scale(1.4), t.position(), this).hunt(t).owner(p.getUUID()).look(10);
             entityData.set(AMMO, ammo() - 1);
             entityData.set(FLASH, 4);
             gunCooldown = 30;

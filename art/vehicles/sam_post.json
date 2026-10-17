@@ -1,6 +1,6 @@
 {
  "name": "sam_post",
- "note": "Single SAM post: pad with battery, turret column and a twin-rail launcher with two missiles. Scale 1 m = 16 px.",
+ "note": "Single SAM post: pad with battery, turret column and a twin-tube launcher; only the missile noses show. Scale 1 m = 16 px.",
  "paint": "olive",
  "paint2": [
   "#1E1F1A",
@@ -191,76 +191,162 @@
   {
    "name": "beam",
    "from": [
-    -12,
+    -10,
     20,
-    -12
-   ],
-   "to": [
-    12,
-    22,
-    16
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "panels": 0
-  },
-  {
-   "name": "rail_front",
-   "from": [
-    -12,
-    22,
     -10
    ],
    "to": [
-    12,
-    23,
-    -8
-   ],
-   "mat": "metal",
-   "bone": "rack"
-  },
-  {
-   "name": "rail_rear",
-   "from": [
-    -12,
+    10,
     22,
-    6
-   ],
-   "to": [
-    12,
-    23,
-    8
-   ],
-   "mat": "metal",
-   "bone": "rack"
-  },
-  {
-   "name": "clamp_a",
-   "from": [
-    -12,
-    22,
-    -2
-   ],
-   "to": [
-    12,
-    24,
-    0
+    14
    ],
    "mat": "paint2",
    "bone": "rack",
    "panels": 0
   },
   {
-   "name": "sensor",
+   "name": "trunnion",
    "from": [
-    -2,
-    22,
-    10
+    -11,
+    21,
+    -1
    ],
    "to": [
-    2,
-    26,
+    11,
+    23,
+    1
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "tube0",
+   "from": [
+    1.5,
+    22,
+    -14
+   ],
+   "to": [
+    9.5,
+    30,
     14
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 6,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "tube0_cap",
+   "from": [
+    1.5,
+    22,
+    14
+   ],
+   "to": [
+    9.5,
+    30,
+    15
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "tube1",
+   "from": [
+    -9.5,
+    22,
+    -14
+   ],
+   "to": [
+    -1.5,
+    30,
+    14
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 6,
+     "h": 6,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "tube1_cap",
+   "from": [
+    -9.5,
+    22,
+    14
+   ],
+   "to": [
+    -1.5,
+    30,
+    15
+   ],
+   "mat": "metal",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band0",
+   "from": [
+    -10.5,
+    21,
+    -8
+   ],
+   "to": [
+    10.5,
+    31,
+    -6
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band1",
+   "from": [
+    -10.5,
+    21,
+    6
+   ],
+   "to": [
+    10.5,
+    31,
+    8
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "eo_pod",
+   "from": [
+    -3,
+    30,
+    -5
+   ],
+   "to": [
+    3,
+    34,
+    1
    ],
    "mat": "paint2",
    "bone": "rack",
@@ -269,7 +355,7 @@
      "face": "north",
      "x": 0,
      "y": 1,
-     "w": 4,
+     "w": 6,
      "h": 2,
      "mat": "glass"
     }
@@ -285,21 +371,23 @@
  "missile": [
   {
    "bone": "tip0",
-   "L": 38,
-   "D": 8,
-   "zn": -26,
+   "L": 26,
+   "D": 5,
+   "zn": -20,
    "cx": 5.5,
-   "cy": 27.4,
-   "palette": "sam"
+   "cy": 26,
+   "palette": "sam",
+   "trim": 12
   },
   {
    "bone": "tip1",
-   "L": 38,
-   "D": 8,
-   "zn": -26,
+   "L": 26,
+   "D": 5,
+   "zn": -20,
    "cx": -5.5,
-   "cy": 27.4,
-   "palette": "sam"
+   "cy": 26,
+   "palette": "sam",
+   "trim": 12
   }
  ]
 }

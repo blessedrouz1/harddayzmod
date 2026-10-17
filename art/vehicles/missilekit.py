@@ -230,6 +230,8 @@ def inject(name, m):
     # strip a previous injection
     g['bones'] = [b for b in g['bones']]
     cubes = build(m['L'], m['D'], m['zn'], m['cx'], m['cy'])
+    if 'trim' in m:   # keep only the part that can be seen (nose and front of the body)
+        cubes = [c for c in cubes if c['origin'][2] < m['zn'] + m['trim']]
     atlas, ah = pack(cubes, PALETTES[m.get('palette', 'iskander')], 256, 0, th)
     for b in g['bones']:
         if b['name'] == m.get('bone', 'missile'):

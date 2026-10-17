@@ -1,0 +1,305 @@
+{
+ "name": "sam_post",
+ "note": "Single SAM post: pad with battery, turret column and a twin-rail launcher with two missiles. Scale 1 m = 16 px.",
+ "paint": "olive",
+ "paint2": [
+  "#1E1F1A",
+  "#2A2B24",
+  "#34362D",
+  "#43453A"
+ ],
+ "metal": [
+  "#1C1D21",
+  "#26272D",
+  "#33343B",
+  "#45474F"
+ ],
+ "wear": 0.3,
+ "seed": 75,
+ "bones": [
+  {
+   "name": "base",
+   "pivot": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "turret",
+   "pivot": [
+    0,
+    7,
+    0
+   ]
+  },
+  {
+   "name": "rack",
+   "pivot": [
+    0,
+    24,
+    0
+   ],
+   "parent": "turret"
+  },
+  {
+   "name": "tip0",
+   "pivot": [
+    0,
+    24,
+    0
+   ],
+   "parent": "rack"
+  },
+  {
+   "name": "tip1",
+   "pivot": [
+    0,
+    24,
+    0
+   ],
+   "parent": "rack"
+  }
+ ],
+ "parts": [
+  {
+   "name": "pad",
+   "from": [
+    -13,
+    0,
+    -13
+   ],
+   "to": [
+    13,
+    3,
+    13
+   ],
+   "mat": "metal",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "up",
+     "x": 2,
+     "y": 2,
+     "w": 22,
+     "h": 1,
+     "mat": "bolts"
+    }
+   ]
+  },
+  {
+   "name": "battery",
+   "from": [
+    -13,
+    3,
+    3
+   ],
+   "to": [
+    -7,
+    9,
+    12
+   ],
+   "mat": "paint",
+   "bone": "base",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 4,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "crate",
+   "from": [
+    7,
+    3,
+    4
+   ],
+   "to": [
+    13,
+    8,
+    12
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0
+  },
+  {
+   "name": "pedestal",
+   "from": [
+    -6,
+    3,
+    -6
+   ],
+   "to": [
+    6,
+    7,
+    6
+   ],
+   "mat": "paint2",
+   "bone": "base",
+   "panels": 0
+  },
+  {
+   "name": "column",
+   "from": [
+    -5,
+    7,
+    -5
+   ],
+   "to": [
+    5,
+    17,
+    5
+   ],
+   "mat": "paint",
+   "bone": "turret",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 2,
+     "y": 2,
+     "w": 6,
+     "h": 5,
+     "mat": "hatch"
+    }
+   ]
+  },
+  {
+   "name": "seeker_box",
+   "from": [
+    -4,
+    17,
+    -4
+   ],
+   "to": [
+    4,
+    20,
+    4
+   ],
+   "mat": "paint2",
+   "bone": "turret",
+   "panels": 0
+  },
+  {
+   "name": "beam",
+   "from": [
+    -12,
+    20,
+    -12
+   ],
+   "to": [
+    12,
+    22,
+    16
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "rail_front",
+   "from": [
+    -12,
+    22,
+    -10
+   ],
+   "to": [
+    12,
+    23,
+    -8
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "rail_rear",
+   "from": [
+    -12,
+    22,
+    6
+   ],
+   "to": [
+    12,
+    23,
+    8
+   ],
+   "mat": "metal",
+   "bone": "rack"
+  },
+  {
+   "name": "clamp_a",
+   "from": [
+    -12,
+    22,
+    -2
+   ],
+   "to": [
+    12,
+    24,
+    0
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "sensor",
+   "from": [
+    -2,
+    22,
+    10
+   ],
+   "to": [
+    2,
+    26,
+    14
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 1,
+     "w": 4,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  }
+ ],
+ "canvas": [
+  "#3F4A2D",
+  "#566240",
+  "#6E7C51",
+  "#8A9868"
+ ],
+ "missile": [
+  {
+   "bone": "tip0",
+   "L": 38,
+   "D": 8,
+   "zn": -26,
+   "cx": 5.5,
+   "cy": 27.4,
+   "palette": "sam"
+  },
+  {
+   "bone": "tip1",
+   "L": 38,
+   "D": 8,
+   "zn": -26,
+   "cx": -5.5,
+   "cy": 27.4,
+   "palette": "sam"
+  }
+ ]
+}

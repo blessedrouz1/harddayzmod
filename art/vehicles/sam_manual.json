@@ -1,6 +1,6 @@
 {
  "name": "sam_manual",
- "note": "Man-portable SAM station: pad, gimbal column, frame carrying four missiles in a 2 x 2 cluster. Scale 1 m = 16 px.",
+ "note": "Man-portable SAM station: pad, gimbal column, frame carrying four tubes in a 2 x 2 cluster; only the missile noses show. Scale 1 m = 16 px.",
  "paint": "olive",
  "paint2": [
   "#1E1F1A",
@@ -157,85 +157,30 @@
   {
    "name": "frame",
    "from": [
-    -8,
+    -7,
     19,
     -8
    ],
    "to": [
-    8,
+    7,
     21,
-    12
+    10
    ],
    "mat": "paint2",
    "bone": "rack",
    "panels": 0
   },
   {
-   "name": "cross_a",
-   "from": [
-    -8,
-    21,
-    -6
-   ],
-   "to": [
-    8,
-    22,
-    -4
-   ],
-   "mat": "metal",
-   "bone": "rack"
-  },
-  {
-   "name": "cross_b",
-   "from": [
-    -8,
-    21,
-    4
-   ],
-   "to": [
-    8,
-    22,
-    6
-   ],
-   "mat": "metal",
-   "bone": "rack"
-  },
-  {
-   "name": "seeker",
-   "from": [
-    -2,
-    19,
-    -12
-   ],
-   "to": [
-    2,
-    21,
-    -8
-   ],
-   "mat": "paint2",
-   "bone": "rack",
-   "decals": [
-    {
-     "face": "north",
-     "x": 0,
-     "y": 0,
-     "w": 4,
-     "h": 2,
-     "mat": "glass"
-    }
-   ]
-  },
-  {
    "name": "grip",
    "from": [
     -1,
     15,
-    6
+    5
    ],
    "to": [
     1,
     19,
-    10
+    9
    ],
    "mat": "rubber",
    "bone": "rack"
@@ -243,14 +188,14 @@
   {
    "name": "battery",
    "from": [
-    4,
-    21,
-    6
+    6,
+    24,
+    -2
    ],
    "to": [
-    8,
-    25,
-    12
+    9,
+    30,
+    6
    ],
    "mat": "paint2",
    "bone": "rack",
@@ -264,6 +209,167 @@
      "mat": "amber"
     }
    ]
+  },
+  {
+   "name": "sight",
+   "from": [
+    -2,
+    33,
+    -6
+   ],
+   "to": [
+    2,
+    36,
+    0
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "decals": [
+    {
+     "face": "north",
+     "x": 0,
+     "y": 1,
+     "w": 4,
+     "h": 2,
+     "mat": "glass"
+    }
+   ]
+  },
+  {
+   "name": "tube0",
+   "from": [
+    -6,
+    21,
+    -10
+   ],
+   "to": [
+    0,
+    27,
+    10
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "tube1",
+   "from": [
+    0,
+    21,
+    -10
+   ],
+   "to": [
+    6,
+    27,
+    10
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "tube2",
+   "from": [
+    -6,
+    27,
+    -10
+   ],
+   "to": [
+    0,
+    33,
+    10
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "tube3",
+   "from": [
+    0,
+    27,
+    -10
+   ],
+   "to": [
+    6,
+    33,
+    10
+   ],
+   "mat": "paint",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 4,
+     "h": 4,
+     "mat": "dark"
+    }
+   ],
+   "bone": "rack"
+  },
+  {
+   "name": "band0",
+   "from": [
+    -6.5,
+    20.5,
+    -4
+   ],
+   "to": [
+    6.5,
+    33.5,
+    -3
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
+  },
+  {
+   "name": "band1",
+   "from": [
+    -6.5,
+    20.5,
+    4
+   ],
+   "to": [
+    6.5,
+    33.5,
+    5
+   ],
+   "mat": "paint2",
+   "bone": "rack",
+   "panels": 0
   }
  ],
  "canvas": [
@@ -275,39 +381,43 @@
  "missile": [
   {
    "bone": "tip0",
-   "L": 24,
-   "D": 5,
-   "zn": -14,
-   "cx": -3.5,
-   "cy": 24.5,
-   "palette": "javelin"
+   "L": 16,
+   "D": 3,
+   "zn": -13,
+   "cx": -3,
+   "cy": 24,
+   "palette": "javelin",
+   "trim": 7
   },
   {
    "bone": "tip1",
-   "L": 24,
-   "D": 5,
-   "zn": -14,
-   "cx": 3.5,
-   "cy": 24.5,
-   "palette": "javelin"
+   "L": 16,
+   "D": 3,
+   "zn": -13,
+   "cx": 3,
+   "cy": 24,
+   "palette": "javelin",
+   "trim": 7
   },
   {
    "bone": "tip2",
-   "L": 24,
-   "D": 5,
-   "zn": -14,
-   "cx": -3.5,
-   "cy": 27.5,
-   "palette": "javelin"
+   "L": 16,
+   "D": 3,
+   "zn": -13,
+   "cx": -3,
+   "cy": 30,
+   "palette": "javelin",
+   "trim": 7
   },
   {
    "bone": "tip3",
-   "L": 24,
-   "D": 5,
-   "zn": -14,
-   "cx": 3.5,
-   "cy": 27.5,
-   "palette": "javelin"
+   "L": 16,
+   "D": 3,
+   "zn": -13,
+   "cx": 3,
+   "cy": 30,
+   "palette": "javelin",
+   "trim": 7
   }
  ]
 }

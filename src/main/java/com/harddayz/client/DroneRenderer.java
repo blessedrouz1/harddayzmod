@@ -183,6 +183,7 @@ public class DroneRenderer extends EntityRenderer<Drone> {
                 case SHAHED_131 -> 0.72f;
                 case GERAN5 -> 0.85f;
                 case BANDEROL -> 1.6f;
+                case CRUISE -> 0.83f; // как ракета в ячейке Калибра (диаметр 10 px)
                 default -> 1f;
             };
             pose.scale(k, k, k);

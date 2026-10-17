@@ -6,6 +6,8 @@ usage: python3 gen.py  -> writes <name>.json next to this file
 """
 import copy
 import json
+import re
+import detail_pass
 import heal
 from pathlib import Path
 
@@ -39,7 +41,181 @@ def shift(parts, dx=0, dy=0, dz=0):
     return out
 
 
+STEP_GROUPS = (('step_upper', 'step_lower', 'step_bracket'), ('step', 'step_bracket'), ('side_locker_r',))
+
+
+def _wheel_boxes(parts, pad=0.5):
+    """(xlo, xhi, zlo, zhi, ytop) of every road wheel: its tyre volume as the axis-aligned box a step must stay out of."""
+    out = []
+    for p in parts:
+        if p.get('type') == 'wheel' and abs(p['center'][0]) > 5:
+            cx, cy, cz = p['center']
+            r, w = p['diameter'] / 2, p['width'] / 2
+            out.append((abs(cx) - w, abs(cx) + w, cz - r - pad, cz + r + pad, cy + r))
+    return out
+
+
+def _hits_wheel(q, dz, wheels):
+    x0, x1 = sorted((abs(q['from'][0]), abs(q['to'][0])))
+    if q['from'][0] < 0 < q['to'][0]:
+        x0 = 0
+    for wx0, wx1, wz0, wz1, wy in wheels:
+        if x1 > wx0 and x0 < wx1 and q['to'][2] + dz > wz0 and q['from'][2] + dz < wz1 and q['from'][1] < wy:
+            return True
+    return False
+
+
+def clear_wheels(parts, max_shift=14):
+    """Slide steps and side lockers along Z until none of them sits inside a tyre. A group that has no free slot within max_shift
+    px (door above a steered wheel) loses its low step; the mudguard top over that wheel becomes the tread plate instead."""
+    wheels = _wheel_boxes(parts)
+    if not wheels:
+        return parts
+    drop = False
+    for names in STEP_GROUPS:
+        wheels = _wheel_boxes(parts, 3.5 if names[0] == 'step' else 0.5)      # steps keep 3 px clear of the tyre
+        grp = [q for q in parts if q['name'] in names and q.get('type', 'box') == 'box']
+        if not grp or grp[0]['name'] != names[0] or not any(_hits_wheel(q, 0, wheels) for q in grp):
+            continue
+        best = next((dz for dz in sorted(range(-max_shift, max_shift + 1), key=abs) if not any(_hits_wheel(q, dz, wheels) for q in grp)), None)
+        if best is None:
+            if names[0] == 'step_upper':
+                parts = [q for q in parts if q['name'] not in names]
+                drop = True
+            continue
+        for q in grp:
+            q['from'][2] += best
+            q['to'][2] += best
+    if drop:
+        for q in parts:
+            if q['name'] == 'front_arch_top':      # ribbed step: rib stripes across the plate
+                L, W = int(q['to'][2] - q['from'][2]), int(q['to'][0] - q['from'][0])
+                q['decals'] = [{'face': 'up', 'x': 0, 'y': k, 'w': W, 'h': 1, 'mat': 'rib'} for k in range(2, L - 1, 3)]
+    return parts
+
+
+def rear_flaps(parts):
+    """Mudflaps hung behind the last driven wheel of every rear group: a bar bolted to the frame rail's outer face runs out over the tyre
+    and the rubber flap hangs under it, 9 px wide like the tyre. Replaces the loose 'mudflap' planks. Skipped for specs that carry their own."""
+    if any(q['name'].startswith('mudflap_') for q in parts):
+        return parts
+    rail = next((q for q in parts if q['name'] == 'frame_rail'), None)
+    whl = sorted((q for q in parts if q.get('type') == 'wheel' and q['center'][0] > 5 and 'bone_parent' not in q), key=lambda q: q['center'][2])
+    if rail is None or not whl:
+        return parts
+    groups = [[whl[0]]]
+    for q in whl[1:]:
+        if q['center'][2] - groups[-1][-1]['center'][2] <= 26:
+            groups[-1].append(q)
+        else:
+            groups.append([q])
+    parts = [q for q in parts if not re.fullmatch(r'mudflap\d*|flap_arm\d+', q['name'])]
+    rx, ry = rail['to'][0], rail['to'][1]
+    for k, g in enumerate(groups):
+        w = g[-1]
+        cx, _, zc = w['center']
+        r, hw = w['diameter'] / 2, w['width'] / 2
+        dec = [{'face': 'south', 'x': 1, 'y': 1, 'w': int(2 * hw) - 2, 'h': 1, 'mat': 'bolts'}, {'face': 'south', 'x': 0, 'y': 7, 'w': int(2 * hw), 'h': 5, 'mat': 'grime'}]
+        parts += [box(f'flap_arm{k}', [rx, ry - 2, zc + r - 1], [cx + hw - 1, ry, zc + r + 2], 'metal', mirror=True, panels=0),
+                  box(f'mudflap{k}', [cx - hw, 4, zc + r + 0.5], [cx + hw, ry - 2, zc + r + 1.5], 'mudflap', mirror=True, decals=dec)]
+    return parts
+
+
+import math
+
+TAN225 = math.tan(math.radians(22.5))
+GOOD_D = [d for d in range(5, 97) if abs(d * TAN225 - round(d * TAN225)) <= 0.12]      # diameters that give a regular octagon from whole-pixel bars
+
+
+def _octagon(name, bone, center, d, x0, x1, mat):
+    """Regular octagon disc as four bars (two turned 45 degrees about the axle), all sharing the same two side planes."""
+    cx, cy, cz = center
+    s = max(1, round(d * TAN225))
+    out = []
+    for i, (lz, ly, rot) in enumerate(((d, s, 0), (s, d, 0), (d, s, 45), (s, d, 45))):
+        kw = {'rotation': [rot, 0, 0], 'pivot': [cx, cy, cz]} if rot else {}
+        out.append(box(f'{name}{i}', [x0, cy - ly / 2, cz - lz / 2], [x1, cy + ly / 2, cz + lz / 2], mat, bone=bone, panels=0, **kw))
+    return out
+
+
+ROUND_BOSS = False      # True: build the hub as octagonal boss + nuts + cap (geometry); False: builder hub plate, repainted round by wheels.py
+
+
+def wheel_hubs(parts, paint):
+    """Round wheel centres. The builder's own hub is a 12 px square plate whose corners poke into the tyre, so wheels are built with hub=False
+    and get an octagonal boss (smaller than the rim opening), a ring of lug nuts and a centre cap here instead."""
+    if isinstance(paint, str):
+        flat = paint if paint in ('olive', 'sand', 'green', 'khaki') else 'graphite'
+    else:
+        r, g, b = (int(paint[2][i:i + 2], 16) for i in (1, 3, 5))
+        flat = 'sand' if r > g > b and r > 120 else 'green' if g >= r else 'graphite'
+    parts = [q for q in parts if not re.fullmatch(r'(spare_)?wheel\w*_(boss\d|nut\d|cap)', q['name'])]      # idempotent: maz_base reloads specs that already carry hubs
+    if not ROUND_BOSS:
+        for q in parts:
+            if q.get('type') == 'wheel':
+                q.pop('hub', None)
+        return parts
+    out = []
+    for q in parts:
+        if q.get('type') != 'wheel':
+            continue
+        q['hub'] = False
+        d, w = int(q['diameter']), int(q['width'])
+        if w < 5:
+            continue
+        tyre = max(2, round(d * 0.18))
+        rim_d = min(g for g in GOOD_D if g >= d - 2 * tyre)
+        hd = max(g for g in GOOD_D if g <= rim_d - 2)
+        cx, cy, cz = q['center']
+        if q.get('mirror'):
+            right, left = (q['name'] + '_right', q['name'] + '_left') if cx >= 0 else (q['name'] + '_left', q['name'] + '_right')
+            sides = [(right, cx), (left, -cx)]
+        else:
+            sides = [(q['name'], cx)]
+        for nm, x in sides:
+            sg = 1 if x >= 0 else -1
+            outer = x + sg * w / 2
+            face = outer - sg * 0.75                     # hub face, 0.75 px below the tyre wall like the old plate
+            xa, xb = sorted((face - sg * 3, face))
+            c = [x, cy, cz]
+            out += _octagon(f'{nm}_boss', nm, c, hd, xa, xb, flat)
+            rn = hd / 2 - 2.5                            # lug nut circle
+            for k in range(8 if hd >= 12 else 4):
+                a = math.radians((45 if hd < 12 else 0) + (90 if hd < 12 else 45) * k)
+                nx, nz = round(rn * math.cos(a) * 2) / 2, round(rn * math.sin(a) * 2) / 2
+                na, nb = sorted((face, face + sg * 1))
+                out.append(box(f'{nm}_nut{k}', [na, cy + nz - 0.5, cz + nx - 0.5], [nb, cy + nz + 0.5, cz + nx + 0.5], 'grey', bone=nm, panels=0))
+            na, nb = sorted((face, face + sg * 1))
+            out.append(box(f'{nm}_cap', [na, cy - 1, cz - 1], [nb, cy + 1, cz + 1], 'grey', bone=nm, panels=0))
+    return parts + out
+
+
+HUNG = ('fuel_tank', 'battery_box', 'tool_box', 'spare_rack', 'side_bin', 'side_locker_r')
+
+
+def hang_boxes(parts):
+    """Tanks and bins that sit outboard of the frame rail get two hanger bars bolted to the rail's outer face, so they are carried by the chassis."""
+    rail = next((q for q in parts if q['name'] == 'frame_rail'), None)
+    if rail is None:
+        return parts
+    rx = rail['to'][0]
+    out = []
+    for q in parts:
+        if q['name'] in HUNG and q.get('type', 'box') == 'box' and not q.get('bone'):
+            x0, x1 = q['from'][0], q['to'][0]
+            near = x0 if x0 > 0 else -x1                                   # inner face distance from the centre line
+            if near > rx and abs(near - round(near)) < 1e-6 and q['from'][1] < rail['to'][1] and q['to'][1] > rail['from'][1]:
+                ym = (q['from'][1] + q['to'][1]) / 2
+                y0 = max(rail['from'][1] + 1, min(rail['to'][1] - 3, ym - 1))
+                sg = 1 if x0 > 0 else -1
+                bx = [rx, near] if sg > 0 else [-near, -rx]
+                for k, z in enumerate((q['from'][2] + 2, q['to'][2] - 4)):
+                    out.append(box(f"{q['name']}_hanger{k}", [bx[0], y0, z], [bx[1], y0 + 2, z + 2], 'metal', panels=0, **({'mirror': True} if q.get('mirror') else {})))
+    return parts + out
+
+
 def spec(name, note, paint, paint2, bones, parts, seed, wear=0.25):
+    parts = detail_pass.panel_detail(wheel_hubs(hang_boxes(rear_flaps(clear_wheels(parts))), paint))
     return {'name': name, 'note': note, 'paint': paint, 'paint2': paint2, 'metal': METAL, 'wear': wear, 'seed': seed,
             'bones': bones, 'parts': parts}
 
@@ -178,25 +354,84 @@ def liners(cab, bone=None, faces=('north', 'south', 'east', 'west')):
     return out
 
 
-def arch(name, zcs, x_in, x_out, top, slopes=True, bone=None, r=11):
-    """Mudguard over a wheel or a tandem: flat top plate, optional 3-4-5 slopes front and rear, both sides."""
-    z0, z1 = min(zcs) - r + 1, max(zcs) + r - 1
+def arch(name, zcs, x_in, x_out, top, slopes=True, bone=None, r=11, skirts=True, max_z=None):
+    """Mudguard over a wheel or a tandem, shaped like the tyre it covers: a level 2 px plate over the tyre's flat top and a 45 degree bevel
+    plate running down at each end (the tyre is an octagon, the guard follows its chamfers 1 px off). Overhangs the tyre by 1 px outboard.
+    `top` = underside of the plate. r = tyre radius. skirts=False gives the bare plate."""
+    flat = round(0.414 * r)                       # half-length of the tyre's flat top
+    h = flat + 2                                   # plate reaches two pixels past it
+    legs = round(0.45 * r)                         # bevel: legs px along and legs px down, 45 degrees
+    z0, z1 = min(zcs) - h, max(zcs) + h
+    clipped = max_z is not None and z1 > max_z
+    if clipped:                                    # a wall stands there: stop the plate at it and skip that bevel
+        z1 = max_z
+    T = top + 2
+    xo = x_out + 1
     kw = {'bone': bone} if bone else {}
-    mid = (x_in + x_out) / 2
-    out = [box(f'{name}_top', [x_in, top, z0], [x_out, top + 1, z1], 'paint2', mirror=True, panels=0,
+    out = [box(f'{name}_top', [x_in, top, z0], [xo, T, z1], 'paint', mirror=True, panels=0,
                decals=[{'face': 'east', 'x': 1, 'y': 0, 'w': int(z1 - z0) - 2, 'h': 1, 'mat': 'grime'}], **kw)]
-    if slopes:
-        out += [{'type': 'slab', 'name': f'{name}_front', 'axis': 'x', 'p0': [0, top + 1, z0], 'p1': [0, top - 3, z0 - 3],
-                 'extent': [x_in + 0.5, x_out - 0.5], 'thickness': 1, 'inside': [mid, top - 3, z0 + 1], 'fit': 'exact', 'mat': 'paint2', 'mirror': True, **kw},
-                {'type': 'slab', 'name': f'{name}_rear', 'axis': 'x', 'p0': [0, top + 1, z1], 'p1': [0, top - 3, z1 + 3],
-                 'extent': [x_in + 0.5, x_out - 0.5], 'thickness': 1, 'inside': [mid, top - 3, z1 - 1], 'fit': 'exact', 'mat': 'paint2', 'mirror': True, **kw}]
+    if skirts:
+        for nm, zr, sg in ((f'{name}_front', z0, -1), (f'{name}_rear', z1, 1)):
+            if clipped and sg > 0:
+                continue
+            mz, my = zr + sg * legs / 2, T - legs / 2
+            out.append({'type': 'slab', 'name': nm, 'axis': 'x', 'p0': [0, T, zr], 'p1': [0, T - legs, zr + sg * legs], 'extent': [x_in + 0.3, xo + 0.3], 'thickness': 2,
+                        'inside': [0, my - 1, mz - sg], 'mat': 'paint', 'mirror': True, **kw})
     return out
 
 
 def finish_cab(parts, steer_z):
     """Liners for the cab with clear windows and an arch over each steered wheel under the cab."""
+    for p in parts:
+        if p['name'] == 'grab_bar':      # sit on the door skin instead of hovering 0.25 px off it
+            p['from'][0], p['to'][0] = 18, 19
     cab = next(p for p in parts if p['name'] == 'cab')
-    return parts + liners(cab) + arch('front_arch', steer_z, 17.5, 22.5, 23.5, bone='cab', r=10.5)
+    for p in parts:
+        if p['name'] in ('air_intake', 'exhaust_pipe'):      # stand on the cab's rear wall, not 1-2 px behind it
+            dz = cab['to'][2] - p['from'][2]
+            p['from'][2] += dz
+            p['to'][2] += dz
+            p['to'][1] = min(p['to'][1], 50)
+    # the door sits right over the steered wheel: boarding steps hung beside the tyre are nonsense, so the fender plate over it is the tread
+    parts = [p for p in parts if p['name'] not in ('mirror_arm', 'mirror_head', 'step_upper', 'step_lower', 'step_bracket')] + side_mirror('mirror', 18, cab['from'][2] + 1, 33, 12, reach=5, w=4, bone='cab')
+    fender = arch('front_arch', steer_z, 17.5, 22.5, 23.5, bone='cab', r=10.5, max_z=cab['to'][2] - 1)
+    top = fender[0]
+    L = int(top['to'][2] - top['from'][2])
+    top['decals'] = [{'face': 'up', 'x': 0, 'y': k, 'w': int(top['to'][0] - top['from'][0]), 'h': 1, 'mat': 'rib'} for k in range(2, L - 1, 3)]
+    return parts + liners(cab) + fender
+
+
+# ---------------------------------------------------------------- mirrors and first-aid kits
+
+def side_mirror(name, wall_x, z, y0, h, reach=4, w=3, bone=None, side=0, yaw=-25):
+    """West-coast style wing mirror: two short arms stand a vertical frame off the cab corner; the frame is a thin plate whose glass faces
+    REARWARD (+Z, towards the driver), its back (black housing) faces the front. side 0 = mirrored pair, +1 / -1 = one side only."""
+    kw = {'bone': bone} if bone else {}
+    mir = {'mirror': True} if side == 0 else {}
+    sg = -1 if side < 0 else 1
+
+    def bx(x0, x1):
+        return [x0, x1] if sg > 0 else [-x1, -x0]
+    xa0, xa1 = bx(wall_x, wall_x + reach)
+    xh0, xh1 = bx(wall_x + reach, wall_x + reach + w)
+    dec = [{'face': 'south', 'x': 1, 'y': 1, 'w': w - 2, 'h': h - 2, 'mat': 'glass'}]
+    tilt = {'rotation': [0, yaw * sg, 0], 'pivot': [xh0 if sg > 0 else xh1, y0 + h / 2, z + 1]}   # glass turned in towards the driver
+    return [box(f'{name}_arm_top', [xa0, y0 + h - 2, z], [xa1, y0 + h - 1, z + 1], 'metal', **mir, **kw),
+            box(f'{name}_arm_bot', [xa0, y0 + 1, z], [xa1, y0 + 2, z + 1], 'metal', **mir, **kw),
+            box(f'{name}_head', [xh0, y0, z], [xh1, y0 + h, z + 2], 'paint2', panels=0, decals=dec, **tilt, **mir, **kw)]
+
+
+def medkit(name, x, y, z, bone=None):
+    """First-aid box on a rear wall: grey case, red cross on the rear face (+Z), strap handle on top. x, y, z = its low corner, wall at z."""
+    kw = {'bone': bone} if bone else {}
+    dec = [{'face': 'south', 'x': 1, 'y': 2, 'w': 5, 'h': 2, 'mat': 'red'}, {'face': 'south', 'x': 2, 'y': 1, 'w': 3, 'h': 4, 'mat': 'red'},
+           {'face': 'up', 'x': 2, 'y': 0, 'w': 3, 'h': 1, 'mat': 'handle'}]
+    return [box(name, [x, y, z], [x + 7, y + 6, z + 2], 'grey', panels=0, decals=dec, **kw)]
+
+
+def cab_medkit(front_z, bone='cab'):
+    """Behind the cab (rear wall is 25 px behind the front face), centre-left between the intake and the exhaust."""
+    return medkit('medkit', -9, 30, front_z + 25, bone=bone)
 
 
 # ---------------------------------------------------------------- underbody: what you see from below
@@ -288,9 +523,17 @@ def jacks(points):
     bones, parts = [], []
     for i, (x, z) in enumerate(points):
         s = 'r' if x > 0 else 'l'
+        # LauncherRenderer extends jackN_extension (yScale from its top pivot) and drops jackN_foot by outrig * foot minY
         bones.append({'name': f'jack{i}', 'pivot': [x, 14, z]})
-        parts.append(box(f'jack{i}_leg_{s}', [x - 1.5, 8, z - 2], [x + 1.5, 20, z + 2], 'metal', bone=f'jack{i}'))
-        parts.append(box(f'jack{i}_foot_{s}', [x - 2.5, 7, z - 3], [x + 2.5, 8, z + 3], 'metal', bone=f'jack{i}'))
+        bones.append({'name': f'jack{i}_extension', 'pivot': [x, 20, z], 'parent': f'jack{i}'})
+        bones.append({'name': f'jack{i}_foot', 'pivot': [x, 8, z], 'parent': f'jack{i}'})
+        parts.append(box(f'jack{i}_leg_{s}', [x - 1.5, 8, z - 2], [x + 1.5, 20, z + 2], 'metal', bone=f'jack{i}_extension'))
+        parts.append(box(f'jack{i}_foot_{s}', [x - 2.5, 7, z - 3], [x + 2.5, 8, z + 3], 'metal', bone=f'jack{i}_foot'))
+        # fixed sleeve the leg slides in, bolted to the frame rail's outer face by a cross beam
+        sg = 1 if x > 0 else -1
+        parts.append(box(f'jack{i}_sleeve_{s}', [x - 2.5, 16, z - 3], [x + 2.5, 21, z + 3], 'paint2', panels=0))
+        bx0, bx1 = (10, x - 2) if x > 0 else (x + 2, -10)
+        parts.append(box(f'jack{i}_beam_{s}', [bx0, 17, z - 2], [bx1, 20, z + 2], 'metal', panels=0))
     return bones, parts
 
 
@@ -319,7 +562,16 @@ def deck(z0, z1, rear_z, y0=19, y1=23):
     if z1 - zb >= 2:
         out.append(side('deck_side_rear', zb, z1, lamp))
     for i, g in enumerate(groups):
-        out += arch(f'rear_arch{i}', g, 12, 22, y1, slopes=False)
+        out += arch(f'rear_arch{i}', g, 14, 22, y1, slopes=False)
+        # the strips end square at 11 px from the axle: fill the little triangle between that end and the fender's bevel so the cut-out is bevelled too
+        h = round(0.414 * 11) + 2
+        k = min(2, 11 - (h + (y1 + 2 - y1)))
+        if k >= 1:
+            zl, zh = min(g), max(g)
+            if i > 0 or za - z0 >= 4:
+                out.append(box(f'wedge{i}_f', [12, y1 - k, zl - 11], [19, y1, zl - 11 + k], 'paint', mirror=True, panels=0))
+            if i < len(groups) - 1 or z1 - zb >= 2:
+                out.append(box(f'wedge{i}_r', [12, y1 - k, zh + 11 - k], [19, y1, zh + 11], 'paint', mirror=True, panels=0))
     return out
 
 
@@ -344,10 +596,27 @@ def kung(z0, z1, y0=23, y1=55, windows=True):
 
 # ---------------------------------------------------------------- vehicles
 
+def amraam_canisters():
+    """Six AMRAAM launch canisters, 3 across x 2 high, 1 px apart: square tubes with a capped muzzle (rib ring + dark bore) and rear frame."""
+    out = []
+    for r, y in enumerate((30, 39)):
+        for c, x in enumerate((-13, -4, 5)):
+            dec = [{'face': 'north', 'x': 0, 'y': 0, 'w': 8, 'h': 8, 'mat': 'rib'}, {'face': 'north', 'x': 1, 'y': 1, 'w': 6, 'h': 6, 'mat': 'dark'},
+                   {'face': 'up', 'x': 3, 'y': 6, 'w': 2, 'h': 36, 'mat': 'rib'}, {'face': 'south', 'x': 2, 'y': 2, 'w': 4, 'h': 4, 'mat': 'hatch'}]
+            if c == 0:
+                dec += [{'face': 'west', 'x': 8, 'y': 3, 'w': 12, 'h': 2, 'mat': 'hatch'}, {'face': 'west', 'x': 30, 'y': 3, 'w': 12, 'h': 2, 'mat': 'rib'}]
+            if c == 2:
+                dec += [{'face': 'east', 'x': 8, 'y': 3, 'w': 12, 'h': 2, 'mat': 'hatch'}, {'face': 'east', 'x': 30, 'y': 3, 'w': 12, 'h': 2, 'mat': 'rib'}]
+            out.append(box(f'canister_{r}{c}', [x, y, -30], [x + 8, y + 8, 20], 'paint', bone='rack', panels=0, decals=dec))
+    out.append(box('canister_frame', [-13, 38, -29], [13, 39, 19], 'paint2', bone='rack', panels=0))
+    return out
+
+
 def nasams():
     steer, rear = [-48], [22, 46]
-    jb, jp = jacks([(17, 61), (-17, 61)])
+    jb, jp = jacks([(17, 62.5), (-17, 62.5)])
     p = fmtv_cab(-64, steer) + underbody(steer, rear) + frame(-60, 62, steer + rear) + deck(-32, 62, rear) + mudflaps(57.5) + jp + wheels(steer, rear)
+    p += cab_medkit(-64)
     p += [box('fuel_tank', [13, 12, -30], [20, 19, -12], 'paint', panels=0, chamfer={'legs': [3, 4], 'edges': ['right']},
               decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 14, 'h': 1, 'mat': 'strap'}]),
           box('battery_box', [-20, 12, -30], [-13, 19, -16], 'paint', panels=0, decals=[{'face': 'west', 'x': 2, 'y': 2, 'w': 10, 'h': 5, 'mat': 'hatch'}])]
@@ -356,12 +625,7 @@ def nasams():
          box('arm', [14, 26, 2], [16, 40, 16], 'paint', bone='turret', mirror=True, panels=0,
              decals=[{'face': 'east', 'x': 4, 'y': 3, 'w': 6, 'h': 6, 'mat': 'hatch'}]),
          box('arm_base', [-16.5, 26.5, 4], [16.5, 29.5, 14], 'paint2', bone='turret', panels=0),
-         box('canisters', [-13, 30, -30], [13, 48, 20], 'paint', bone='rack', panels=0,
-             decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 7, 'h': 7, 'mat': 'hatch'}, {'face': 'north', 'x': 9, 'y': 1, 'w': 8, 'h': 7, 'mat': 'hatch'},
-                     {'face': 'north', 'x': 18, 'y': 1, 'w': 7, 'h': 7, 'mat': 'hatch'}, {'face': 'north', 'x': 1, 'y': 10, 'w': 7, 'h': 7, 'mat': 'hatch'},
-                     {'face': 'north', 'x': 9, 'y': 10, 'w': 8, 'h': 7, 'mat': 'hatch'}, {'face': 'north', 'x': 18, 'y': 10, 'w': 7, 'h': 7, 'mat': 'hatch'},
-                     {'face': 'east', 'x': 4, 'y': 8, 'w': 42, 'h': 2, 'mat': 'rib'}, {'face': 'west', 'x': 4, 'y': 8, 'w': 42, 'h': 2, 'mat': 'rib'},
-                     {'face': 'up', 'x': 8, 'y': 4, 'w': 10, 'h': 40, 'mat': 'grime'}]),
+         *amraam_canisters(),
          box('band_front', [-14, 29, -24], [14, 49, -22], 'paint2', bone='rack', panels=0),
          box('band_rear', [-14, 29, 11], [14, 49, 13], 'paint2', bone='rack', panels=0),
          box('trunnion', [13.5, 35, 7], [15.5, 39, 11], 'metal', bone='rack', mirror=True)]
@@ -378,13 +642,14 @@ def nasams():
 
 def patriot():
     steer, rear = [-56, -32], [30, 54]
-    jb, jp = jacks([(18, -14), (-18, -14), (18, 68.5), (-18, 68.5)])
+    jb, jp = jacks([(18, -15), (-18, -15), (18, 70.5), (-18, 70.5)])
     p = [q for q in fmtv_cab(-75, steer[:1]) if not q['name'].startswith('step')] + underbody(steer, rear) + frame(-72, 70, steer + rear) + deck(-44, 70, steer[1:] + rear) + mudflaps(65.25) + jp + wheels(steer, rear)
+    p += cab_medkit(-75)
     p += [box('generator', [-12, 23, -44], [12, 37, -30], 'paint', panels=0,
               decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 10, 'h': 8, 'mat': 'vent'}, {'face': 'west', 'x': 2, 'y': 3, 'w': 10, 'h': 8, 'mat': 'vent'}]),
           box('cable_reel', [-11, 37, -42], [-3, 43, -32], 'paint2', panels=0),
-          box('fuel_tank', [13, 12, -20], [20, 19, 8], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 26, 'h': 1, 'mat': 'strap'}]),
-          box('tool_box', [-20, 12, -20], [-13, 19, 8], 'paint', panels=0, decals=[{'face': 'west', 'x': 4, 'y': 2, 'w': 20, 'h': 4, 'mat': 'hatch'}])]
+          box('fuel_tank', [13, 12, -10], [20, 19, 8], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 14, 'h': 1, 'mat': 'strap'}]),
+          box('tool_box', [-20, 12, -10], [-13, 19, 8], 'paint', panels=0, decals=[{'face': 'west', 'x': 3, 'y': 2, 'w': 12, 'h': 4, 'mat': 'hatch'}])]
     # launcher: four large canisters 2x2, hinged at the rear, front rises
     c = []
     for i, (x0, y0) in enumerate([(-15, 30), (0.5, 30), (-15, 44.5), (0.5, 44.5)]):
@@ -409,8 +674,8 @@ def patriot():
 
 def s400():
     steer, rear = [-62, -38], [27, 50]
-    jb, jp = jacks([(18, -22), (-18, -22), (18, 62), (-18, 62)])
-    p = frame(-76, 70, steer + rear) + underbody(steer, rear) + deck(-26, 70, rear) + mudflaps(62) + jp + wheels(steer, rear) + arch('front_arch', steer, 12.5, 22.5, 22.5)
+    jb, jp = jacks([(18, -22), (-18, -22), (18, 66), (-18, 66)])
+    p = frame(-76, 70, steer + rear) + underbody(steer, rear) + deck(-26, 70, rear) + mudflaps(62) + jp + wheels(steer, rear) + arch('front_arch', steer, 12.5, 22.5, 22)
     # MAZ-543: two separate cabs flank the engine hood
     for s, x0 in (('r', 7), ('l', -20)):
         x1 = x0 + 13
@@ -425,6 +690,7 @@ def s400():
                   decals=[{'face': 'south', 'x': 2, 'y': 1, 'w': 3, 'h': 1, 'mat': 'glass'}, {'face': 'south', 'x': 6, 'y': 1, 'w': 2, 'h': 1, 'mat': 'amber'}]),
               box(f'cab_floor_{s}', [x0 + 1, 23.5, -78.5], [x1 - 1, 24.5, -56.5], 'paint2', bone='cab')]
         p += liners(next(q for q in p if q['name'] == f'cab_{s}'))
+        p += side_mirror(f'mirror_{s}', 20, -78, 31, 11, reach=4, w=3, bone='cab', side=1 if s == 'r' else -1)
     p += [box('hood', [-7, 23, -78], [7, 37, -56], 'paint', chamfer={'legs': [3, 4], 'edges': ['left', 'right']}, panels=0,
               decals=[{'face': 'up', 'x': 2, 'y': 4, 'w': 4, 'h': 14, 'mat': 'vent'}][:0]),
           box('hood_vent', [-3, 37, -74], [3, 38, -60], 'paint2', panels=0),
@@ -461,7 +727,7 @@ def s400():
 
 def kamaz_base(name, seed):
     steer, rear = [-51], [22, 46]
-    jb, jp = jacks([(17, -30), (-17, -30), (17, 65), (-17, 65)])
+    jb, jp = jacks([(17, 0), (-17, 0), (17, 65), (-17, 65)])
     p = kamaz_cab(-67, steer) + underbody(steer, rear) + frame(-64, 60, steer + rear) + mudflaps(57.5) + jp + wheels(steer, rear) + kung(-38, 58) + \
         arch('rear_arch', rear, 12.5, 22.5, 22) + [
         box('rear_panel', [-19, 17, 60], [19, 23, 61], 'paint2', panels=0, decals=[{'face': 'south', 'x': 2, 'y': 1, 'w': 34, 'h': 1, 'mat': 'bolts'}]),
@@ -469,8 +735,8 @@ def kamaz_base(name, seed):
             decals=[{'face': 'south', 'x': 3, 'y': 1, 'w': 3, 'h': 2, 'mat': 'red'}, {'face': 'south', 'x': 32, 'y': 1, 'w': 3, 'h': 2, 'mat': 'red'},
                     {'face': 'south', 'x': 8, 'y': 1, 'w': 4, 'h': 2, 'mat': 'amber'}, {'face': 'south', 'x': 26, 'y': 1, 'w': 4, 'h': 2, 'mat': 'amber'}])]
     p += [box('subframe', [-12, 18, -39], [12, 23, 60], 'paint2', panels=0),
-          box('fuel_tank', [13, 12, -33], [20, 19, -13], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 16, 'h': 1, 'mat': 'strap'}]),
-          box('spare_rack', [-20, 12, -33], [-13, 19, -13], 'paint2', panels=0)]
+          box('fuel_tank', [13, 12, -28], [20, 19, -10], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 14, 'h': 1, 'mat': 'strap'}]),
+          box('spare_rack', [-20, 12, -28], [-13, 19, -10], 'paint2', panels=0)]
     bones = [{'name': 'cab', 'pivot': [0, 23, -54]}] + steer_bones(steer) + jb
     return bones, p
 
@@ -521,18 +787,104 @@ def radar():
                 OLIVE, PAINT2_DARK, bones, p + t, 15), kung_kit())
 
 
+def tube_mouths(w, h, cols, rows, size, mat='dark'):
+    """Round-looking tube caps on a flat face: a ring (rib) with a dark bore, laid out evenly over a w x h face."""
+    out = []
+    gx, gy = (w - cols * size) // (cols + 1), (h - rows * size) // (rows + 1)
+    for r in range(rows):
+        for c in range(cols):
+            x, y = gx + c * (size + gx), gy + r * (size + gy)
+            out += [{'face': 'north', 'x': x, 'y': y, 'w': size, 'h': size, 'mat': 'rib'},
+                    {'face': 'north', 'x': x + 1, 'y': y + 1, 'w': size - 2, 'h': size - 2, 'mat': mat}]
+    return out
+
+
+def himars_pod_kit():
+    """M142 pod: sloped-looking capped front face with six tube mouths (the end that rises), the lifting bail that stands out in front of
+    it, hatch panels and ribs along the sides, cross straps on the roof. Parts live in bone rack (pod local y 30..51, z -6..55)."""
+    r = {'bone': 'rack', 'panels': 0}
+    return [
+        box('pod_face', [-14, 30, -8], [14, 51, -6], 'paint2', decals=tube_mouths(28, 21, 3, 2, 7), **r),
+        box('bail_leg', [12, 33, -22], [14, 47, -8], 'paint', mirror=True, **r,
+            decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 10, 'h': 1, 'mat': 'rib'}]),
+        box('bail_bar', [-14, 43, -24], [14, 47, -22], 'paint', decals=[{'face': 'north', 'x': 2, 'y': 1, 'w': 24, 'h': 1, 'mat': 'rib'}], **r),
+        box('pod_strap0', [-14.5, 51, 6], [14.5, 52, 9], 'paint2', **r),
+        box('pod_strap1', [-14.5, 51, 26], [14.5, 52, 29], 'paint2', **r),
+        box('pod_strap2', [-14.5, 51, 44], [14.5, 52, 47], 'paint2', **r),
+        box('pod_handle', [-4, 52, 14], [4, 54, 16], 'metal', **r),
+        box('pod_handle_b', [-4, 52, 36], [4, 54, 38], 'metal', **r),
+    ]
+
+
 def himars():
     sp = json.loads((HERE / 'himars_base.json').read_text())
     sp['parts'] = [p for p in sp['parts'] if p['name'] not in ('deck', 'bumper_rear')]
     sp['parts'] = [p for p in sp['parts'] if p['name'] not in ('transfer_case', 'cross_member')]
+    # outriggers behind the rear tyres, not inside them
+    for q in sp['parts']:
+        if q.get('bone', '').startswith('jack'):
+            q['from'][2] += 3.5
+            q['to'][2] += 3.5
+        if q['name'] == 'mudflap':
+            q['from'][2], q['to'][2] = 49.5, 50.5
+    for b in sp['bones']:
+        if b['name'].startswith('jack'):
+            b['pivot'][2] += 3.5
     sp['parts'] = finish_cab(sp['parts'], [-40]) + deck(-23, 56, [14, 38]) + underbody([-40], [14, 38])
     for q in sp['parts']:
+        if q['name'] == 'bumper_rear':
+            q['from'][2] = 56
         if q['name'] == 'cable_tray':
             q['to'][2] = 20
+        if q['name'] == 'pod':
+            q['decals'] = [d for d in q['decals'] if d['face'] != 'south' and d.get('mat') != 'hatch'] + [
+                {'face': 'east', 'x': 8, 'y': 4, 'w': 16, 'h': 12, 'mat': 'hatch'}, {'face': 'east', 'x': 34, 'y': 4, 'w': 16, 'h': 12, 'mat': 'hatch'},
+                {'face': 'west', 'x': 8, 'y': 4, 'w': 16, 'h': 12, 'mat': 'hatch'}, {'face': 'west', 'x': 34, 'y': 4, 'w': 16, 'h': 12, 'mat': 'hatch'},
+                {'face': 'east', 'x': 1, 'y': 1, 'w': 58, 'h': 1, 'mat': 'bolts'}, {'face': 'west', 'x': 1, 'y': 1, 'w': 58, 'h': 1, 'mat': 'bolts'},
+                {'face': 'south', 'x': 3, 'y': 3, 'w': 22, 'h': 15, 'mat': 'rib'}]
+    sp['parts'] = [q for q in sp['parts'] if q['name'] not in ('boom', 'boom_post', 'pod_lug_top', 'pod_lug_rear')]
+    sp['parts'] += himars_pod_kit() + cab_medkit(-55)
     extra = [{'type': 'wheel', 'name': 'spare_wheel', 'center': [0, 34, -19], 'diameter': 22, 'width': 9},
              crate('crate0', [7, 23, -22], [15, 29, -10]), crate('crate1', [7.5, 29, -21], [14.5, 32, -11], mat='paint'),
              tarp('tarp', [-15, 23, -22], [-7, 27, -8])] + jerrycans('cans', -17, 19.5, 58.5, 2)
-    return detail(sp, extra)
+    sp = detail(sp, extra)
+    sp['parts'] = wheel_hubs(sp['parts'], sp['paint'])
+    return sp
+
+
+def pickup_underside(FZ, RZ):
+    """What you see from below: C-section frame with crossmembers, body mounts carrying cab and bed, bed runners, floor ribs, skid plate,
+    diff covers, prop-shaft joints and carrier bearing, exhaust cat + hangers, fuel-tank straps. Every part touches its neighbour."""
+    out = [box('rail_lip_lo', [3, 5, -42], [4, 6, 42], 'paint2', mirror=True, panels=0),
+           box('rail_lip_hi', [3, 9, -42], [4, 10, 42], 'paint2', mirror=True, panels=0),
+           box('bumper_horn', [4, 6, -45], [7, 9, -42], 'paint2', mirror=True, panels=0),
+           box('skid_plate', [-6, 9, -40], [6, 10, -31], 'metal', panels=0,
+               decals=[{'face': 'down', 'x': 1, 'y': 1, 'w': 10, 'h': 1, 'mat': 'bolts'}, {'face': 'down', 'x': 1, 'y': 7, 'w': 10, 'h': 1, 'mat': 'bolts'}])]
+    out += [box(f'xm{i}', [-4, 6, z], [4, 9, z + 2], 'paint2', panels=0) for i, z in enumerate((-39, -33, 4, 12))]
+    # body mounts: frame -> cab floor and frame -> bed runners
+    out += [box(f'cab_mount{i}', [4, 10, z], [7, 12, z + 2], 'rubber', mirror=True, panels=0) for i, z in enumerate((-14, -4))]
+    out += [box(f'bed_mount{i}', [4, 10, z], [7, 16, z + 2], 'paint2', mirror=True, panels=0) for i, z in enumerate((6, 21, 38))]
+    out += [box('bed_runner', [3, 15, 5], [5, 18, 40], 'paint2', mirror=True, panels=0)]
+    out += [box(f'bed_xm{i}', [-8, 16, z], [8, 18, z + w], 'paint2', panels=0) for i, (z, w) in enumerate(((6, 2), (11, 1), (32, 1), (36, 2)))]
+    # cab floor ribs
+    out += [box('floor_rib', [9, 11, -14], [11, 12, 1], 'paint2', mirror=True, panels=0),
+            box('floor_xm0', [-10, 10, -11], [10, 12, -10], 'paint2', panels=0),
+            box('floor_xm1', [-10, 10, -7], [10, 12, -6], 'paint2', panels=0)]
+    # axles and drive line
+    out += [box('diff_cover_f', [-2, 4, FZ - 2], [2, 5, FZ + 2], 'metal', panels=0),
+            box('diff_cover_r', [-2, 4, RZ - 2], [2, 5, RZ + 2], 'metal', panels=0),
+            box('ujoint_r', [-2, 6, RZ - 6], [2, 9, RZ - 4], 'metal', panels=0),
+            box('center_bearing', [-3, 6, 6], [3, 9, 8], 'metal', panels=0)]
+    # exhaust: cat, hangers to the rail; fuel tank straps
+    out += [box('cat', [-12, 6, -17], [-8, 9, -13], 'metal', panels=0),
+            box('ex_hanger0', [-9, 8.5, -10], [-7, 9.5, -9], 'metal', panels=0),
+            box('ex_hanger1', [-9, 8.5, 8], [-7, 9.5, 9], 'metal', panels=0),
+            box('tank_strap0', [-7, 7, 29], [3, 8, 30], 'metal', panels=0),
+            box('tank_strap1', [-7, 7, 35], [3, 8, 36], 'metal', panels=0)]
+    return out
+
+
+SAM_PICK_CELLS = [(2.5, 43), (-2.5, 43), (2.5, 48), (-2.5, 48)]
 
 
 def pickup(name, weapon, seed):
@@ -548,12 +900,14 @@ def pickup(name, weapon, seed):
     sand_dec = lambda L, H: [{'face': 'up', 'x': 1, 'y': L // 2 - 1, 'w': 3, 'h': 2, 'mat': 'strap'}]
     p = [
         # chassis
-        box('frame_rail', [4, 6, -42], [7, 9, 42], 'paint2', mirror=True, panels=0),
-        box('axle_0', [-9, 7.5, FZ - 1], [9, 9.5, FZ + 1], 'metal'), box('axle_1', [-9, 7.5, RZ - 1], [9, 9.5, RZ + 1], 'metal'),
+        box('frame_rail', [4, 5, -42], [7, 10, 42], 'paint2', mirror=True, panels=0),
+        box('axle_0', [-8, 7.5, FZ - 1], [8, 9.5, FZ + 1], 'metal'), box('axle_1', [-8, 7.5, RZ - 1], [8, 9.5, RZ + 1], 'metal'),
         box('diff_rear', [-3, 5, RZ - 3], [3, 10, RZ + 3], 'metal'), box('diff_front', [-3, 5, FZ - 2.5], [3, 10, FZ + 2.5], 'metal'),
         box('driveshaft', [-1, 6.5, FZ + 3], [1, 8.5, RZ - 3], 'metal'),
-        box('leaf_spring', [5.5, 9, RZ - 8], [7.5, 10, RZ + 8], 'metal', mirror=True),
-        box('fuel_tank', [-8, 8, 26], [2, 13, 38], 'paint2', panels=0),
+        box('leaf_a', [7, 9, RZ - 9], [8, 10, RZ + 9], 'metal', mirror=True, panels=0),
+        box('leaf_b', [7, 10, RZ - 7], [8, 11, RZ + 7], 'metal', mirror=True, panels=0),
+        box('leaf_c', [7, 11, RZ - 5], [8, 12, RZ + 5], 'metal', mirror=True, panels=0),
+        box('fuel_tank', [-6, 8, 26], [2, 13, 38], 'paint2', panels=0),
         box('exhaust', [-11, 6.5, -16], [-9, 8.5, 10], 'metal'),
         box('tailpipe', [-15, 6.5, 8], [-11, 8.5, 10], 'metal'),
         box('muffler', [-12, 6, -6], [-8, 9, 4], 'metal'),
@@ -575,7 +929,9 @@ def pickup(name, weapon, seed):
             decals=[{'face': 'north', 'x': 3, 'y': 1, 'w': 14, 'h': 9, 'mat': 'grille'}, {'face': 'north', 'x': 8, 'y': 11, 'w': 4, 'h': 1, 'mat': 'rib'}]),
         {'type': 'lamp', 'name': 'headlamp', 'center': [13, 21, -41], 'size': [3, 3], 'face': 'north', 'mirror': True},
         {'type': 'lamp', 'name': 'indicator', 'center': [13, 16, -41], 'size': [2, 1], 'face': 'north', 'mat': 'amber', 'mirror': True},
-        box('nose', [-10, 10, -41], [10, 21, -18], 'paint', panels=0),
+        box('nose', [-8, 10, -41], [8, 21, -18], 'paint', panels=0),
+        box('nose_side', [8, 17, -41], [10, 21, -18], 'paint', mirror=True, panels=0),
+        *medkit('medkit', -8, 14.5, 2.5),
         box('hood', [-10, 21, -41], [10, 26, -18], 'paint', panels=0,
             decals=[{'face': 'up', 'x': 4, 'y': 4, 'w': 2, 'h': 16, 'mat': 'rib'}, {'face': 'up', 'x': 14, 'y': 4, 'w': 2, 'h': 16, 'mat': 'rib'},
                     {'face': 'up', 'x': 7, 'y': 14, 'w': 6, 'h': 4, 'mat': 'vent'}, {'face': 'north', 'x': 1, 'y': 0, 'w': 18, 'h': 1, 'mat': 'rib'}]),
@@ -586,14 +942,20 @@ def pickup(name, weapon, seed):
             decals=[{'face': 'east', 'x': 1, 'y': 0, 'w': 21, 'h': 1, 'mat': 'rib'}]),
         box('fender_front', [10, 12, -41], [16, 18, -36], 'paint', mirror=True, panels=0,
             decals=[{'face': 'east', 'x': 1, 'y': 3, 'w': 2, 'h': 2, 'mat': 'grime'}]),
-        box('mudflap_front', [10.5, 3, -16.5], [16.5, 14, -15.5], 'mudflap', mirror=True),
-        box('mudflap_front_bar', [10.5, 14, -17], [16.5, 15, -15], 'metal', mirror=True),
+        box('fender_tail', [15, 11, -18], [16, 18, -16], 'paint', mirror=True, panels=0),
+        box('sill', [14, 10, -16], [16, 12, 4], 'paint2', mirror=True, panels=0,
+            decals=[{'face': 'east', 'x': 1, 'y': 0, 'w': 18, 'h': 1, 'mat': 'rib'}]),
+        # mudflaps: 9 px rubber plate (tyre width + 1) clamped to the cab sill behind the wheel / hung from the bed floor
+        box('flap_clamp_f', [8, 11, -17.5], [15, 13, -16.5], 'metal', mirror=True, panels=0),
+        box('mudflap_front', [7.5, 3, -16.5], [16.5, 12, -15.5], 'mudflap', mirror=True,
+            decals=[{'face': 'south', 'x': 1, 'y': 1, 'w': 7, 'h': 1, 'mat': 'bolts'}, {'face': 'south', 'x': 0, 'y': 5, 'w': 9, 'h': 3, 'mat': 'grime'}]),
 
         # cab: wide lower body (doors) + narrower glasshouse with a sloped roof front
         box('cab_body', [-15, 12, -18], [15, 24, 3], 'paint', bone='cab',
             decals=[{'face': 'east', 'x': 3, 'y': 0, 'w': 14, 'h': 11, 'mat': 'hatch'}, {'face': 'east', 'x': 4, 'y': 2, 'w': 3, 'h': 1, 'mat': 'handle'},
                     {'face': 'west', 'x': 4, 'y': 0, 'w': 14, 'h': 11, 'mat': 'hatch'}, {'face': 'west', 'x': 14, 'y': 2, 'w': 3, 'h': 1, 'mat': 'handle'},
-                    {'face': 'east', 'x': 1, 'y': 9, 'w': 19, 'h': 2, 'mat': 'grime'}, {'face': 'west', 'x': 1, 'y': 9, 'w': 19, 'h': 2, 'mat': 'grime'}]),
+                    {'face': 'east', 'x': 1, 'y': 9, 'w': 19, 'h': 2, 'mat': 'grime'}, {'face': 'west', 'x': 1, 'y': 9, 'w': 19, 'h': 2, 'mat': 'grime'},
+                    {'face': 'down', 'x': 8, 'y': 7, 'w': 14, 'h': 8, 'mat': 'hatch'}, {'face': 'down', 'x': 2, 'y': 4, 'w': 26, 'h': 1, 'mat': 'rib'}, {'face': 'down', 'x': 2, 'y': 17, 'w': 26, 'h': 1, 'mat': 'rib'}]),
         box('glasshouse', [-14, 24, -16], [14, 37, 2], 'paint', bone='cab', chamfer={'legs': [3, 4], 'edges': ['front']},
             decals=[{'face': 'north', 'x': 2, 'y': 5, 'w': 24, 'h': 7, 'mat': 'glass', 'clear': True},
                     {'face': 'east', 'x': 2, 'y': 5, 'w': 12, 'h': 7, 'mat': 'glass', 'clear': True}, {'face': 'west', 'x': 4, 'y': 5, 'w': 12, 'h': 7, 'mat': 'glass', 'clear': True},
@@ -610,30 +972,33 @@ def pickup(name, weapon, seed):
         box('seat', [2, 24.5, -9], [11, 26.5, -2], 'canvas', bone='cab', mirror=True),
         box('seat_back', [2, 26.5, -3], [11, 32.5, -1], 'canvas', bone='cab', mirror=True),
         box('headliner', [-13, 35.25, -12.5], [13, 36.25, 0.5], 'paint2', bone='cab'),
-        box('mirror_arm', [15, 26, -16], [18, 27, -15], 'metal', bone='cab', mirror=True),
-        box('mirror_head', [18, 24, -17], [19, 29, -14], 'paint2', bone='cab', mirror=True),
+        *side_mirror('mirror', 14, -16, 27, 7, reach=3, w=4, bone='cab'),
         box('snorkel', [15.5, 15, -14.5], [17.5, 36, -12.5], 'paint2'),
         box('snorkel_head', [15.5, 36, -16.5], [17.5, 39, -11.5], 'paint2'),
-        box('step', [15, 10, -15], [20, 11, -1], 'paint2', mirror=True, panels=0, decals=[{'face': 'up', 'x': 1, 'y': 3, 'w': 3, 'h': 1, 'mat': 'rib'}, {'face': 'up', 'x': 1, 'y': 9, 'w': 3, 'h': 1, 'mat': 'rib'}]),
+        box('step', [16, 10, -15], [20, 11, -1], 'paint2', mirror=True, panels=0, decals=[{'face': 'up', 'x': 1, 'y': 3, 'w': 3, 'h': 1, 'mat': 'rib'}, {'face': 'up', 'x': 1, 'y': 9, 'w': 3, 'h': 1, 'mat': 'rib'}]),
 
         # bed over the wheels, own arches, rear wheel opening z 13.5..30.5
-        box('bed_floor', [-14, 18, 4], [14, 20, 41], 'paint2', panels=0),
-        box('bed_side', [14, 20, 4], [15, 27, 41], 'paint', mirror=True, panels=0,
+        box('bed_floor', [-15, 18, 4], [15, 20, 41], 'paint2', panels=0,
+            decals=[{'face': 'down', 'x': 1, 'y': k, 'w': 28, 'h': 1, 'mat': 'rib'} for k in range(2, 36, 5)] + [{'face': 'down', 'x': 3, 'y': 14, 'w': 24, 'h': 6, 'mat': 'grime'}]),
+        box('bed_side', [15, 20, 4], [16, 27, 41], 'paint', mirror=True, panels=0,
             decals=[{'face': 'east', 'x': 2, 'y': 2, 'w': 33, 'h': 1, 'mat': 'rib'}, {'face': 'east', 'x': 1, 'y': 5, 'w': 35, 'h': 2, 'mat': 'grime'}]),
-        box('bed_rail', [13.5, 27, 4], [15.5, 28, 41], 'metal', mirror=True),
-        box('bed_skirt_front', [14, 12, 4], [15, 20, 12], 'paint', mirror=True, panels=0),
-        box('bed_skirt_rear', [14, 12, 31], [15, 20, 41], 'paint', mirror=True, panels=0,
+        box('bed_rail', [14.5, 27, 4], [16.5, 28, 41], 'metal', mirror=True),
+        box('bed_skirt_front', [15, 12, 4], [16, 20, 13], 'paint', mirror=True, panels=0),
+        box('bed_skirt_rear', [15, 12, 31], [16, 20, 41], 'paint', mirror=True, panels=0,
             decals=[{'face': 'east', 'x': 1, 'y': 5, 'w': 7, 'h': 2, 'mat': 'grime'}]),
-        box('wheel_tub', [9, 17, 13], [14, 18, 32], 'paint2', mirror=True, panels=0),
-        box('bed_front', [-14, 20, 4], [14, 27, 5], 'paint', panels=0),
-        box('tailgate', [-14, 20, 40], [14, 27, 41], 'paint', panels=0,
+        box('wing_top_r', [15, 17, 13], [16, 20, 31], 'paint', mirror=True, panels=0),
+        box('well_liner_r', [7, 12, 12], [8, 19, 26], 'rubber', mirror=True, panels=0),
+        box('wheel_tub', [9, 17, 13], [15, 18, 31], 'paint2', mirror=True, panels=0),
+        box('bed_front', [-15, 20, 4], [15, 27, 5], 'paint', panels=0),
+        box('tailgate', [-15, 20, 40], [15, 27, 41], 'paint', panels=0,
             decals=[{'face': 'south', 'x': 3, 'y': 2, 'w': 22, 'h': 1, 'mat': 'rib'}, {'face': 'south', 'x': 12, 'y': 4, 'w': 4, 'h': 1, 'mat': 'handle'}]),
-        {'type': 'lamp', 'name': 'tail_lamp', 'center': [14.5, 23.5, 41.5], 'size': [1, 4], 'face': 'south', 'mat': 'red', 'mirror': True},
-        box('bumper_rear', [-15, 11, 41], [15, 14, 43], 'paint2', panels=0, decals=[{'face': 'south', 'x': 2, 'y': 1, 'w': 26, 'h': 1, 'mat': 'bolts'}]),
+        {'type': 'lamp', 'name': 'tail_lamp', 'center': [15.5, 23.5, 41.5], 'size': [1, 4], 'face': 'south', 'mat': 'red', 'mirror': True},
+        box('bumper_rear', [-16, 11, 41], [16, 14, 43], 'paint2', panels=0, decals=[{'face': 'south', 'x': 2, 'y': 1, 'w': 26, 'h': 1, 'mat': 'bolts'}]),
         box('hitch', [-1.5, 10, 43], [1.5, 12, 46], 'metal'),
-        box('rear_apron', [-14, 14, 40], [14, 18, 41], 'paint2', panels=0),
-        box('mudflap_rear', [10.5, 3, 33], [16.5, 14, 34], 'mudflap', mirror=True),
-        box('mudflap_rear_bar', [10.5, 14, 32.5], [16.5, 15, 34.5], 'metal', mirror=True),
+        box('rear_apron', [-15, 14, 40], [15, 18, 41], 'paint2', panels=0),
+        box('flap_hanger_r', [8, 14, 32], [15, 18, 34], 'metal', mirror=True, panels=0),
+        box('mudflap_rear', [7.5, 3, 32.5], [16.5, 14, 33.5], 'mudflap', mirror=True,
+            decals=[{'face': 'south', 'x': 1, 'y': 1, 'w': 7, 'h': 1, 'mat': 'bolts'}, {'face': 'south', 'x': 0, 'y': 6, 'w': 9, 'h': 4, 'mat': 'grime'}]),
 
         # roll bar with spotlights
         box('roll_post', [12, 28, 4.5], [14, 33, 6.5], 'metal', mirror=True),
@@ -648,11 +1013,12 @@ def pickup(name, weapon, seed):
         box('sandbag3', [5, 23, 6], [12, 26, 10], 'canvas', panels=0),
         crate('ammo0', [7, 20, 30], [13, 24, 38]), crate('ammo1', [7.5, 24, 31], [12.5, 27, 37], mat='paint'),
     ]
+    p += pickup_underside(FZ, RZ)
     p += liners(next(q for q in p if q['name'] == 'glasshouse'))
     for zc, nm in ((FZ, 'flare_front'), (RZ, 'flare_rear')):
-        p += arch(nm, [zc], 15, 17, 17.5, r=7)
-        p += [box(f'{nm}_leg_a', [16, 10.5, zc - 10], [17, 14.5, zc - 9], 'paint2', mirror=True),
-              box(f'{nm}_leg_b', [16, 10.5, zc + 9], [17, 14.5, zc + 10], 'paint2', mirror=True)]
+        p += arch(nm, [zc], 16, 16, 17.5, r=8.5)
+        p += [box(f'{nm}_leg_a', [16, 11.5, zc - 10], [17, 15.5, zc - 9], 'paint', mirror=True, panels=0),
+              box(f'{nm}_leg_b', [16, 11.5, zc + 9], [17, 15.5, zc + 10], 'paint', mirror=True, panels=0)]
     p += jerrycans('cans', -13, 20.5, 35, 2, step=6)
     p.append({'type': 'antenna', 'name': 'whip', 'base': [-12, 37, -2], 'height': 16, 'bone': 'cab'})
     p += [wheel('wheel_0_r', [WX, WY, FZ], D, W, bone_parent='steer_0_r'), wheel('wheel_0_l', [-WX, WY, FZ], D, W, bone_parent='steer_0_l'),
@@ -678,27 +1044,32 @@ def pickup(name, weapon, seed):
                   decals=[{'face': 'north', 'x': 7, 'y': 5, 'w': 4, 'h': 2, 'mat': 'dark'}, {'face': 'north', 'x': 1, 'y': 9, 'w': 16, 'h': 2, 'mat': 'grime'}]),
               box('shield_wing', [9, 37, 9.5], [11, 47, 13.5], 'paint', bone='rack', mirror=True, panels=0)]
     else:
+        # 2 x 2 cluster of square tubes (5 x 5 x 30 px = 0.3 x 1.9 m); the missiles sit inside, only their noses show (tipN bones)
         t += [box('cradle', [-8, 37.5, 12], [8, 40.5, 24], 'paint2', bone='rack', panels=0),
-              box('tube_r', [3, 41, -8], [7, 45, 26], 'paint', bone='rack', panels=0,
-                  decals=[{'face': 'east', 'x': 6, 'y': 1, 'w': 20, 'h': 1, 'mat': 'rib'}]),
-              box('tube_l', [-7, 41, -8], [-3, 45, 26], 'paint', bone='rack', panels=0,
-                  decals=[{'face': 'west', 'x': 6, 'y': 1, 'w': 20, 'h': 1, 'mat': 'rib'}]),
-              box('tube_cap', [2.5, 40.5, -9], [7.5, 45.5, -8], 'paint2', bone='rack', mirror=True),
-              box('tube_band', [2.5, 40.5, 4], [7.5, 45.5, 6], 'paint2', bone='rack', mirror=True),
-              box('sight', [-2, 42, 8], [2, 46, 16], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 2, 'h': 2, 'mat': 'glass'}]),
-              box('iff_box', [-2, 46, 10], [2, 48, 15], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 1, 'y': 0, 'w': 2, 'h': 1, 'mat': 'amber'}]),
-              box('iff_whip', [-0.5, 48, 12], [0.5, 54, 13], 'metal', bone='rack'),
-              box('battery', [-2, 38, 17.5], [2, 41, 23.5], 'paint2', bone='rack'),
+              box('cradle_front', [-6, 37.5, -4], [6, 40.5, 0], 'paint2', bone='rack', panels=0)]
+        for k, (cx, cy) in enumerate(SAM_PICK_CELLS):
+            t += [box(f'tube{k}', [cx - 2.5, cy - 2.5, -8], [cx + 2.5, cy + 2.5, 22], 'paint', bone='rack', panels=0,
+                      decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 3, 'h': 3, 'mat': 'dark'}])]
+        t += [box(f'tube_band{i}', [-5.5, 40, z], [5.5, 51, z + 2], 'paint2', bone='rack', panels=0) for i, z in enumerate((-6, 8))]
+        t += [box('sight', [-2, 51, 4], [2, 55, 12], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 2, 'h': 2, 'mat': 'glass'}]),
+              box('iff_box', [-2, 55, 6], [2, 57, 11], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 1, 'y': 0, 'w': 2, 'h': 1, 'mat': 'amber'}]),
+              box('iff_whip', [-0.5, 57, 8], [0.5, 63, 9], 'metal', bone='rack'),
+              box('battery', [-3, 40.5, 22], [3, 44.5, 26], 'paint2', bone='rack'),
               box('grips', [-1.5, 37.5, 24], [1.5, 40.5, 27], 'rubber', bone='rack'),
               box('seat_post', [-1, 22, 25], [1, 30, 27], 'metal', bone='turret'),
               box('gunner_seat', [-4, 30, 24], [4, 32, 30], 'canvas', bone='turret')]
     bones = [{'name': 'cab', 'pivot': [0, 17, -10]}, {'name': 'turret', 'pivot': [0, 16, 17.6]},
              {'name': 'rack', 'pivot': [0, 40, 17.6], 'parent': 'turret'}] + steer_bones([FZ], WX, WY)
-    what = 'heavy machine gun behind a shield' if weapon == 'mg' else 'twin MANPADS launcher with IFF and a gunner seat'
-    return detail(spec(name, f'Land Cruiser 79 / Hilux technical with a {what} on a pintle in the bed. Scale 1 m = 16 px. '
+    what = 'heavy machine gun behind a shield' if weapon == 'mg' else 'four-tube MANPADS launcher with IFF and a gunner seat'
+    if weapon == 'sam':
+        bones += [{'name': f'tip{i}', 'pivot': [0, 40, 17.6], 'parent': 'rack'} for i in range(4)]
+    sp = detail(spec(name, f'Land Cruiser 79 / Hilux technical with a {what} on a pintle in the bed. Scale 1 m = 16 px. '
                        'Identifiers: flared front fenders with a lower hood between them, two-tier cab with a sloped roof front, '
                        'tall bed over the wheels with arches, vertical tail lamps, bull bar and winch, roll bar with spotlights, sandbags.',
                        ["#6A5843", "#AC946A", "#B39B70", "#CFBA8B"], PAINT2_SAND, bones, p + t, seed), [], 0.55)
+    if weapon == 'sam':
+        sp['missile'] = [{'bone': f'tip{i}', 'L': 16, 'D': 3, 'zn': -11, 'cx': cx, 'cy': cy, 'palette': 'javelin', 'trim': 7} for i, (cx, cy) in enumerate(SAM_PICK_CELLS)]
+    return sp
 
 
 # ---------------------------------------------------------------- extra mounted kit on antennas, launchers and sides
@@ -733,13 +1104,13 @@ MORE = {
         hatch_box('arm_box', [16.5, 28, 3], [19.5, 34, 11], bone='turret', mirror=True),
         box('sensor', [-3, 48.5, -27], [3, 51.5, -21], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 4, 'h': 1, 'mat': 'glass'}]),
         box('lug', [10, 48, -14], [12, 50, -10], 'metal', bone='rack', mirror=True),
-        box('cable_tray', [-3, 28.5, 0], [3, 30.5, 16], 'paint2', bone='turret'),
+        box('cable_tray', [-3, 29, 0], [3, 31, 16], 'paint2', bone='turret'),
         box('lift_ram', [-9, 27, 2], [-6, 32, 8], 'metal', bone='turret', mirror=True),
         hatch_box('side_bin', [13, 12, 2], [20, 19, 10], mirror=True),
     ],
     'patriot': [
         hatch_box('frame_box', [14.5, 32, -10], [17.5, 40, 0], bone='rack', mirror=True),
-        box('cable_tray', [-12, 27.5, -10], [-8, 29.5, 48], 'paint2', bone='rack', panels=0),
+        box('cable_tray', [-10.25, 27.5, -10], [-6.25, 29.5, 48], 'paint2', bone='rack', panels=0),
         box('lug', [-14, 58.5, -18], [-12, 60.5, -16], 'metal', bone='rack', mirror=True),
         hatch_box('turret_box', [14.5, 23.5, 2], [18.5, 29.5, 12], bone='turret', mirror=True),
         box('antenna_mast', [8, 40.5, -35], [10, 56.5, -33], 'metal'),
@@ -761,8 +1132,17 @@ MORE = {
 
 
 if __name__ == '__main__':
-    for s in (himars(), nasams(), patriot(), s400(), ew(), radar(), pickup('pickup_mg', 'mg', 21), pickup('pickup_sam', 'sam', 22)):
+    import sys
+    SPECS = {'himars': himars, 'nasams': nasams, 'patriot': patriot, 's400': s400, 'ew': ew, 'radar': radar,
+             'pickup_mg': lambda: pickup('pickup_mg', 'mg', 21), 'pickup_sam': lambda: pickup('pickup_sam', 'sam', 22)}
+    names = sys.argv[1:]
+    if not names or any(n not in SPECS for n in names):
+        sys.exit('usage: python3 gen.py NAME [NAME...]  with NAME in: ' + ', '.join(SPECS))
+    for n in names:
+        s = SPECS[n]()
         s['parts'] += MORE.get(s['name'], [])
         heal.heal(s)
         (HERE / f'{s["name"]}.json').write_text(json.dumps(s, indent=1, ensure_ascii=False))
         print('wrote', s['name'])
+    import gen2   # a regenerated himars / nasams / patriot / s400 lost its lift rams: put them back
+    gen2.retrofit_rams()
