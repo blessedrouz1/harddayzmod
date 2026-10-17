@@ -4,9 +4,13 @@
  "turret#0": "column",
  "turret#1": "gimbal",
  "rack#0": "frame",
- "rack#1": "cross_a",
- "rack#2": "cross_b",
- "rack#3": "seeker",
- "rack#4": "grip",
- "rack#5": "battery"
+ "rack#1": "grip",
+ "rack#2": "battery",
+ "rack#3": "sight",
+ "rack#4": "tube0",
+ "rack#5": "tube1",
+ "rack#6": "tube2",
+ "rack#7": "tube3",
+ "rack#8": "band0",
+ "rack#9": "band1"
 }

@@ -416,6 +416,7 @@ public final class War {
     }
 
     public static void end() {
+        Frontline.clear();
         if (server != null) {
             Scoreboard sb = server.getScoreboard();
             for (Faction f : data.factions) {

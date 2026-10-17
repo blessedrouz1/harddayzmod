@@ -20,8 +20,8 @@ public final class ClientConfig {
             .define("skyFlash", true);
 
     public static final ForgeConfigSpec.BooleanValue GPU_MODELS = B
-            .comment("Быстрый рендер моделей через видеокарту (эксперимент; если модели пропали — выключи)")
-            .define("gpuModels", false);
+            .comment("Кеш моделей на видеокарте (постоянные VBO). Если модели пропали — выключи; при ошибке OpenGL мод сам переходит на обычный рендер")
+            .define("gpuModelsCache", true);
 
     public static final ForgeConfigSpec SPEC = B.build();
 

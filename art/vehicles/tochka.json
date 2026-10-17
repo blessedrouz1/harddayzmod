@@ -83,13 +83,31 @@
    ]
   },
   {
-   "name": "eram0_rod",
+   "name": "eram0_stage",
    "pivot": [
     0,
     28,
     44
    ],
    "parent": "eram0"
+  },
+  {
+   "name": "eram0_rod",
+   "pivot": [
+    0,
+    28,
+    44
+   ],
+   "parent": "eram0_stage"
+  },
+  {
+   "name": "eram0_mount",
+   "pivot": [
+    0,
+    28,
+    9.5
+   ],
+   "parent": "erector"
   }
  ],
  "parts": [
@@ -334,6 +352,87 @@
      "w": 3,
      "h": 3,
      "mat": "amber"
+    },
+    {
+     "face": "north",
+     "x": 1,
+     "y": 14,
+     "w": 12,
+     "h": 5,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "north",
+     "x": 15,
+     "y": 14,
+     "w": 8,
+     "h": 6,
+     "mat": "vent",
+     "auto": true
+    },
+    {
+     "face": "north",
+     "x": 29,
+     "y": 14,
+     "w": 6,
+     "h": 5,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 25,
+     "y": 1,
+     "w": 10,
+     "h": 9,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 15,
+     "y": 12,
+     "w": 12,
+     "h": 9,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 29,
+     "y": 12,
+     "w": 6,
+     "h": 9,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 1,
+     "w": 14,
+     "h": 13,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "up",
+     "x": 17,
+     "y": 1,
+     "w": 14,
+     "h": 13,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "up",
+     "x": 1,
+     "y": 16,
+     "w": 14,
+     "h": 8,
+     "mat": "hatch",
+     "auto": true
     }
    ]
   },
@@ -553,96 +652,16 @@
    }
   },
   {
-   "name": "mirror_arm",
-   "bone": "cab",
-   "from": [
-    18,
-    45,
-    -66
-   ],
-   "to": [
-    23,
-    46,
-    -65
-   ],
-   "mat": "metal",
-   "mirror": true
-  },
-  {
-   "name": "mirror_head",
-   "bone": "cab",
-   "from": [
-    23,
-    37,
-    -67
-   ],
-   "to": [
-    24,
-    48,
-    -64
-   ],
-   "mat": "paint2",
-   "mirror": true
-  },
-  {
-   "name": "step_upper",
-   "bone": "cab",
-   "from": [
-    15,
-    15,
-    -40
-   ],
-   "to": [
-    20,
-    16,
-    -34
-   ],
-   "mat": "tread_plate",
-   "mirror": true
-  },
-  {
-   "name": "step_lower",
-   "bone": "cab",
-   "from": [
-    15,
-    8,
-    -40
-   ],
-   "to": [
-    20,
-    9,
-    -34
-   ],
-   "mat": "tread_plate",
-   "mirror": true
-  },
-  {
-   "name": "step_bracket",
-   "bone": "cab",
-   "from": [
-    19.5,
-    7.5,
-    -40.5
-   ],
-   "to": [
-    20.5,
-    16.5,
-    -39.5
-   ],
-   "mat": "metal",
-   "mirror": true
-  },
-  {
    "name": "air_intake",
    "from": [
     -17,
     26,
-    -41
+    -42
    ],
    "to": [
     -11,
     50,
-    -36
+    -37
    ],
    "mat": "paint2",
    "mirror": false,
@@ -662,12 +681,12 @@
    "from": [
     14,
     22,
-    -40
+    -42
    ],
    "to": [
     17,
-    52,
-    -37
+    50,
+    -39
    ],
    "mat": "metal"
   },
@@ -718,6 +737,24 @@
      "w": 33,
      "h": 3,
      "mat": "grime"
+    },
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 9,
+     "h": 7,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 8,
+     "h": 6,
+     "mat": "vent",
+     "auto": true
     }
    ],
    "faces": {
@@ -728,12 +765,12 @@
    "name": "grab_bar",
    "bone": "cab",
    "from": [
-    18.0,
+    18,
     30,
     -45
    ],
    "to": [
-    19.0,
+    19,
     40,
     -44
    ],
@@ -937,6 +974,75 @@
    "mat": "paint2",
    "bone": "cab",
    "panels": 0
+  },
+  {
+   "name": "mirror_arm_top",
+   "from": [
+    18,
+    43,
+    -66
+   ],
+   "to": [
+    23,
+    44,
+    -65
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "bone": "cab"
+  },
+  {
+   "name": "mirror_arm_bot",
+   "from": [
+    18,
+    34,
+    -66
+   ],
+   "to": [
+    23,
+    35,
+    -65
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "bone": "cab"
+  },
+  {
+   "name": "mirror_head",
+   "from": [
+    23,
+    33,
+    -66
+   ],
+   "to": [
+    27,
+    45,
+    -64
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 2,
+     "h": 10,
+     "mat": "glass"
+    }
+   ],
+   "rotation": [
+    0,
+    -25,
+    0
+   ],
+   "pivot": [
+    23,
+    39.0,
+    -65
+   ],
+   "mirror": true,
+   "bone": "cab"
   },
   {
    "name": "cab_liner_north0",
@@ -1199,27 +1305,46 @@
    "from": [
     17.5,
     23.5,
-    -60.5
+    -57
    ],
    "to": [
-    22.5,
-    24.5,
-    -41.5
+    23.5,
+    25.5,
+    -45
    ],
-   "mat": "paint2",
+   "mat": "paint",
    "mirror": true,
    "panels": 0,
    "decals": [
     {
-     "face": "east",
-     "x": 1,
-     "y": 0,
-     "w": 17,
+     "face": "up",
+     "x": 0,
+     "y": 2,
+     "w": 6,
      "h": 1,
-     "mat": "grime"
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 0,
+     "y": 5,
+     "w": 6,
+     "h": 1,
+     "mat": "rib"
+    },
+    {
+     "face": "up",
+     "x": 0,
+     "y": 8,
+     "w": 6,
+     "h": 1,
+     "mat": "rib"
     }
    ],
-   "bone": "cab"
+   "bone": "cab",
+   "faces": {
+    "down": "paint2"
+   }
   },
   {
    "type": "slab",
@@ -1227,26 +1352,25 @@
    "axis": "x",
    "p0": [
     0,
-    24.5,
-    -60.5
+    25.5,
+    -57
    ],
    "p1": [
     0,
     20.5,
-    -63.5
+    -62
    ],
    "extent": [
-    18.0,
-    22.0
+    17.8,
+    23.8
    ],
-   "thickness": 1,
+   "thickness": 2,
    "inside": [
-    20.0,
-    20.5,
-    -59.5
+    0,
+    22.0,
+    -58.5
    ],
-   "fit": "exact",
-   "mat": "paint2",
+   "mat": "paint",
    "mirror": true,
    "bone": "cab"
   },
@@ -1256,26 +1380,25 @@
    "axis": "x",
    "p0": [
     0,
-    24.5,
-    -41.5
+    25.5,
+    -45
    ],
    "p1": [
     0,
     20.5,
-    -38.5
+    -40
    ],
    "extent": [
-    18.0,
-    22.0
+    17.8,
+    23.8
    ],
-   "thickness": 1,
+   "thickness": 2,
    "inside": [
-    20.0,
-    20.5,
-    -42.5
+    0,
+    22.0,
+    -43.5
    ],
-   "fit": "exact",
-   "mat": "paint2",
+   "mat": "paint",
    "mirror": true,
    "bone": "cab"
   },
@@ -1529,21 +1652,6 @@
    "mat": "metal"
   },
   {
-   "name": "mudflap",
-   "from": [
-    14,
-    5,
-    58.5
-   ],
-   "to": [
-    21,
-    21,
-    59.5
-   ],
-   "mat": "mudflap",
-   "mirror": true
-  },
-  {
    "name": "jack0_leg_r",
    "from": [
     15.5,
@@ -1574,6 +1682,36 @@
    "bone": "jack0"
   },
   {
+   "name": "jack0_sleeve_r",
+   "from": [
+    14.5,
+    16,
+    63
+   ],
+   "to": [
+    19.5,
+    21,
+    69
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "jack0_beam_r",
+   "from": [
+    10,
+    17,
+    64
+   ],
+   "to": [
+    15,
+    20,
+    68
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
    "name": "jack1_leg_l",
    "from": [
     -18.5,
@@ -1602,6 +1740,36 @@
    ],
    "mat": "metal",
    "bone": "jack1"
+  },
+  {
+   "name": "jack1_sleeve_l",
+   "from": [
+    -19.5,
+    16,
+    63
+   ],
+   "to": [
+    -14.5,
+    21,
+    69
+   ],
+   "mat": "paint2",
+   "panels": 0
+  },
+  {
+   "name": "jack1_beam_l",
+   "from": [
+    -15,
+    17,
+    64
+   ],
+   "to": [
+    -10,
+    20,
+    68
+   ],
+   "mat": "metal",
+   "panels": 0
   },
   {
    "type": "wheel",
@@ -1797,16 +1965,16 @@
   {
    "name": "rear_arch0_top",
    "from": [
-    12,
+    14,
     23,
-    12
+    15
    ],
    "to": [
-    22,
-    24,
-    56
+    23,
+    25,
+    53
    ],
-   "mat": "paint2",
+   "mat": "paint",
    "mirror": true,
    "panels": 0,
    "decals": [
@@ -1814,11 +1982,106 @@
      "face": "east",
      "x": 1,
      "y": 0,
-     "w": 42,
+     "w": 36,
      "h": 1,
      "mat": "grime"
     }
-   ]
+   ],
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "type": "slab",
+   "name": "rear_arch0_front",
+   "axis": "x",
+   "p0": [
+    0,
+    25,
+    15
+   ],
+   "p1": [
+    0,
+    20,
+    10
+   ],
+   "extent": [
+    14.3,
+    23.3
+   ],
+   "thickness": 2,
+   "inside": [
+    0,
+    21.5,
+    13.5
+   ],
+   "mat": "paint",
+   "mirror": true
+  },
+  {
+   "type": "slab",
+   "name": "rear_arch0_rear",
+   "axis": "x",
+   "p0": [
+    0,
+    25,
+    53
+   ],
+   "p1": [
+    0,
+    20,
+    58
+   ],
+   "extent": [
+    14.3,
+    23.3
+   ],
+   "thickness": 2,
+   "inside": [
+    0,
+    21.5,
+    54.5
+   ],
+   "mat": "paint",
+   "mirror": true
+  },
+  {
+   "name": "wedge0_f",
+   "from": [
+    12,
+    21,
+    11
+   ],
+   "to": [
+    19,
+    23,
+    13
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
+  },
+  {
+   "name": "wedge0_r",
+   "from": [
+    12,
+    21,
+    55
+   ],
+   "to": [
+    19,
+    23,
+    57
+   ],
+   "mat": "paint",
+   "mirror": true,
+   "panels": 0,
+   "faces": {
+    "down": "paint2"
+   }
   },
   {
    "name": "fuel_tank",
@@ -1858,6 +2121,15 @@
      "w": 18,
      "h": 2,
      "mat": "grime"
+    },
+    {
+     "face": "west",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 5,
+     "mat": "hatch",
+     "auto": true
     }
    ],
    "faces": {
@@ -1878,6 +2150,48 @@
    ],
    "mat": "paint2",
    "panels": 0
+  },
+  {
+   "name": "medkit",
+   "from": [
+    -9,
+    30,
+    -42
+   ],
+   "to": [
+    -2,
+    36,
+    -40
+   ],
+   "mat": "grey",
+   "panels": 0,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 2,
+     "w": 5,
+     "h": 2,
+     "mat": "red"
+    },
+    {
+     "face": "south",
+     "x": 2,
+     "y": 1,
+     "w": 3,
+     "h": 4,
+     "mat": "red"
+    },
+    {
+     "face": "up",
+     "x": 2,
+     "y": 0,
+     "w": 3,
+     "h": 1,
+     "mat": "handle"
+    }
+   ],
+   "bone": "cab"
   },
   {
    "name": "hinge_block",
@@ -2014,7 +2328,7 @@
     31,
     44
    ],
-   "mat": "metal",
+   "mat": "paint",
    "panels": 0,
    "decals": [
     {
@@ -2075,7 +2389,10 @@
     }
    ],
    "bone": "eram0",
-   "mirror": true
+   "mirror": true,
+   "faces": {
+    "down": "paint2"
+   }
   },
   {
    "name": "eram0_collar",
@@ -2089,13 +2406,13 @@
     32,
     14
    ],
-   "mat": "paint2",
+   "mat": "metal",
    "panels": 0,
    "bone": "eram0",
    "mirror": true
   },
   {
-   "name": "eram0_rodbar",
+   "name": "eram0_stagebar",
    "from": [
     12,
     26,
@@ -2104,7 +2421,41 @@
    "to": [
     16,
     30,
-    42
+    40
+   ],
+   "mat": "metal",
+   "panels": 0,
+   "bone": "eram0_stage",
+   "mirror": true
+  },
+  {
+   "name": "eram0_stagecap",
+   "from": [
+    11.5,
+    25.5,
+    10
+   ],
+   "to": [
+    16.5,
+    30.5,
+    12
+   ],
+   "mat": "paint2",
+   "panels": 0,
+   "bone": "eram0_stage",
+   "mirror": true
+  },
+  {
+   "name": "eram0_rodbar",
+   "from": [
+    12.5,
+    26.5,
+    9.5
+   ],
+   "to": [
+    15.5,
+    29.5,
+    37.5
    ],
    "mat": "grey",
    "panels": 0,
@@ -2112,18 +2463,51 @@
    "mirror": true
   },
   {
-   "name": "eram0_foot",
+   "name": "eram0_rodhead",
    "from": [
-    10,
-    24,
-    44
+    11,
+    24.5,
+    7.5
    ],
    "to": [
-    18,
-    32,
-    47
+    17,
+    31.5,
+    11.5
    ],
    "mat": "metal",
+   "panels": 0,
+   "bone": "eram0_rod",
+   "mirror": true
+  },
+  {
+   "name": "eram0_foot",
+   "from": [
+    9.5,
+    24,
+    40.5
+   ],
+   "to": [
+    18.5,
+    32,
+    47.5
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "eram0_foot_pin",
+   "from": [
+    8.5,
+    26.5,
+    42.5
+   ],
+   "to": [
+    19.5,
+    29.5,
+    45.5
+   ],
+   "mat": "grey",
    "mirror": true,
    "panels": 0
   },
@@ -2141,6 +2525,22 @@
    ],
    "mat": "metal",
    "bone": "erector",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "eram0_pedestal",
+   "from": [
+    11.5,
+    22.5,
+    41.5
+   ],
+   "to": [
+    16.5,
+    24.5,
+    46.5
+   ],
+   "mat": "paint2",
    "mirror": true,
    "panels": 0
   },
@@ -2203,6 +2603,33 @@
      "w": 12,
      "h": 6,
      "mat": "hatch"
+    },
+    {
+     "face": "north",
+     "x": 21,
+     "y": 1,
+     "w": 6,
+     "h": 6,
+     "mat": "vent",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 14,
+     "h": 7,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "south",
+     "x": 17,
+     "y": 1,
+     "w": 10,
+     "h": 7,
+     "mat": "hatch",
+     "auto": true
     }
    ],
    "faces": {
@@ -2239,11 +2666,138 @@
      "w": 8,
      "h": 5,
      "mat": "vent"
+    },
+    {
+     "face": "north",
+     "x": 1,
+     "y": 1,
+     "w": 12,
+     "h": 6,
+     "mat": "hatch",
+     "auto": true
+    },
+    {
+     "face": "north",
+     "x": 15,
+     "y": 1,
+     "w": 8,
+     "h": 6,
+     "mat": "vent",
+     "auto": true
     }
    ],
    "faces": {
     "down": "paint2"
    }
+  },
+  {
+   "name": "flap_arm0",
+   "from": [
+    10,
+    16,
+    56.0
+   ],
+   "to": [
+    21.0,
+    18,
+    59.0
+   ],
+   "mat": "metal",
+   "mirror": true,
+   "panels": 0
+  },
+  {
+   "name": "mudflap0",
+   "from": [
+    13.0,
+    4,
+    57.5
+   ],
+   "to": [
+    22.0,
+    16,
+    58.5
+   ],
+   "mat": "mudflap",
+   "mirror": true,
+   "decals": [
+    {
+     "face": "south",
+     "x": 1,
+     "y": 1,
+     "w": 7,
+     "h": 1,
+     "mat": "bolts"
+    },
+    {
+     "face": "south",
+     "x": 0,
+     "y": 7,
+     "w": 9,
+     "h": 5,
+     "mat": "grime"
+    }
+   ]
+  },
+  {
+   "name": "fuel_tank_hanger0",
+   "from": [
+    10,
+    14.5,
+    -31
+   ],
+   "to": [
+    13,
+    16.5,
+    -29
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "fuel_tank_hanger1",
+   "from": [
+    10,
+    14.5,
+    -17
+   ],
+   "to": [
+    13,
+    16.5,
+    -15
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "spare_rack_hanger0",
+   "from": [
+    -13,
+    14.5,
+    -31
+   ],
+   "to": [
+    -10,
+    16.5,
+    -29
+   ],
+   "mat": "metal",
+   "panels": 0
+  },
+  {
+   "name": "spare_rack_hanger1",
+   "from": [
+    -13,
+    14.5,
+    -17
+   ],
+   "to": [
+    -10,
+    16.5,
+    -15
+   ],
+   "mat": "metal",
+   "panels": 0
   },
   {
    "name": "cans_bracket",

@@ -32,7 +32,16 @@ public class HdModel<S> {
     /** Нарисовать без анимации (поза уже выставлена). */
     public void draw(PoseStack pose, MultiBufferSource buffers, RenderType type, int light) {
         if (!com.harddayz.client.model.GeoGpu.render(root, pose, buffers, type, light, OverlayTexture.NO_OVERLAY)) {
-            com.harddayz.client.model.GeoGpu.renderVertices(root, pose, buffers.getBuffer(type), light, OverlayTexture.NO_OVERLAY);
+            var out = buffers.getBuffer(type);
+            if (logged < 3) {
+                logged++;
+                com.mojang.logging.LogUtils.getLogger().info("HardDayz draw: path=vertices source={} consumer={} type={} light={} gpuModels={} shaderPack={}",
+                        buffers.getClass().getName(), out.getClass().getName(), type, light, com.harddayz.ClientConfig.gpuModels(),
+                        com.harddayz.client.model.GeoGpu.shaderPackMod());
+            }
+            com.harddayz.client.model.GeoGpu.renderVertices(root, pose, out, light, OverlayTexture.NO_OVERLAY);
         }
     }
+
+    private static int logged;
 }

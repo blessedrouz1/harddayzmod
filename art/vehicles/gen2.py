@@ -8,7 +8,7 @@ import json
 import math
 
 import heal
-from gen import (shift, HERE, NATO_GREEN, OLIVE, PAINT2_DARK, PAINT2_SAND, SAND, arch, box, crate, deck, detail, frame, jacks, jerrycans, liners,
+from gen import (cab_medkit, side_mirror, shift, HERE, NATO_GREEN, OLIVE, PAINT2_DARK, PAINT2_SAND, SAND, arch, box, crate, deck, detail, frame, jacks, jerrycans, liners,
                  mudflaps, shovel, spec, steer_bones, tarp, underbody, wheels, kamaz_cab, fmtv_cab, kung, wheel, hatch_box)
 
 
@@ -94,21 +94,24 @@ def maz_base(name, seed):
 
 
 def ram_set(name, y, z_foot, L, x_off, y_under, parent='turret', hinge='rack', mount=None, barrel=None, base_y=23):
-    """Two-stage hydraulic pair. Explicit moving pin follows the cradle; rigid sleeves slide at their seals."""
+    """Two-stage hydraulic pair. Barrel sits in a clevis foot (trunnion pin through its pivot); explicit moving pin follows the cradle;
+    rigid sleeves slide at their seals: barrel > stage (4 px) > chrome rod (3 px) > head in the cradle eye."""
     kw = {'bone': name, 'mirror': True}
     ribs = [{'face': 'up', 'x': 1, 'y': k, 'w': 4, 'h': 1, 'mat': 'rib'} for k in range(2, L - 1, 4)]
     mk = {'bone': mount} if mount else {}
     stage, rod = f'{name}_stage', f'{name}_rod'
     pin_z = z_foot - L - 4.5
-    parts = [box(f'{name}_barrel', [x_off - 3, y - 3, z_foot - L], [x_off + 3, y + 3, z_foot], 'metal', panels=0, decals=ribs, **kw),
-             box(f'{name}_collar', [x_off - 4, y - 4, z_foot - L - 2], [x_off + 4, y + 4, z_foot - L], 'paint2', panels=0, **kw),
-             box(f'{name}_stagebar', [x_off - 2, y - 2, z_foot - L - 3], [x_off + 2, y + 2, z_foot - 4], 'grey', panels=0, bone=stage, mirror=True),
-             box(f'{name}_rodbar', [x_off - 1.25, y - 1.25, pin_z], [x_off + 1.25, y + 1.25, pin_z + L - 2], 'grey', panels=0, bone=rod, mirror=True),
-             box(f'{name}_rodhead', [x_off - 2, y - 2, pin_z - 1.5], [x_off + 2, y + 2, pin_z + 1.5], 'metal', panels=0, bone=rod, mirror=True),
-             box(f'{name}_foot', [x_off - 4, y - 4, z_foot - 1], [x_off + 4, y + 4, z_foot + 3], 'metal', mirror=True, panels=0, **mk),
+    parts = [box(f'{name}_barrel', [x_off - 3, y - 3, z_foot - L], [x_off + 3, y + 3, z_foot], 'paint', panels=0, decals=ribs, **kw),
+             box(f'{name}_collar', [x_off - 4, y - 4, z_foot - L - 2], [x_off + 4, y + 4, z_foot - L], 'metal', panels=0, **kw),
+             box(f'{name}_stagebar', [x_off - 2, y - 2, z_foot - L - 3], [x_off + 2, y + 2, z_foot - 4], 'metal', panels=0, bone=stage, mirror=True),
+             box(f'{name}_stagecap', [x_off - 2.5, y - 2.5, z_foot - L - 4], [x_off + 2.5, y + 2.5, z_foot - L - 2], 'paint2', panels=0, bone=stage, mirror=True),
+             box(f'{name}_rodbar', [x_off - 1.5, y - 1.5, pin_z], [x_off + 1.5, y + 1.5, pin_z + L - 2], 'grey', panels=0, bone=rod, mirror=True),
+             box(f'{name}_rodhead', [x_off - 3, y - 3.5, pin_z - 2], [x_off + 3, y + 3.5, pin_z + 2], 'metal', panels=0, bone=rod, mirror=True),
+             box(f'{name}_foot', [x_off - 4.5, y - 4, z_foot - 3.5], [x_off + 4.5, y + 4, z_foot + 3.5], 'metal', mirror=True, panels=0, **mk),
+             box(f'{name}_foot_pin', [x_off - 5.5, y - 1.5, z_foot - 1.5], [x_off + 5.5, y + 1.5, z_foot + 1.5], 'grey', mirror=True, panels=0, **mk),
              box(f'{name}_eye', [x_off - 4, y - 4, z_foot - L - 6], [x_off + 4, y_under, z_foot - L - 3], 'metal', bone=hinge, mirror=True, panels=0)]
-    if y - 4 > base_y:
-        parts.append(box(f'{name}_pedestal', [x_off - 3, base_y, z_foot], [x_off + 3, y - 4, z_foot + 3], 'paint2', mirror=True, panels=0, **mk))
+    if y - 3.5 > base_y:       # half-pixel offsets keep every ram face off the planes of the turntable / pack it stands on (no z-fighting)
+        parts.append(box(f'{name}_pedestal', [x_off - 2.5, base_y - 1.5, z_foot - 2.5], [x_off + 2.5, y - 3.5, z_foot + 2.5], 'paint2', mirror=True, panels=0, **mk))
     pv = [0, y, z_foot]
     return [{'name': name, 'pivot': pv, **({'parent': parent} if parent else {})},
             {'name': stage, 'pivot': pv, 'parent': name}, {'name': rod, 'pivot': pv, 'parent': stage},
@@ -158,12 +161,10 @@ def hood_cab(front_z, steer_z, paint_win=True):
         box('seat', [-14, 24, cz0 + 11], [14, 27, cz1 - 6], 'canvas', bone='cab', panels=0),
         box('seat_back', [-14, 27, cz1 - 7], [14, 39, cz1 - 5], 'canvas', bone='cab', panels=0),
         box('headliner', [-14, 46.25, cz0 + 1], [14, 47.25, cz1 - 1], 'paint2', bone='cab'),
-        box('mirror_arm', [17, 38, cz0 + 1], [21, 39, cz0 + 2], 'metal', bone='cab', mirror=True),
-        box('mirror_head', [21, 31, cz0 - 0.5], [22, 43, cz0 + 4.5], 'paint2', bone='cab', mirror=True,
-            decals=[{'face': 'east', 'x': 1, 'y': 2, 'w': 3, 'h': 8, 'mat': 'glass'}]),
-        box('step', [17, 15, cz0 + 4], [21, 16, cz0 + 18], 'paint2', mirror=True, panels=0,
-            decals=[{'face': 'up', 'x': 1, 'y': k, 'w': 3, 'h': 1, 'mat': 'rib'} for k in (2, 6, 10, 13)]),
-        box('step_bracket', [17, 16, cz0 + 5], [18, 22, cz0 + 7], 'metal', mirror=True),
+        *side_mirror('mirror', 17, cz0 + 1, 31, 12, reach=5, w=4, bone='cab'),
+        box('step', [17, 15, cz0 + 4], [21, 16, cz0 + 14], 'paint2', mirror=True, panels=0,
+            decals=[{'face': 'up', 'x': 1, 'y': k, 'w': 3, 'h': 1, 'mat': 'rib'} for k in (2, 5, 8)]),
+        box('step_bracket', [17, 16, cz0 + 5], [18, 24, cz0 + 7], 'metal', mirror=True),
         box('cab_rear_wall', [-17, 22, cz1], [17, 48, cz1 + 1], 'paint2', bone='cab', panels=0),
         # hood and nose
         box('hood', [-10, 29, z + 2], [10, 38, hz1], 'paint', bone='cab', chamfer={'legs': [3, 4], 'edges': ['left', 'right']},
@@ -203,9 +204,9 @@ def grad():
     jb, jp = jacks([(17, 66), (-17, 66)])
     p = hood_cab(-66, steer) + ural_chassis(-66, 62, steer, rear) + deck(-10, 62, rear) + jp
     p += [box('subframe', [-6, 17, -12], [6, 19, 58], 'paint2', panels=0),
-          box('fuel_tank', [13, 12, -26], [20, 20, -8], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 14, 'h': 1, 'mat': 'strap'}]),
-          box('battery_box', [-20, 12, -26], [-13, 19, -14], 'paint', panels=0, decals=[{'face': 'west', 'x': 2, 'y': 2, 'w': 8, 'h': 5, 'mat': 'hatch'}]),
-          box('spare_rack', [-20, 12, -12], [-13, 19, 0], 'paint2', panels=0)]
+          box('fuel_tank', [13, 12, -17], [20, 20, -1], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 12, 'h': 1, 'mat': 'strap'}]),
+          box('battery_box', [-20, 12, -17], [-13, 19, -7], 'paint', panels=0, decals=[{'face': 'west', 'x': 2, 'y': 2, 'w': 6, 'h': 5, 'mat': 'hatch'}]),
+          box('spare_rack', [-20, 12, -6], [-13, 19, 4], 'paint2', panels=0)]
     # turntable on the deck, 40-tube pack (10 x 4) on a rear cradle: two lift rams push it up (renderer animates bone ram0)
     t = [box('turntable', [-12, 23, 8], [12, 25, 36], 'metal', bone='turret'),
          box('bearing_ring', [-10, 25, 10], [10, 27, 34], 'metal', bone='turret'),
@@ -236,8 +237,8 @@ def shahed_launcher():
     jb, jp = jacks([(17, 66), (-17, 66)])
     p = hood_cab(-66, steer) + ural_chassis(-66, 62, steer, rear) + deck(-10, 62, rear) + jp
     p += [box('subframe', [-6, 17, -12], [6, 19, 58], 'paint2', panels=0),
-          box('fuel_tank', [13, 12, -26], [20, 20, -8], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 14, 'h': 1, 'mat': 'strap'}]),
-          box('battery_box', [-20, 12, -26], [-13, 19, -14], 'paint', panels=0, decals=[{'face': 'west', 'x': 2, 'y': 2, 'w': 8, 'h': 5, 'mat': 'hatch'}])]
+          box('fuel_tank', [13, 12, -17], [20, 20, -1], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 12, 'h': 1, 'mat': 'strap'}]),
+          box('battery_box', [-20, 12, -17], [-13, 19, -7], 'paint', panels=0, decals=[{'face': 'west', 'x': 2, 'y': 2, 'w': 6, 'h': 5, 'mat': 'hatch'}])]
     t = [box('turntable', [-12, 23, 8], [12, 25, 36], 'metal', bone='turret'), box('bearing_ring', [-10, 25, 10], [10, 27, 34], 'metal', bone='turret')]
     t += a_frame('hinge', 22, 27, 39, 20, pin_y=36)
     rb, rp = ram_set('ram0', 30, 35, 40, 9, 36, base_y=25)
@@ -348,6 +349,7 @@ def uragan():
 
 def tochka():
     bones, p = kamaz_chassis(0)
+    p += cab_medkit(-67)
     cy, hz = 38, 56
     t = [box('hinge_block', [-9, 23, 46], [9, 27, 52], 'metal'),
          box('hinge_pin', [-12, 35, hz], [12, 41, hz + 4], 'paint2', bone='erector'),
@@ -387,8 +389,9 @@ def kamaz_chassis(seed):
 
 def iskander():
     steer, rear = [-62, -38], [27, 50]
-    jb, jp = jacks([(19, 68), (-19, 68), (19, 0), (-19, 0)])
-    p = kamaz_cab(-80, steer) + underbody(steer, rear) + frame(-76, 74, steer + rear) + wheels(steer, rear) + mudflaps(63) + jp + deck(-46, 74, rear)
+    jb, jp = jacks([(19, 68), (-19, 68), (19, 11), (-19, 11)])
+    p = kamaz_cab(-80, steer) + underbody(steer, rear) + frame(-76, 74, steer + rear) + wheels(steer, rear) + mudflaps(63) + jp + deck(-46, 74, [steer[1]] + rear)
+    p += cab_medkit(-80)
     p = [q for q in p if not q['name'].startswith('rear_arch')]
     hz, cy = 68, 33
     p += [box('hull_wall', [17, 23, -46], [19, 39, 70], 'paint', mirror=True, panels=0,
@@ -400,14 +403,14 @@ def iskander():
               decals=[{'face': 'north', 'x': 5, 'y': 4, 'w': 24, 'h': 10, 'mat': 'hatch'}, {'face': 'north', 'x': 2, 'y': 17, 'w': 30, 'h': 1, 'mat': 'bolts'}]),
           box('hull_rear', [-17, 23, 70], [17, 37, 72], 'paint', panels=0,
               decals=[{'face': 'south', 'x': 3, 'y': 3, 'w': 12, 'h': 8, 'mat': 'hatch'}, {'face': 'south', 'x': 19, 'y': 3, 'w': 12, 'h': 8, 'mat': 'hatch'}]),
-          box('side_locker_r', [20, 13, -30], [23, 21, -10], 'paint', mirror=True, panels=0, decals=[{'face': 'east', 'x': 2, 'y': 1, 'w': 16, 'h': 6, 'mat': 'hatch'}]),
+          box('side_locker_r', [19, 13, -5], [22, 21, 7], 'paint', mirror=True, panels=0, decals=[{'face': 'east', 'x': 2, 'y': 1, 'w': 8, 'h': 6, 'mat': 'hatch'}]),
           box('fuel_tank', [13, 12, -22], [20, 20, -6], 'paint', panels=0, decals=[{'face': 'east', 'x': 2, 'y': 3, 'w': 10, 'h': 1, 'mat': 'strap'}]),
           box('exhaust_stack', [15, 23, -44], [17, 52, -42], 'metal'),
           ]
     # erector: two rails, low saddles, cross arm for the rams; missile lies in it nose to the cab
-    t = [box('trough_r', [8, 24, -42], [10, 30, 62], 'paint2', bone='erector', mirror=True, panels=0,
+    t = [box('trough_r', [8, 24.5, -42], [10, 30.5, 62], 'paint2', bone='erector', mirror=True, panels=0,
              decals=[{'face': 'east', 'x': 3, 'y': 1, 'w': 98, 'h': 1, 'mat': 'rib'}]),
-         box('erector_arm', [-14, 28, 30], [14, 33, 37], 'paint2', bone='erector', panels=0),
+         box('erector_arm', [-14, 28, 29], [14, 33, 36], 'paint2', bone='erector', panels=0),
          box('hinge_block', [-12, 23, 62], [12, 31, 66], 'metal'), box('hinge_pin', [-14, 31, hz - 2], [14, 35, hz + 2], 'paint2', bone='erector')]
     t += [box(f'saddle{i}', [-8, 24, z], [8, 25, z + 3], 'paint2', bone='erector', panels=0) for i, z in enumerate((-30, -6, 20, 46))]
     erb, erp = ram_set('eram0', 28, 58, 24, 14, 32, parent=None, hinge='erector', base_y=24)
@@ -422,40 +425,71 @@ def iskander():
     return sp
 
 
+KALIBR_SLATE = ['#2F353A', '#414A51', '#545F67', '#6B7780']   # naval slate of the launch module
+
+
 def kalibr():
+    """Kalibr coastal launcher: four vertical-launch cells (2 x 2) in an armoured module on a rear-hinged cradle lifted by two rams.
+    Cells sit at x = +-9, y = 43 / 61 on the front face; the rams tilt the module to a launch angle (35 degrees in Launcher.KALIBR_LAUNCH_ELEV, not vertical) and the missiles leave through the cells.
+    tip0..tip3 = the four missile noses (shown while loaded, tip0 +X low, tip1 -X low, tip2 +X high, tip3 -X high)."""
     bones, p = maz_base('kalibr', 60)
     t = [box('erector_base', [-14, 23.5, -4], [14, 25.5, 22], 'metal', bone='turret'), box('bearing_ring', [-10, 25.5, 0], [10, 27.5, 18], 'metal', bone='turret')]
+    # turret frame: plate from the turntable back to the hinge posts; the ram feet stand on it, so lifting gear is bolted to the rotating base
+    t += [box('turret_plate', [-22, 24, 22], [22, 27, 61], 'paint2', bone='turret', panels=0, decals=[
+              {'face': 'up', 'x': 2, 'y': 2, 'w': 42, 'h': 1, 'mat': 'bolts'}, {'face': 'up', 'x': 2, 'y': 36, 'w': 42, 'h': 1, 'mat': 'bolts'}]),
+          box('plate_gusset', [-12, 24.5, 20], [12, 26.5, 24], 'metal', bone='turret', panels=0)]
     t += a_frame('hinge', 58, 27, 43, 20, pin_y=39)
-    rb, rp = ram_set('ram0', 30, 36, 35, 10, 34, base_y=24)
-    # 20 ft shipping container: corrugated sides, door end, four roof hatches over the missiles
-    cor = [{'face': side, 'x': 3 + 6 * k, 'y': 3, 'w': 2, 'h': 28, 'mat': 'rib'} for side in ('east', 'west') for k in range(13)]
-    cont = [box('container', [-19, 34, -26], [19, 70, 57], 'khaki', bone='rack', panels=0, decals=cor + [
-                {'face': 'up', 'x': 4, 'y': 6, 'w': 10, 'h': 10, 'mat': 'hatch'}, {'face': 'up', 'x': 24, 'y': 6, 'w': 10, 'h': 10, 'mat': 'hatch'},
-                {'face': 'up', 'x': 4, 'y': 22, 'w': 10, 'h': 10, 'mat': 'hatch'}, {'face': 'up', 'x': 24, 'y': 22, 'w': 10, 'h': 10, 'mat': 'hatch'},
-                {'face': 'east', 'x': 32, 'y': 8, 'w': 16, 'h': 12, 'mat': 'vent'}, {'face': 'west', 'x': 36, 'y': 8, 'w': 16, 'h': 12, 'mat': 'vent'}]),
-            box('door_face', [-19, 34, -27], [19, 70, -26], 'paint2', bone='rack', panels=0,
-                decals=[{'face': 'north', 'x': 2, 'y': 2, 'w': 16, 'h': 32, 'mat': 'hatch'}, {'face': 'north', 'x': 20, 'y': 2, 'w': 16, 'h': 32, 'mat': 'hatch'},
-                        {'face': 'north', 'x': 16, 'y': 12, 'w': 2, 'h': 12, 'mat': 'handle'}, {'face': 'north', 'x': 20, 'y': 12, 'w': 2, 'h': 12, 'mat': 'handle'}]),
-            box('post_fr', [-20, 33, -28], [-17, 71, -25], 'metal', bone='rack', mirror=True, panels=0),
-            box('post_bk', [-20, 33, 54], [-17, 71, 58], 'metal', bone='rack', mirror=True, panels=0),
-            box('top_rail', [-20, 70, -25], [-17, 72, 54], 'metal', bone='rack', mirror=True, panels=0),
-            box('bottom_rail', [-20, 31, -25], [-17, 33, 54], 'metal', bone='rack', mirror=True, panels=0),
-            box('cradle_rail', [-16, 31, 14], [-14, 34, 56], 'paint2', bone='rack', mirror=True, panels=0)]
-    bones = list(bones) + [{'name': 'turret', 'pivot': [0, 22, 8.8]}, {'name': 'rack', 'pivot': [0, 39, 58], 'parent': 'turret'}] + rb
-    extra = [tarp('tarp', [-15, 39, -54], [-5, 43, -32]), crate('crate0', [6, 39, -52], [16, 44, -42])]
-    sp = detail(spec('kalibr', 'Club-K / Kalibr container launcher on a MAZ-543M 8x8. Scale 1 m = 16 px. Identifiers: two cabs flanking the hood, '
-                     'slate-grey 20 ft container with corrugated sides, door end and roof hatches on a rear-hinged cradle lifted by two rams.',
-                     OLIVE, PAINT2_DARK, bones, p + t + rp + cont, 61), extra)
+    rb, rp = ram_set('ram0', 30, 36, 35, 10, 34, base_y=26)
+    side_e = [{'face': 'east', 'x': 4 + 22 * k, 'y': 3, 'w': 16, 'h': 12, 'mat': 'hatch'} for k in range(3)] + [
+        {'face': 'east', 'x': 2, 'y': 18, 'w': 74, 'h': 1, 'mat': 'rib'}, {'face': 'east', 'x': 6, 'y': 21, 'w': 18, 'h': 7, 'mat': 'vent'},
+        {'face': 'east', 'x': 34, 'y': 21, 'w': 18, 'h': 7, 'mat': 'vent'}, {'face': 'east', 'x': 2, 'y': 30, 'w': 74, 'h': 1, 'mat': 'bolts'}]
+    side_w = [{'face': 'west', 'x': 8 + 22 * k, 'y': 3, 'w': 16, 'h': 12, 'mat': 'hatch'} for k in range(3)] + [
+        {'face': 'west', 'x': 2, 'y': 18, 'w': 74, 'h': 1, 'mat': 'rib'}, {'face': 'west', 'x': 26, 'y': 21, 'w': 18, 'h': 7, 'mat': 'vent'},
+        {'face': 'west', 'x': 54, 'y': 21, 'w': 18, 'h': 7, 'mat': 'vent'}, {'face': 'west', 'x': 2, 'y': 30, 'w': 74, 'h': 1, 'mat': 'bolts'}]
+    cells = [(9, 43), (-9, 43), (9, 61), (-9, 61)]
+    # decal x on the north face counts from the +X edge: cell centre cx -> x = 19 - cx - 6; y from the bottom (34)
+    mouths = [{'face': 'north', 'x': 13 - cx, 'y': cy - 40, 'w': 12, 'h': 12, 'mat': 'dark'} for cx, cy in cells]
+    face = [box('face_plate', [-19, 34, -24], [19, 70, -21], 'paint2', bone='rack', panels=0, decals=mouths + [
+                {'face': 'north', 'x': 1, 'y': 1, 'w': 36, 'h': 1, 'mat': 'bolts'}, {'face': 'north', 'x': 1, 'y': 34, 'w': 36, 'h': 1, 'mat': 'bolts'},
+                {'face': 'north', 'x': 18, 'y': 2, 'w': 2, 'h': 32, 'mat': 'rib'}, {'face': 'north', 'x': 1, 'y': 17, 'w': 36, 'h': 2, 'mat': 'rib'}])]
+    for k, (cx, cy) in enumerate(cells):   # square launch collar round each cell
+        face += [box(f'collar{k}_top', [cx - 8, cy + 6, -27], [cx + 8, cy + 8, -24], 'metal', bone='rack', panels=0,
+                     decals=[{'face': 'north', 'x': 1, 'y': 0, 'w': 2, 'h': 2, 'mat': 'amber'}]),
+                 box(f'collar{k}_bot', [cx - 8, cy - 8, -27], [cx + 8, cy - 6, -24], 'metal', bone='rack', panels=0),
+                 box(f'collar{k}_l', [cx - 8, cy - 6, -27], [cx - 6, cy + 6, -24], 'metal', bone='rack', panels=0),
+                 box(f'collar{k}_r', [cx + 6, cy - 6, -27], [cx + 8, cy + 6, -24], 'metal', bone='rack', panels=0)]
+    mod = [box('module', [-19, 34, -21], [19, 66, 58], 'canvas', bone='rack', panels=0, decals=side_e + side_w),
+           box('roof', [-17, 66, -19], [17, 70, 55], 'paint2', bone='rack', panels=0, decals=[
+               {'face': 'up', 'x': 3, 'y': 6, 'w': 10, 'h': 10, 'mat': 'vent'}, {'face': 'up', 'x': 21, 'y': 6, 'w': 10, 'h': 10, 'mat': 'vent'},
+               {'face': 'up', 'x': 3, 'y': 30, 'w': 10, 'h': 10, 'mat': 'vent'}, {'face': 'up', 'x': 21, 'y': 30, 'w': 10, 'h': 10, 'mat': 'vent'},
+               {'face': 'up', 'x': 3, 'y': 54, 'w': 10, 'h': 10, 'mat': 'hatch'}, {'face': 'up', 'x': 21, 'y': 54, 'w': 10, 'h': 10, 'mat': 'hatch'},
+               {'face': 'up', 'x': 16, 'y': 2, 'w': 2, 'h': 70, 'mat': 'rib'}]),
+           box('lift_eye', [12, 70, -12], [15, 72, -8], 'metal', bone='rack', mirror=True, panels=0),
+           box('plenum', [-19, 34, 58], [19, 70, 61], 'paint2', bone='rack', panels=0, decals=[
+               {'face': 'south', 'x': 2, 'y': 2, 'w': 15, 'h': 14, 'mat': 'vent'}, {'face': 'south', 'x': 21, 'y': 2, 'w': 15, 'h': 14, 'mat': 'vent'},
+               {'face': 'south', 'x': 2, 'y': 20, 'w': 15, 'h': 14, 'mat': 'vent'}, {'face': 'south', 'x': 21, 'y': 20, 'w': 15, 'h': 14, 'mat': 'vent'}]),
+           box('rail', [14, 31.5, -21], [18, 33.5, 55], 'paint2', bone='rack', mirror=True, panels=0)]
+    mod += [box(f'band{i}', [-20, 33, z], [20, 67, z + 2], 'paint2', bone='rack', panels=0) for i, z in enumerate((-14, 18, 48))]
+    tips = [{'name': f'tip{k}', 'pivot': [0, 39, 58], 'parent': 'rack'} for k in range(4)]
+    bones = list(bones) + [{'name': 'turret', 'pivot': [0, 22, 8.8]}, {'name': 'rack', 'pivot': [0, 39, 58], 'parent': 'turret'}] + rb + tips
+    extra = []
+    sp = detail(spec('kalibr', 'Kalibr coastal launcher on a MAZ-543M 8x8. Scale 1 m = 16 px. Identifiers: two cabs flanking the hood, '
+                     'slate-grey armoured launch module with a 2 x 2 matrix of square vertical-launch cells and cruise-missile noses on a rear-hinged '
+                     'cradle lifted by two rams, exhaust plenum at the back, olive chassis.',
+                     OLIVE, PAINT2_DARK, bones, p + t + rp + face + mod, 61), extra)
+    sp['canvas'] = KALIBR_SLATE
+    sp['missile'] = [{'bone': f'tip{k}', 'L': 50, 'D': 10, 'zn': -42, 'cx': cx, 'cy': cy, 'palette': 'kalibr', 'trim': 30}
+                     for k, (cx, cy) in enumerate(cells)]
     return sp
 
 
 def sam():
     bones, p = kamaz_chassis(0)
     t = [box('turntable', [-12, 23, -6], [12, 25, 22], 'metal', bone='turret'), box('bearing_ring', [-8, 25, -2], [8, 27, 18], 'metal', bone='turret'),
-         box('turret_body', [-8, 27, -4], [8, 38, 22], 'paint', bone='turret', panels=0,
+         box('turret_body', [-8, 27.5, -4], [8, 38.5, 22], 'paint', bone='turret', panels=0,
              decals=[{'face': 'east', 'x': 4, 'y': 2, 'w': 14, 'h': 7, 'mat': 'hatch'}, {'face': 'west', 'x': 8, 'y': 2, 'w': 14, 'h': 7, 'mat': 'hatch'},
                      {'face': 'north', 'x': 3, 'y': 2, 'w': 10, 'h': 5, 'mat': 'vent'}]),
-         box('ram_pedestal', [9, 24, 15], [15, 31, 20], 'metal', bone='turret', mirror=True, panels=0)]
+         box('ram_pedestal', [9, 24, 16], [15, 31, 21], 'metal', bone='turret', mirror=True, panels=0)]
     t += a_frame('hinge', 22, 27, 41, 19, pin_y=39)
     rb, rp = ram_set('ram0', 34, 16, 30, 12, 39, base_y=31)
     # radar mast on the rear deck (spins), phased array on top
@@ -681,43 +715,59 @@ def relay():
                 OLIVE, PAINT2_DARK, bones, p + t + r, 74, 0.3)
 
 
+def tube(name, cx, cy, half, z0, z1, mouth, paint='paint', **kw):
+    """Square launch tube along Z: body, dark mouth on the front face. Missile nose pokes out of the mouth (missile spec, tipN bone)."""
+    side = 2 * half
+    return box(name, [cx - half, cy - half, z0], [cx + half, cy + half, z1], paint, panels=0, decals=[
+        {'face': 'north', 'x': (side - mouth) // 2, 'y': (side - mouth) // 2, 'w': mouth, 'h': mouth, 'mat': 'dark'}], **kw)
+
+
 def sam_post():
+    """Ground SAM post: pad, turret column and a twin-tube launcher. Missiles sit inside the tubes, only the noses show (scale 1 m = 16 px:
+    tubes 8 x 8 x 28 px = 0.5 x 1.75 m, missile D 5 px = 0.3 m)."""
     p = [box('pad', [-13, 0, -13], [13, 3, 13], 'metal', bone='base', panels=0, decals=[{'face': 'up', 'x': 2, 'y': 2, 'w': 22, 'h': 1, 'mat': 'bolts'}]),
          box('battery', [-13, 3, 3], [-7, 9, 12], 'paint', bone='base', panels=0, decals=[{'face': 'north', 'x': 1, 'y': 1, 'w': 4, 'h': 4, 'mat': 'hatch'}]),
          box('crate', [7, 3, 4], [13, 8, 12], 'paint2', bone='base', panels=0),
          box('pedestal', [-6, 3, -6], [6, 7, 6], 'paint2', bone='base', panels=0)]
     t = [box('column', [-5, 7, -5], [5, 17, 5], 'paint', bone='turret', panels=0, decals=[{'face': 'north', 'x': 2, 'y': 2, 'w': 6, 'h': 5, 'mat': 'hatch'}]),
          box('seeker_box', [-4, 17, -4], [4, 20, 4], 'paint2', bone='turret', panels=0)]
-    r = [box('beam', [-12, 20, -12], [12, 22, 16], 'paint2', bone='rack', panels=0),
-         box('rail_front', [-12, 22, -10], [12, 23, -8], 'metal', bone='rack'), box('rail_rear', [-12, 22, 6], [12, 23, 8], 'metal', bone='rack'),
-         box('clamp_a', [-12, 22, -2], [12, 24, 0], 'paint2', bone='rack', panels=0),
-         box('sensor', [-2, 22, 10], [2, 26, 14], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 0, 'y': 1, 'w': 4, 'h': 2, 'mat': 'glass'}])]
+    cells = [(5.5, 26), (-5.5, 26)]
+    r = [box('beam', [-10, 20, -10], [10, 22, 14], 'paint2', bone='rack', panels=0),
+         box('trunnion', [-11, 21, -1], [11, 23, 1], 'metal', bone='rack', panels=0)]
+    for k, (cx, cy) in enumerate(cells):
+        r += [tube(f'tube{k}', cx, cy, 4, -14, 14, 6, 'paint', bone='rack'),
+              box(f'tube{k}_cap', [cx - 4, cy - 4, 14], [cx + 4, cy + 4, 15], 'metal', bone='rack', panels=0)]
+    r += [box(f'band{i}', [-10.5, 21, z], [10.5, 31, z + 2], 'paint2', bone='rack', panels=0) for i, z in enumerate((-8, 6))]
+    r += [box('eo_pod', [-3, 30, -5], [3, 34, 1], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 0, 'y': 1, 'w': 6, 'h': 2, 'mat': 'glass'}])]
     bones = [{'name': 'base', 'pivot': [0, 0, 0]}, {'name': 'turret', 'pivot': [0, 7, 0]}, {'name': 'rack', 'pivot': [0, 24, 0], 'parent': 'turret'},
              {'name': 'tip0', 'pivot': [0, 24, 0], 'parent': 'rack'}, {'name': 'tip1', 'pivot': [0, 24, 0], 'parent': 'rack'}]
-    sp = spec('sam_post', 'Single SAM post: pad with battery, turret column and a twin-rail launcher with two missiles. Scale 1 m = 16 px.',
+    sp = spec('sam_post', 'Single SAM post: pad with battery, turret column and a twin-tube launcher; only the missile noses show. Scale 1 m = 16 px.',
               OLIVE, PAINT2_DARK, bones, p + t + r, 75, 0.3)
     sp['canvas'] = MISSILE_GREEN
-    sp['missile'] = [{'bone': 'tip0', 'L': 38, 'D': 8, 'zn': -26, 'cx': 5.5, 'cy': 27.4, 'palette': 'sam'},
-                     {'bone': 'tip1', 'L': 38, 'D': 8, 'zn': -26, 'cx': -5.5, 'cy': 27.4, 'palette': 'sam'}]
+    sp['missile'] = [{'bone': f'tip{k}', 'L': 26, 'D': 5, 'zn': -20, 'cx': cx, 'cy': cy, 'palette': 'sam', 'trim': 12} for k, (cx, cy) in enumerate(cells)]
     return sp
 
 
 def sam_manual():
+    """Man-portable SAM station: 2 x 2 cluster of tubes on a gimbal (tubes 6 x 6 x 20 px = 1.25 m, missile D 3 px)."""
     p = [box('pad', [-8, 0, -8], [8, 2, 8], 'metal', bone='base', panels=0),
-         box('case', [-8, 2, -8], [8, 7.5 if False else 8, 8], 'paint', bone='base', panels=0, decals=[{'face': 'north', 'x': 3, 'y': 2, 'w': 10, 'h': 4, 'mat': 'hatch'}])]
+         box('case', [-8, 2, -8], [8, 8, 8], 'paint', bone='base', panels=0, decals=[{'face': 'north', 'x': 3, 'y': 2, 'w': 10, 'h': 4, 'mat': 'hatch'}])]
     t = [box('column', [-3, 8, -3], [3, 17, 3], 'paint2', bone='turret', panels=0),
          box('gimbal', [-5, 17, -3], [5, 19, 5], 'metal', bone='turret', panels=0)]
-    r = [box('frame', [-8, 19, -8], [8, 21, 12], 'paint2', bone='rack', panels=0),
-         box('cross_a', [-8, 21, -6], [8, 22, -4], 'metal', bone='rack'), box('cross_b', [-8, 21, 4], [8, 22, 6], 'metal', bone='rack'),
-         box('seeker', [-2, 19, -12], [2, 21, -8], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 0, 'y': 0, 'w': 4, 'h': 2, 'mat': 'glass'}]),
-         box('grip', [-1, 15, 6], [1, 19, 10], 'rubber', bone='rack'),
-         box('battery', [4, 21, 6], [8, 25, 12], 'paint2', bone='rack', decals=[{'face': 'east', 'x': 1, 'y': 1, 'w': 4, 'h': 2, 'mat': 'amber'}])]
+    cells = [(-3, 24), (3, 24), (-3, 30), (3, 30)]
+    r = [box('frame', [-7, 19, -8], [7, 21, 10], 'paint2', bone='rack', panels=0),
+         box('grip', [-1, 15, 5], [1, 19, 9], 'rubber', bone='rack'),
+         box('battery', [6, 24, -2], [9, 30, 6], 'paint2', bone='rack', decals=[{'face': 'east', 'x': 1, 'y': 1, 'w': 4, 'h': 2, 'mat': 'amber'}]),
+         box('sight', [-2, 33, -6], [2, 36, 0], 'paint2', bone='rack', decals=[{'face': 'north', 'x': 0, 'y': 1, 'w': 4, 'h': 2, 'mat': 'glass'}])]
+    for k, (cx, cy) in enumerate(cells):
+        r.append(tube(f'tube{k}', cx, cy, 3, -10, 10, 4, 'paint', bone='rack'))
+    r += [box(f'band{i}', [-6.5, 20.5, z], [6.5, 33.5, z + 1], 'paint2', bone='rack', panels=0) for i, z in enumerate((-4, 4))]
     bones = [{'name': 'base', 'pivot': [0, 0, 0]}, {'name': 'turret', 'pivot': [0, 8, 0]}, {'name': 'rack', 'pivot': [0, 20, 0], 'parent': 'turret'}] + \
         [{'name': f'tip{i}', 'pivot': [0, 20, 0], 'parent': 'rack'} for i in range(4)]
-    sp = spec('sam_manual', 'Man-portable SAM station: pad, gimbal column, frame carrying four missiles in a 2 x 2 cluster. Scale 1 m = 16 px.',
+    sp = spec('sam_manual', 'Man-portable SAM station: pad, gimbal column, frame carrying four tubes in a 2 x 2 cluster; only the missile noses show. Scale 1 m = 16 px.',
               OLIVE, PAINT2_DARK, bones, p + t + r, 76, 0.3)
     sp['canvas'] = MISSILE_GREEN
-    sp['missile'] = [{'bone': f'tip{i}', 'L': 24, 'D': 5, 'zn': -14, 'cx': (-3.5, 3.5)[i % 2], 'cy': (24.5, 27.5)[i // 2] + 0.0, 'palette': 'javelin'} for i in range(4)]
+    sp['missile'] = [{'bone': f'tip{i}', 'L': 16, 'D': 3, 'zn': -13, 'cx': cx, 'cy': cy, 'palette': 'javelin', 'trim': 7} for i, (cx, cy) in enumerate(cells)]
     return sp
 
 
@@ -855,13 +905,18 @@ def baba_yaga():
                 OLIVE, PAINT2_DARK, bones, p + pp, 86, 0.25)
 
 
+def retrofit_rams():
+    """Lift rams for the gen.py launchers; idempotent (add_rams skips specs already marked 'rams'). gen.py calls this after rewriting its specs."""
+    add_rams('nasams', 4, ('ram0', 30, 17, 35, 8, 33), extend=('arm',))
+    add_rams('patriot', 4, ('ram0', 30, 20, 34, 9, 33), keep=('hinge',), ram_kw={'base_y': 24})
+    add_rams('s400', 4, ('ram0', 30, 20, 38, 8.5, 31))
+    add_rams('himars', 4, ('ram0', 30, 30, 34, 8, 34))
+
+
 if __name__ == '__main__':
     import sys
     only = sys.argv[1:]
-    add_rams('nasams', 4, ('ram0', 30, 17, 35, 8, 33), extend=('arm',))
-    add_rams('patriot', 4, ('ram0', 30, 20, 34, 9.5, 33), keep=('hinge',), ram_kw={'base_y': 24})
-    add_rams('s400', 4, ('ram0', 30, 20, 38, 8.5, 31))
-    add_rams('himars', 4, ('ram0', 30, 30, 34, 8, 34))
+    retrofit_rams()
     for fn in (grad, smerch, uragan, tochka, iskander, kalibr, sam, grad_p, mortar, mg, relay, sam_post, sam_manual, shahed_launcher, interceptor, wing_recon, lancet, kub, molniya, baba_yaga):
         s = fn()
         if only and s['name'] not in only:

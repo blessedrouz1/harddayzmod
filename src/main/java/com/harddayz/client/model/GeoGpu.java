@@ -15,6 +15,7 @@ import net.minecraftforge.client.event.RegisterShadersEvent;
 import net.minecraftforge.fml.ModList;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
@@ -29,17 +30,18 @@ public final class GeoGpu {
     private static final Map<ModelPart, Mesh> MESHES = new IdentityHashMap<>();
     private static final Map<RenderType, Pass> PASSES = new IdentityHashMap<>();
     private static final Map<Pass, ShaderInstance> SHADERS = new EnumMap<>(Pass.class);
-    private static final Map<MultiBufferSource.BufferSource, Map<RenderType, List<Draw>>> PENDING = new IdentityHashMap<>();
     private static final ArrayDeque<float[]> MATRIX_POOL = new ArrayDeque<>();
-    private static final BufferBuilder BAKER = new BufferBuilder(65536);
+    private static BufferBuilder bakerBuffer;
+    private static BufferBuilder baker() { return bakerBuffer != null ? bakerBuffer : (bakerBuffer = new BufferBuilder(65536)); }
     private static final java.nio.FloatBuffer MATRICES = BufferUtils.createFloatBuffer(MATRIX_FLOATS * 2);
     private static final boolean SHADER_PACK_MOD = ModList.get().isLoaded("oculus") || ModList.get().isLoaded("iris");
+    /** Set after the first GL failure in the VBO path: every later draw uses the plain vertex path. */
+    private static volatile boolean broken;
     private static int boneBuffer;
     private static long uploads;
     private static long draws;
 
     private GeoGpu() {}
-    private record Draw(Mesh mesh, float[] matrices, int light, int overlay, float distance) {}
 
     private static final class Node {
         final ModelPart part;
@@ -70,18 +72,18 @@ public final class GeoGpu {
         int bone;
         int vertices;
         final List<Integer> quadBones = new ArrayList<>();
-        public VertexConsumer vertex(double x, double y, double z) { BAKER.vertex(x, y, z); return this; }
-        public VertexConsumer color(int r, int g, int b, int a) { BAKER.color(r, g, b, a); return this; }
-        public VertexConsumer uv(float u, float v) { BAKER.uv(u, v); return this; }
-        public VertexConsumer overlayCoords(int u, int v) { BAKER.overlayCoords(bone, 0); return this; }
-        public VertexConsumer uv2(int u, int v) { BAKER.uv2(u, v); return this; }
-        public VertexConsumer normal(float x, float y, float z) { BAKER.normal(x, y, z); return this; }
+        public VertexConsumer vertex(double x, double y, double z) { baker().vertex(x, y, z); return this; }
+        public VertexConsumer color(int r, int g, int b, int a) { baker().color(r, g, b, a); return this; }
+        public VertexConsumer uv(float u, float v) { baker().uv(u, v); return this; }
+        public VertexConsumer overlayCoords(int u, int v) { baker().overlayCoords(bone, 0); return this; }
+        public VertexConsumer uv2(int u, int v) { baker().uv2(u, v); return this; }
+        public VertexConsumer normal(float x, float y, float z) { baker().normal(x, y, z); return this; }
         public void endVertex() {
             if (vertices++ % 4 == 0) quadBones.add(bone);
-            BAKER.endVertex();
+            baker().endVertex();
         }
-        public void defaultColor(int r, int g, int b, int a) { BAKER.defaultColor(r, g, b, a); }
-        public void unsetDefaultColor() { BAKER.unsetDefaultColor(); }
+        public void defaultColor(int r, int g, int b, int a) { baker().defaultColor(r, g, b, a); }
+        public void unsetDefaultColor() { baker().unsetDefaultColor(); }
     }
 
     private static final class Mesh {
@@ -97,15 +99,15 @@ public final class GeoGpu {
         void list(Node node) { bones.add(node); for (Node child : node.children) list(child); }
         void bake() {
             if (baked) return;
-            BAKER.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+            baker().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
             BoneWriter writer = new BoneWriter();
             for (int i = 0; i < bones.size(); i++) {
                 writer.bone = i;
                 bones.get(i).emit(new PoseStack(), writer);
             }
-            BAKER.setQuadSorting(VertexSorting.DISTANCE_TO_ORIGIN);
-            sorting = BAKER.getSortState();
-            var data = BAKER.endOrDiscardIfEmpty();
+            baker().setQuadSorting(VertexSorting.DISTANCE_TO_ORIGIN);
+            sorting = baker().getSortState();
+            var data = baker().endOrDiscardIfEmpty();
             if (data != null) {
                 quadBones = writer.quadBones.stream().mapToInt(Integer::intValue).toArray();
                 order = new int[quadBones.length];
@@ -136,9 +138,9 @@ public final class GeoGpu {
         }
         void sort(float[] matrices) {
             // Only indices change: transparent faces still sort back-to-front after animation.
-            BAKER.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
-            BAKER.restoreSortState(sorting);
-            BAKER.setQuadSorting(points -> {
+            baker().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.NEW_ENTITY);
+            baker().restoreSortState(sorting);
+            baker().setQuadSorting(points -> {
                 for (int i = 0; i < points.length; i++) {
                     var p = points[i];
                     int m = quadBones[i] * 16;
@@ -151,7 +153,7 @@ public final class GeoGpu {
                 IntArrays.mergeSort(order, (a, b) -> Float.compare(distances[b], distances[a]));
                 return order;
             });
-            buffer.upload(BAKER.end());
+            buffer.upload(baker().end());
         }
     }
 
@@ -196,65 +198,68 @@ public final class GeoGpu {
         pose.popPose();
     }
 
+    /**
+     * Draws the model right away. Draws are not queued for BufferSource.endBatch: ImmediatelyFast replaces the entity
+     * BufferSource with a subclass whose endBatch never calls super, so a queue flushed from a mixin there never ran
+     * and the models stayed invisible (only the shadow was drawn).
+     */
     public static boolean render(ModelPart root, PoseStack pose, MultiBufferSource buffers, RenderType type, int light, int overlay) {
         Node node = NODES.get(root);
         Pass pass = PASSES.get(type);
-        if (SHADER_PACK_MOD || !com.harddayz.ClientConfig.gpuModels() || node == null || pass == null || !SHADERS.containsKey(pass)
-                || !(buffers instanceof MultiBufferSource.BufferSource source)) return false;
+        if (SHADER_PACK_MOD || broken || !com.harddayz.ClientConfig.gpuModels() || node == null || pass == null || !SHADERS.containsKey(pass)
+                || !(buffers instanceof MultiBufferSource.BufferSource)) return false;
         Mesh mesh = MESHES.computeIfAbsent(root, k -> new Mesh(node));
         if (mesh.bones.size() > BONES) return false; // Future oversized models retain the vanilla path.
-        source.getBuffer(type);
         float[] matrices = MATRIX_POOL.pollFirst();
         if (matrices == null) matrices = new float[MATRIX_FLOATS * 2];
         else Arrays.fill(matrices, 0);
         mesh.snapshot(node, pose, matrices, true, new int[1]);
-        var byType = PENDING.computeIfAbsent(source, k -> new IdentityHashMap<>());
-        float distance = pose.last().pose().m30()*pose.last().pose().m30()
-                + pose.last().pose().m31()*pose.last().pose().m31() + pose.last().pose().m32()*pose.last().pose().m32();
-        byType.computeIfAbsent(type, k -> new ArrayList<>()).add(new Draw(mesh, matrices, light, overlay, distance));
-        return true;
+        try {
+            draw(mesh, matrices, type, pass, light, overlay);
+        } finally {
+            if (MATRIX_POOL.size() < 256) MATRIX_POOL.addFirst(matrices);
+        }
+        return !broken;
     }
 
-    /** Replayed at the original vanilla batch boundary, not immediately during entity traversal. */
-    public static void flush(MultiBufferSource.BufferSource source, RenderType type) {
-        var byType = PENDING.get(source);
-        if (byType == null) return;
-        List<Draw> batch = byType.remove(type);
-        if (byType.isEmpty()) PENDING.remove(source);
-        if (batch == null || batch.isEmpty()) return;
-        Pass pass = PASSES.get(type);
+    private static void draw(Mesh mesh, float[] matrices, RenderType type, Pass pass, int light, int overlay) {
         ShaderInstance shader = SHADERS.get(pass);
-        if (pass == Pass.TRANSLUCENT) batch.sort(Comparator.comparingDouble(Draw::distance).reversed());
         int previous = GL30.glGetIntegeri(GL31.GL_UNIFORM_BUFFER_BINDING, BINDING);
-        int previousBuffer = org.lwjgl.opengl.GL11.glGetInteger(GL31.GL_UNIFORM_BUFFER_BINDING);
+        int previousBuffer = GL11.glGetInteger(GL31.GL_UNIFORM_BUFFER_BINDING);
         if (boneBuffer == 0) boneBuffer = GL15.glGenBuffers();
         type.setupRenderState();
+        while (GL11.glGetError() != GL11.GL_NO_ERROR) { /* drop errors left by other code */ }
         try {
-            for (Draw draw : batch) {
-                draw.mesh.bake();
-                if (draw.mesh.buffer == null) continue;
-                draw.mesh.buffer.bind();
-                if (pass == Pass.TRANSLUCENT) draw.mesh.sort(draw.matrices);
-                MATRICES.clear(); MATRICES.put(draw.matrices).flip();
-                GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, boneBuffer);
-                GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, MATRICES, GL15.GL_STREAM_DRAW);
-                GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, BINDING, boneBuffer);
-                shader.safeGetUniform("PackedLight").set(draw.light & 65535, draw.light >>> 16);
-                shader.safeGetUniform("OverlayUv").set(draw.overlay & 65535, draw.overlay >>> 16);
-                draw.mesh.buffer.drawWithShader(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
-                draws++;
-            }
+            mesh.bake();
+            if (mesh.buffer == null) return;
+            mesh.buffer.bind();
+            if (pass == Pass.TRANSLUCENT) mesh.sort(matrices);
+            MATRICES.clear(); MATRICES.put(matrices).flip();
+            GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, boneBuffer);
+            GL15.glBufferData(GL31.GL_UNIFORM_BUFFER, MATRICES, GL15.GL_STREAM_DRAW);
+            GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, BINDING, boneBuffer);
+            shader.safeGetUniform("PackedLight").set(light & 65535, light >>> 16);
+            shader.safeGetUniform("OverlayUv").set(overlay & 65535, overlay >>> 16);
+            mesh.buffer.drawWithShader(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), shader);
+            draws++;
+            int error = GL11.glGetError();
+            if (error != GL11.GL_NO_ERROR) fail("GL error 0x" + Integer.toHexString(error), null);
+        } catch (RuntimeException e) {
+            fail(e.toString(), e);
         } finally {
             VertexBuffer.unbind();
             GL30.glBindBufferBase(GL31.GL_UNIFORM_BUFFER, BINDING, previous);
             GL15.glBindBuffer(GL31.GL_UNIFORM_BUFFER, previousBuffer);
             type.clearRenderState();
-            for (Draw draw : batch) if (MATRIX_POOL.size() < 256) MATRIX_POOL.addFirst(draw.matrices);
         }
+    }
+
+    private static void fail(String reason, Throwable cause) {
+        broken = true;
+        com.mojang.logging.LogUtils.getLogger().error("HardDayz: VBO model rendering failed ({}), falling back to the plain renderer", reason, cause);
     }
     public static void invalidate() {
         RenderSystem.assertOnRenderThread();
-        PENDING.clear();
         MATRIX_POOL.clear();
         for (Mesh mesh : MESHES.values()) if (mesh.buffer != null) mesh.buffer.close();
         MESHES.clear();
@@ -276,6 +281,7 @@ public final class GeoGpu {
             }
         } catch (java.io.IOException e) { throw new IllegalStateException("Cannot load HardDayz model shaders", e); }
     }
+    public static boolean shaderPackMod() { return SHADER_PACK_MOD; }
     public static boolean ready() { return SHADERS.size() == Pass.values().length; }
     public static long uploads() { return uploads; }
     public static long draws() { return draws; }

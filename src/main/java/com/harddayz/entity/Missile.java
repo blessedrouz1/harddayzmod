@@ -58,7 +58,7 @@ public class Missile extends Entity implements Threat {
     public static final double GRAD_SPEED = 6.3;
 
     private static final EntityDataAccessor<Integer> KIND = SynchedEntityData.defineId(Missile.class, EntityDataSerializers.INT);
-    /** Как выглядит в полёте: 0 — по виду ракеты, 1 GMLRS, 2 С-400, 3 Patriot, 4 NASAMS, 5 Javelin, 6 выстрел РПГ. */
+    /** Как выглядит в полёте: 0 — по виду ракеты, 1 GMLRS, 2 С-400, 3 Patriot, 4 NASAMS, 5 Javelin, 6 выстрел РПГ, 9 ракета поста ПВО, 10 ракета ручного/пикапного комплекса. */
     private static final EntityDataAccessor<Integer> LOOK = SynchedEntityData.defineId(Missile.class, EntityDataSerializers.INT);
 
     public Missile look(int v) {

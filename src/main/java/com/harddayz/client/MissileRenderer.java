@@ -51,7 +51,7 @@ public class MissileRenderer extends EntityRenderer<Missile> {
             case 1 -> "m_gmlrs";
             case 2 -> "m_s400";
             case 3 -> "m_patriot";
-            case 4 -> "m_sam";
+            case 4, 9, 10 -> "m_sam";
             case 5 -> "m_javelin";
             case 6 -> "m_rpg";
             case 7 -> "m_mortar";
@@ -125,12 +125,13 @@ public class MissileRenderer extends EntityRenderer<Missile> {
         // Minecraft yaw/pitch: yaw turns left, negative pitch points upwards.
         pose.mulPose(Axis.YP.rotationDegrees(-s.yaw));
         pose.mulPose(Axis.XP.rotationDegrees(s.pitch));
-        // Ракеты ПВО нарисованы в натуральную величину для контейнера, но в полёте
-        // выглядят слишком крупными — масштабируем до реалистичного диаметра.
+        // Ракета в полёте того же размера, что на пусковой: масштаб подобран по внутреннему сечению и длине трубы/контейнера
+        // (С-400: труба 11 px, ракета 12 px -> 0.75; Patriot и NASAMS влезают в свои контейнеры в натуральную величину;
+        // мини-ПВО: труба сам-поста 8 px, ручной и пикапной 6 px).
         float bodyScale = switch (s.look) {
-            case 2 -> 0.32f; // m_s400 (48Н6: диаметр 0.52м → 8px)
-            case 3 -> 0.30f; // m_patriot (PAC-2: диаметр 0.41м → 6.5px)
-            case 4 -> 0.22f; // m_sam / NASAMS (AIM-120: диаметр 0.18м → ~3px)
+            case 2 -> 0.75f;  // m_s400
+            case 9 -> 0.7f;   // m_sam из трубы поста ПВО (диаметр 5 px)
+            case 10 -> 0.43f; // m_sam из трубы ручного комплекса и пикапа (диаметр 3 px)
             default -> 1.0f;
         };
         if (bodyScale != 1.0f) {

@@ -12,6 +12,11 @@ import com.harddayz.entity.Launcher;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 
+import org.joml.Matrix3f;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
+
 import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
@@ -46,6 +51,9 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         float tilt;
         /** Сколько тиков назад отлетела крышка контейнера i; -1 — крышка на месте. */
         float[] capAge = new float[8];
+        /** Тики вскрытия очередной трубы (0 — закрыта), с долей тика. */
+        float arm;
+        Launcher launcher;
     }
 
     /** Модели друга (geo.json): кости с теми же именами, что и в HdModels. */
@@ -109,30 +117,106 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
             each("erector", b -> b.xRot += (float) Math.toRadians(s.erect * 90));
             // Solve after rack/erector animation, in each cylinder's own parent frame.
             for (var lift : lifts) lift.animate();
-            // крышки контейнеров: выбивает при пуске, летят вверх и в сторону, кувыркаются и пропадают
+            animateContainers(s);
+        }
+
+        /**
+         * Контейнерные пусковые. Вскрытие трубы (s.arm, тики): сначала крышку выбивает газом, потом ракета выезжает
+         * из трубы вдоль её оси, и только после этого пуск. Всё считается в системе пакета (rack), поэтому работает
+         * при любом подъёме: вертикальный пуск С-400, наклонные «Пэтриот» и NASAMS.
+         */
+        private void animateContainers(State s) {
             for (var entry : geo.parts.entrySet()) {
                 String n = entry.getKey();
+                ModelPart part = entry.getValue();
                 int at = n.lastIndexOf("cap");
-                if (at < 0 || at + 3 >= n.length() || !Character.isDigit(n.charAt(at + 3))) {
-                    continue;
+                if (at >= 0 && at + 3 < n.length() && Character.isDigit(n.charAt(at + 3))) {
+                    animateLid(n, part, n.charAt(at + 3) - '0', s);
+                } else if (n.startsWith("msl") && n.length() == 4 && Character.isDigit(n.charAt(3))) {
+                    int idx = n.charAt(3) - '0';
+                    part.visible = idx < s.ammo;
+                    float[] box = geo.boxes.get(n);
+                    if (part.visible && idx == s.ammo - 1 && s.arm > 6 && box != null) {
+                        float t = Math.min(1, (s.arm - 6) / 16f); // 6..22: выезжает на половину длины
+                        part.z -= (box[5] - box[2]) * 0.5f * (t * t * (3 - 2 * t));
+                    }
                 }
-                int idx = n.charAt(at + 3) - '0';
-                float age = idx < s.capAge.length ? s.capAge[idx] : -1;
-                if (age < 0) {
-                    continue;
-                }
-                ModelPart cap = entry.getValue();
-                if (age > 26) {
-                    cap.visible = false;
-                    continue;
-                }
-                float up = 1.1f * age - 0.07f * age * age; // блоков, баллистическая дуга
-                float side = 0.12f * age * (idx % 2 == 0 ? 1 : -1);
-                cap.y -= up * 16;
-                cap.x += side * 16;
-                cap.z -= 0.08f * age * 16;
-                cap.xRot += age * 0.45f;
-                cap.zRot += age * 0.3f * (idx % 2 == 0 ? 1 : -1);
+            }
+        }
+
+        private static final float LID_GRAVITY = 0.045f; // блоков/тик²
+        private static final float LID_GROUND = 0.03f;   // центр лежащей крышки над землёй (половина толщины)
+        /** Через сколько тиков после вылета крышка исчезает с земли (последние 20 тиков — уменьшается). */
+        private static final float LID_LIFE = 260;
+
+        /**
+         * Крышка: вылетает вдоль оси трубы, кувыркается, падает на землю, отскакивает, ложится плашмя, лежит и потом исчезает.
+         * Движение считается в осях корпуса (земля y=0), а в кость пакета переводится обратной матрицей: так крышка остаётся
+         * на земле, даже когда пакет уже опустился. Старт запоминается в Launcher.capStart.
+         */
+        private void animateLid(String bone, ModelPart cap, int idx, State s) {
+            float age = idx < s.capAge.length ? s.capAge[idx] : -1;
+            cap.xScale = cap.yScale = cap.zScale = 1;
+            cap.visible = age < LID_LIFE;
+            if (age < 0 || age >= LID_LIFE || s.launcher == null || idx >= s.launcher.capStart.length) {
+                return;
+            }
+            String parent = geo.parents.get(bone);
+            PoseStack ps = new PoseStack();
+            if (parent != null) {
+                geo.transformTo(ps, parent);
+            }
+            Matrix4f mp = new Matrix4f(ps.last().pose());
+            float dir = idx % 2 == 0 ? 1 : -1;
+            float[] st = s.launcher.capStart[idx];
+            if (st == null) { // первый кадр после вылета: крышка ещё на месте в позе покоя, берём её положение и ось трубы
+                Matrix4f d0 = new Matrix4f(mp).translate(cap.x / 16f, cap.y / 16f, cap.z / 16f);
+                Vector3f p0 = d0.getTranslation(new Vector3f());
+                Quaternionf q0 = d0.getUnnormalizedRotation(new Quaternionf()).normalize();
+                Vector3f v = new Vector3f(dir * 0.10f, 0.04f, -0.42f);
+                mp.transformDirection(v);
+                st = new float[] {p0.x, p0.y, p0.z, q0.x, q0.y, q0.z, q0.w, v.x, v.y, v.z};
+                s.launcher.capStart[idx] = st;
+            }
+            float g = LID_GRAVITY;
+            float vy = st[8];
+            float h = st[1] - LID_GROUND;
+            float t1 = h <= 0 ? 0 : (vy + (float) Math.sqrt(vy * vy + 2 * g * h)) / g; // удар о землю
+            Vector3f pos = new Vector3f();
+            Quaternionf axisSpin = new Quaternionf();
+            Vector3f axis = new Vector3f(1, 0.4f * dir, 0.6f).normalize();
+            Quaternionf q0 = new Quaternionf(st[3], st[4], st[5], st[6]);
+            Quaternionf q;
+            float spin = 0.35f;
+            if (age <= t1) {
+                pos.set(st[0] + st[7] * age, st[1] + vy * age - 0.5f * g * age * age, st[2] + st[9] * age);
+                q = axisSpin.rotateAxis(spin * age, axis).mul(q0);
+            } else {
+                float hx = st[0] + st[7] * t1;
+                float hz = st[2] + st[9] * t1;
+                float vHit = vy - g * t1;                // < 0
+                float vb = Math.max(0.05f, -vHit * 0.3f); // отскок
+                float t2 = 2 * vb / g;
+                float u = age - t1;
+                float uc = Math.min(u, t2);
+                float y = u < t2 ? LID_GROUND + vb * u - 0.5f * g * u * u : LID_GROUND;
+                pos.set(hx + st[7] * 0.35f * uc, y, hz + st[9] * 0.35f * uc);
+                Quaternionf qHit = new Quaternionf().rotateAxis(spin * t1, axis).mul(q0);
+                Quaternionf flat = new Quaternionf().rotateY(idx * 1.1f).rotateX((float) (Math.PI / 2));
+                q = qHit.slerp(flat, Math.min(1, u / 5f));
+            }
+            Matrix4f local = new Matrix4f(mp).invert().mul(new Matrix4f().translation(pos).rotate(q));
+            Vector3f lp = local.getTranslation(new Vector3f()).mul(16);
+            Vector3f eul = new Vector3f();
+            local.get3x3(new Matrix3f()).getEulerAnglesZYX(eul);
+            cap.x = lp.x;
+            cap.y = lp.y;
+            cap.z = lp.z;
+            cap.xRot = eul.x;
+            cap.yRot = eul.y;
+            cap.zRot = eul.z;
+            if (age > LID_LIFE - 20) {
+                cap.xScale = cap.yScale = cap.zScale = Math.max(0.02f, (LID_LIFE - age) / 20f);
             }
         }
 
@@ -387,22 +471,31 @@ public class LauncherRenderer extends EntityRenderer<Launcher> {
         s.ammo = e.ammo();
         s.time = e.tickCount + pt;
         s.flash = e.flash();
-        // крышки контейнеров: каждый пуск сбивает следующую, после перезарядки все на месте
+        // крышки контейнеров: слетают при вскрытии трубы (или при пуске, если вскрытия не было), после перезарядки все на месте
+        s.launcher = e;
         int ammo = e.ammo();
+        float now = e.tickCount + pt;
         if (e.capLastAmmo >= 0 && ammo < e.capLastAmmo) {
-            int fired = e.kind().capacity - ammo;
             for (int i = ammo; i < Math.min(e.capLastAmmo, e.capLaunched.length); i++) {
-                e.capLaunched[i] = e.tickCount + pt;
+                if (e.capLaunched[i] == -1) {
+                    e.capLaunched[i] = now;
+                }
             }
         } else if (ammo > e.capLastAmmo) {
             java.util.Arrays.fill(e.capLaunched, -1);
+            java.util.Arrays.fill(e.capStart, null);
             for (int i = ammo; i < Math.min(e.kind().capacity, e.capLaunched.length); i++) {
                 e.capLaunched[i] = -1000; // уже стреляные (загрузка мира): крышек нет
             }
         }
         e.capLastAmmo = ammo;
+        int arm = e.arm();
+        s.arm = arm > 0 ? Math.min(Launcher.ARM_TICKS, arm + pt) : 0;
+        if (arm > 0 && ammo > 0 && ammo - 1 < e.capLaunched.length && e.capLaunched[ammo - 1] == -1) {
+            e.capLaunched[ammo - 1] = now - s.arm; // труба вскрывается: крышка летит с этого момента
+        }
         for (int i = 0; i < s.capAge.length; i++) {
-            s.capAge[i] = e.capLaunched[i] < -500 ? 1000 : e.capLaunched[i] < 0 ? -1 : e.tickCount + pt - e.capLaunched[i];
+            s.capAge[i] = e.capLaunched[i] < -500 ? 1000 : e.capLaunched[i] < 0 ? -1 : now - e.capLaunched[i];
         }
         s.faction = e.faction();
         s.hp = e.health() / Math.max(1f, e.kind().health);

@@ -6,8 +6,12 @@
  "turret#0": "column",
  "turret#1": "seeker_box",
  "rack#0": "beam",
- "rack#1": "rail_front",
- "rack#2": "rail_rear",
- "rack#3": "clamp_a",
- "rack#4": "sensor"
+ "rack#1": "trunnion",
+ "rack#2": "tube0",
+ "rack#3": "tube0_cap",
+ "rack#4": "tube1",
+ "rack#5": "tube1_cap",
+ "rack#6": "band0",
+ "rack#7": "band1",
+ "rack#8": "eo_pod"
 }
