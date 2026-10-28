@@ -109,6 +109,16 @@ public final class Blast {
                 Vec3 push = e.position().subtract(at).normalize().scale(f * (0.6 + p * 0.12) * k).add(0, f * 0.5 * k, 0);
                 e.push(push.x, push.y, push.z);
             }
+            if (e instanceof ServerPlayer sp && !sp.isCreative() && !sp.isSpectator() && f > 0.2 && p > 1.5) {
+                // контузия: мутит, звенит в ушах, ноги ватные
+                int dur = (int) (f * 260);
+                sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.CONFUSION, dur, 0));
+                sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.MOVEMENT_SLOWDOWN, dur / 3, 0));
+                if (f > 0.5) {
+                    sp.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.DARKNESS, 40, 0));
+                }
+                sp.playNotifySound(com.harddayz.registry.ModSounds.TINNITUS.get(), net.minecraft.sounds.SoundSource.PLAYERS, (float) Math.min(1, f * 1.4), 1f);
+            }
             if (e instanceof ServerPlayer sp) {
                 sp.connection.send(new net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket(sp));
             }

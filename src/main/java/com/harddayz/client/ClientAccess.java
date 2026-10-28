@@ -14,6 +14,14 @@ public final class ClientAccess {
         Minecraft.getInstance().setScreen(new LauncherScreen(l));
     }
 
+    public static void mortarInfo(com.harddayz.network.Net.MortarInfo p) {
+        var mc = Minecraft.getInstance();
+        if (p.open() && mc.level != null && mc.level.getEntity(p.entity()) instanceof Launcher l) {
+            mc.setScreen(new MortarScreen(l));
+        }
+        MortarScreen.onInfo(p);
+    }
+
     public static java.util.List<String> lives = java.util.List.of();
 
     public static void vehicleSound(com.harddayz.entity.Launcher l) {

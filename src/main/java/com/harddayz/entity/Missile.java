@@ -93,6 +93,9 @@ public class Missile extends Entity implements Threat {
         m.setDeltaMovement(velocity);
         m.target = target;
         m.launcherId = launcher == null ? -1 : launcher.getId();
+        if (launcher instanceof Launcher l && l.warhead() > 0 && (kind == Kind.GRAD || kind == Kind.BALLISTIC)) {
+            m.payload = l.warhead(); // кассетная или минирующая БЧ
+        }
         if (launcher instanceof Launcher l) {
             // A vertical velocity has no yaw; retain the orientation of its rail.
             m.setYRot(l.getYRot() + (l.kind() == Launcher.Kind.ISKANDER || l.kind() == Launcher.Kind.TOCHKA ? 0 : l.turret(1)));
@@ -136,7 +139,7 @@ public class Missile extends Entity implements Threat {
     /** Цель для ПВО: всё, что летит не от неё самой. */
     @Override
     public boolean isThreat() {
-        return kind() != Kind.SAM && kind() != Kind.BOMB && look() != 8;
+        return kind() != Kind.SAM && kind() != Kind.BOMB && look() != 8 && look() != 11;
     }
 
     private @Nullable Vec3 origin;
@@ -179,6 +182,9 @@ public class Missile extends Entity implements Threat {
         if (level() instanceof ServerLevel level) {
             v = guide(level, v);
             setDeltaMovement(v);
+            if ((payload == 1 || payload == 2) && burst(level, v)) {
+                return;
+            }
             if (look() == 8 && flare(level, v)) {
                 return;
             }
@@ -197,7 +203,7 @@ public class Missile extends Entity implements Threat {
             if (collide(level, v)) {
                 return;
             }
-            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7 && look() != 5 && look() != 6) { // мина, РПГ и Javelin звучат сами
+            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7 && look() != 5 && look() != 6 && look() != 11) { // мина, РПГ и Javelin звучат сами
                 level.playSound(null, getX(), getY(), getZ(), switch (kind()) {
                             case GRAD -> com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get();
                             case SAM -> com.harddayz.registry.ModSounds.SAM_LAUNCH.get();
@@ -236,8 +242,14 @@ public class Missile extends Entity implements Threat {
      * снова начинает падать, когда дуга с этой высоты как раз приведёт её в точку цели. Мина летит чистой дугой.
      */
     private Vec3 grad(ServerLevel level, Vec3 v) {
+        // ветер сносит мины и суббоеприпасы сильнее, чем быстрые ракеты
+        double k = look() == 7 || look() == 8 || look() == 11 ? 0.0015 : 0.0005;
+        return gradArc(level, v).add(com.harddayz.war.Wind.vec(level.getGameTime()).scale(k));
+    }
+
+    private Vec3 gradArc(ServerLevel level, Vec3 v) {
         double g = Kind.GRAD.gravity;
-        if (look() == 7 || look() == 8 || target == null) {
+        if (look() == 7 || look() == 8 || look() == 11 || target == null) {
             return v.add(0, -g, 0);
         }
         double cap = Math.min(level.getMaxBuildHeight() - 16, (origin != null ? origin.y : getY()) + 150);
@@ -504,6 +516,50 @@ public class Missile extends Entity implements Threat {
         return this;
     }
 
+    /** Начинка: 1 кассетная, 2 мины, 3 газ, 4 дым, 5 зажигательная. */
+    private int payload;
+    /** Суббоеприпас не сработал и остался лежать миной. */
+    private boolean dud;
+
+    public Missile payload(int p) {
+        payload = p;
+        return this;
+    }
+
+    /** Кассета раскрывается над целью: суббоеприпасы или мины разлетаются по площади. */
+    private boolean burst(ServerLevel level, Vec3 v) {
+        if (v.y >= 0 || target == null || getY() - target.y > (kind() == Kind.BALLISTIC ? 70 : 40)) {
+            return false;
+        }
+        level.playSound(null, getX(), getY(), getZ(), net.minecraft.sounds.SoundEvents.FIREWORK_ROCKET_BLAST, net.minecraft.sounds.SoundSource.HOSTILE, 6f, 0.5f);
+        com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_COSY_SMOKE, getX(), getY(), getZ(), 25, 1.5, 1, 1.5, 0.02);
+        boolean big = kind() == Kind.BALLISTIC;
+        if (payload == 1) {
+            int n = big ? 36 : 12;
+            for (int i = 0; i < n; i++) {
+                Vec3 bv = v.scale(0.4).add(random.nextGaussian() * (big ? 0.45 : 0.3), -0.1, random.nextGaussian() * (big ? 0.45 : 0.3));
+                Missile b = launch(level, Kind.GRAD, position(), bv, target, null).owner(owner).powerMul(0.16f).look(11);
+                b.dud = random.nextFloat() < 0.07f;
+            }
+        } else {
+            int n = big ? 14 : 4;
+            double spread = big ? 22 : 14;
+            for (int i = 0; i < n; i++) {
+                double x = target.x + random.nextGaussian() * spread * 0.6, z = target.z + random.nextGaussian() * spread * 0.6;
+                int y = level.getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, (int) Math.floor(x), (int) Math.floor(z));
+                Mine mine = com.harddayz.registry.ModEntities.MINE.get().create(level);
+                if (mine != null) {
+                    mine.setup(random.nextFloat() < 0.3f ? Mine.Kind.AT : Mine.Kind.AP, owner);
+                    mine.setPos(x, y - 0.02, z);
+                    mine.setYRot(random.nextFloat() * 360);
+                    level.addFreshEntity(mine);
+                }
+            }
+        }
+        discardSafely(level);
+        return true;
+    }
+
     public Missile powerMul(float k) {
         powerMul = k;
         return this;
@@ -577,6 +633,45 @@ public class Missile extends Entity implements Threat {
             discardSafely(level);
             return; // осветительная — без взрыва
         }
+        if (launcherId >= 0 && level.getEntity(launcherId) instanceof Launcher l) {
+            l.shellLanded(level, at, owner);
+        }
+        if (dud) {
+            Mine mine = com.harddayz.registry.ModEntities.MINE.get().create(level);
+            if (mine != null) {
+                mine.setup(Mine.Kind.AP, owner);
+                mine.setPos(at.x, at.y - 0.02, at.z);
+                level.addFreshEntity(mine);
+            }
+            discardSafely(level);
+            return;
+        }
+        if (payload == 3 || payload == 4) {
+            if (payload == 3) {
+                Blast.detonate(level, at, 1.2f, false, this);
+            }
+            com.harddayz.entity.GasCloud.spawn(level, at, payload == 3 ? com.harddayz.entity.GasCloud.GAS : com.harddayz.entity.GasCloud.SMOKE);
+            level.playSound(null, at.x, at.y, at.z, net.minecraft.sounds.SoundEvents.FIRE_EXTINGUISH, net.minecraft.sounds.SoundSource.HOSTILE, 3f, 0.5f);
+            discardSafely(level);
+            return;
+        }
+        if (payload == 5) {
+            Blast.detonate(level, at, kind().power * powerMul * 0.5f, false, this);
+            net.minecraft.core.BlockPos c = net.minecraft.core.BlockPos.containing(at);
+            for (int i = 0; i < 40; i++) {
+                net.minecraft.core.BlockPos p = c.offset(random.nextInt(13) - 6, random.nextInt(5) - 2, random.nextInt(13) - 6);
+                if (level.getBlockState(p).isAir() && level.getBlockState(p.below()).isFaceSturdy(level, p.below(), net.minecraft.core.Direction.UP)) {
+                    level.setBlockAndUpdate(p, net.minecraft.world.level.block.Blocks.FIRE.defaultBlockState());
+                }
+            }
+            for (var e : level.getEntitiesOfClass(net.minecraft.world.entity.LivingEntity.class, new net.minecraft.world.phys.AABB(at, at).inflate(7))) {
+                e.setSecondsOnFire(8);
+            }
+            com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, at.x, at.y + 1, at.z, 200, 4, 1.5, 4, 0.12);
+            com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.LAVA, at.x, at.y + 1, at.z, 40, 3, 1, 3, 0.1);
+            discardSafely(level);
+            return;
+        }
         if (smoke) {
             com.harddayz.Compat.particles(level, com.harddayz.registry.ModParticles.SMOKE_HUGE.get(), at.x, at.y + 1.5, at.z, 70, 3.5, 1.8, 3.5, 0.01);
             com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, at.x, at.y + 1, at.z, 60, 3, 1, 3, 0.01);
@@ -629,7 +724,7 @@ public class Missile extends Entity implements Threat {
 
     /** Свист снаряда на излёте — слышно, что сейчас прилетит. */
     private void whistle(Vec3 v) {
-        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB || v.y > -0.2) {
+        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB || look() == 11 || v.y > -0.2) {
             return;
         }
         var me = com.harddayz.client.ClientAccess.localPlayerPos();

@@ -1093,5 +1093,12 @@
         "name": "harddayz:exp_jetdrone_air_far_3"
       }
     ]
+  },
+  "tinnitus": {
+    "sounds": [
+      {
+        "name": "harddayz:tinnitus"
+      }
+    ]
   }
 }

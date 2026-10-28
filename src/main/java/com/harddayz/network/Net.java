@@ -65,6 +65,15 @@ public final class Net {
     }
 
     /** Клиент → сервер: приказ пусковой из окна управления. */
+    /** Клиент → сервер: экран миномёта. action: 0 навести на x y z (a — заряд, -1 авто), 1 поправка (x вперёд, z вправо),
+     *  2 огонь (a — тип мины, b — сколько, y — 1 беглый), 4 навести по взгляду, 5 сменить заряд a. */
+    public record MortarOrder(int entity, int action, int x, int y, int z, int a, int b) {
+    }
+
+    /** Сервер → клиент: состояние миномёта (см. Launcher.sendMortar). */
+    public record MortarInfo(int entity, boolean open, int[] v) {
+    }
+
     public record FireOrder(int entity, int x, int y, int z, boolean fire, int slot) {
     }
 
@@ -299,6 +308,25 @@ public final class Net {
                         }
                     }
                 });
+        reg(MortarOrder.class, NetworkDirection.PLAY_TO_SERVER, (m, b) -> {
+                    b.writeVarInt(m.entity());
+                    b.writeVarInt(m.action());
+                    b.writeInt(m.x());
+                    b.writeInt(m.y());
+                    b.writeInt(m.z());
+                    b.writeInt(m.a());
+                    b.writeInt(m.b());
+                }, b -> new MortarOrder(b.readVarInt(), b.readVarInt(), b.readInt(), b.readInt(), b.readInt(), b.readInt(), b.readInt()), (p, ctx) -> {
+                    ServerPlayer sp = ctx.getSender();
+                    if (sp != null && sp.level().getEntity(p.entity()) instanceof Launcher l && l.kind() == Launcher.Kind.MORTAR && l.distanceTo(sp) < 8) {
+                        l.mortarOrder(sp, p.action(), p.x(), p.y(), p.z(), p.a(), p.b());
+                    }
+                });
+        reg(MortarInfo.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                    b.writeVarInt(m.entity());
+                    b.writeBoolean(m.open());
+                    b.writeVarIntArray(m.v());
+                }, b -> new MortarInfo(b.readVarInt(), b.readBoolean(), b.readVarIntArray(64)), (p, ctx) -> com.harddayz.client.ClientAccess.mortarInfo(p));
         reg(DroneAction.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneAction, Net::decDroneAction, Net::onDroneAction);
     }
 

@@ -133,11 +133,16 @@ public class Launcher extends Vehicle {
             return this == SAM || this == SAM_POST || this == S400 || this == PATRIOT || this == NASAMS;
         }
 
+        /** Можно поставить кассетную или минирующую БЧ. */
+        public boolean kitOk() {
+            return this == GRAD || this == GRAD_P || this == URAGAN || this == SMERCH || this == HIMARS || this == ISKANDER || this == TOCHKA;
+        }
+
         public boolean accepts(ItemStack s) {
             if (dronePad()) {
                 return droneKind(s) != null;
             }
-            return this != EW && this != RADAR && this != RELAY && this != CBR && (s.is(ammo()) || this == MORTAR && s.is(ModItems.MORTAR_ILLUM.get()));
+            return this != EW && this != RADAR && this != RELAY && this != CBR && (s.is(ammo()) || this == MORTAR && mortarShellType(s) >= 0);
         }
 
         /** Стрелковые установки: на них садятся и стреляют сами. */
@@ -302,6 +307,13 @@ public class Launcher extends Vehicle {
 
     /** Маскировочная сеть: 0 — нет, 1 — накрыта и не видна разведке, 2 — накрыта, но выдала себя пуском. */
     private static final EntityDataAccessor<Integer> CAMO = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    /** Боевая часть ракет: 0 обычная, 1 кассетная, 2 минирование. Сбрасывается, когда пакет расстрелян. */
+    private static final EntityDataAccessor<Integer> WARHEAD = SynchedEntityData.defineId(Launcher.class, EntityDataSerializers.INT);
+    private int ammoWas;
+
+    public int warhead() {
+        return entityData.get(WARHEAD);
+    }
     private int revealUntil;
 
     public int camo() {
@@ -679,10 +691,23 @@ public class Launcher extends Vehicle {
             }
             return InteractionResult.SUCCESS;
         }
+        if ((stack.is(ModItems.CLUSTER_KIT.get()) || stack.is(ModItems.MINE_KIT.get())) && kind().kitOk()) {
+            if (!level().isClientSide()) {
+                entityData.set(WARHEAD, stack.is(ModItems.CLUSTER_KIT.get()) ? 1 : 2);
+                if (!player.isCreative()) {
+                    stack.shrink(1);
+                }
+                level().playSound(null, blockPosition(), SoundEvents.ARMOR_EQUIP_IRON, SoundSource.BLOCKS, 1.2f, 0.8f);
+                player.displayClientMessage(Component.translatable(warhead() == 1 ? "message.harddayz.warhead_cluster" : "message.harddayz.warhead_mines")
+                        .withStyle(ChatFormatting.GOLD), true);
+            }
+            return InteractionResult.SUCCESS;
+        }
         if (kind() == Kind.MORTAR && !player.isSecondaryUseActive() && (stack.isEmpty() || kind().accepts(stack))) {
             if (hand == InteractionHand.MAIN_HAND && !level().isClientSide() && player instanceof ServerPlayer sp) {
                 if (stack.isEmpty()) {
-                    mortarAim(sp);
+                    mortarGunner = sp.getUUID();
+                    sendMortar(sp, true);
                 } else {
                     mortarDrop(sp, stack);
                 }
@@ -1000,6 +1025,13 @@ public class Launcher extends Vehicle {
             discard(); // танки и вертолёты убраны из мода
             return;
         }
+        if (warhead() > 0 && ammoWas > 0 && ammo() == 0) {
+            entityData.set(WARHEAD, 0); // пакет расстрелян — следующий снова обычный
+        }
+        ammoWas = ammo();
+        if (kind() == Kind.MORTAR) {
+            tickMortar(level);
+        }
         if (wrecked()) {
             if (camo() > 0) {
                 entityData.set(CAMO, 0); // сеть сгорела
@@ -1253,6 +1285,222 @@ public class Launcher extends Vehicle {
     /** Миномёт: следующий выстрел не раньше этого тика. */
     private int mortarNext;
 
+    /** Заряды: доля полной начальной скорости. Меньше заряд — круче дуга и меньше дальность. */
+    public static final double[] CHARGES = {0.5, 0.66, 0.83, 1.0};
+    private int charge = 3;
+    private @Nullable Vec3 mortarTarget;
+    private @Nullable Vec3 lastImpact;
+    /** Очередь выстрелов: {тип мины, беглый 0/1}. */
+    private final java.util.ArrayDeque<int[]> mortarQueue = new java.util.ArrayDeque<>();
+    private @Nullable UUID mortarGunner;
+
+    /** Типы мин: 0 ОФ, 1 дымовая, 2 осветительная, 3 зажигательная, 4 газовая. */
+    public static net.minecraft.world.item.Item mortarShell(int t) {
+        return switch (t) {
+            case 1 -> ModItems.MORTAR_SMOKE.get();
+            case 2 -> ModItems.MORTAR_ILLUM.get();
+            case 3 -> ModItems.MORTAR_INCEND.get();
+            case 4 -> ModItems.MORTAR_GAS.get();
+            default -> ModItems.MORTAR_SHELL.get();
+        };
+    }
+
+    public static int mortarShellType(ItemStack s) {
+        for (int t = 0; t < 5; t++) {
+            if (s.is(mortarShell(t))) {
+                return t;
+            }
+        }
+        return -1;
+    }
+
+    /** Верхнее (навесное) решение для заряда c: 45..85°, иначе null. */
+    private @Nullable Double mortarElev(Vec3 t, int c) {
+        double v = MORTAR_SPEED * CHARGES[c];
+        double g = Missile.Kind.GRAD.gravity;
+        Vec3 from = muzzleBase();
+        double x = Math.sqrt((t.x - from.x) * (t.x - from.x) + (t.z - from.z) * (t.z - from.z));
+        double y = t.y - from.y;
+        double disc = v * v * v * v - g * (g * x * x + 2 * y * v * v);
+        if (disc < 0 || x < 4) {
+            return null;
+        }
+        double e = Math.toDegrees(Math.atan((v * v + Math.sqrt(disc)) / (g * x)));
+        return e < 45 || e > 85 ? null : e;
+    }
+
+    /** Навести на mortarTarget. want: -1 подобрать заряд, -2 оставить текущий (если не достаёт — подобрать), 0..3 — этот. */
+    private boolean aimMortar(ServerPlayer sp, int want) {
+        if (mortarTarget == null) {
+            return false;
+        }
+        Double e = null;
+        if (want >= 0) {
+            charge = Math.min(3, want);
+            e = mortarElev(mortarTarget, charge);
+        } else {
+            if (want == -2) {
+                e = mortarElev(mortarTarget, charge);
+            }
+            for (int c = 0; e == null && c < CHARGES.length; c++) {
+                e = mortarElev(mortarTarget, c);
+                if (e != null) {
+                    charge = c;
+                }
+            }
+        }
+        if (e == null) {
+            sp.displayClientMessage(Component.translatable("message.harddayz.mortar_out").withStyle(ChatFormatting.RED), true);
+            return false;
+        }
+        entityData.set(WANT_ELEV, e.floatValue());
+        entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(mortarTarget) - getYRot()));
+        level().playSound(null, blockPosition(), SoundEvents.CHAIN_PLACE, SoundSource.BLOCKS, 0.8f, 0.7f);
+        return true;
+    }
+
+    /** Команда с экрана миномёта. */
+    public void mortarOrder(ServerPlayer sp, int action, int x, int y, int z, int a, int b) {
+        mortarGunner = sp.getUUID();
+        switch (action) {
+            case 0 -> {
+                mortarTarget = new Vec3(x + 0.5, y, z + 0.5);
+                aimMortar(sp, a);
+            }
+            case 1 -> {
+                if (mortarTarget != null) {
+                    Vec3 d = mortarTarget.subtract(position()).multiply(1, 0, 1).normalize();
+                    Vec3 r = new Vec3(-d.z, 0, d.x);
+                    mortarTarget = mortarTarget.add(d.scale(Mth.clamp(x, -200, 200))).add(r.scale(Mth.clamp(z, -200, 200)));
+                    aimMortar(sp, -2);
+                }
+            }
+            case 2 -> {
+                int type = Mth.clamp(a, 0, 4);
+                int n = Mth.clamp(b, 1, 8);
+                net.minecraft.world.item.Item shell = mortarShell(type);
+                for (int i = 0; i < n; i++) {
+                    if (!sp.isCreative()) {
+                        int slot = -1;
+                        var inv = sp.getInventory();
+                        for (int s = 0; s < inv.getContainerSize(); s++) {
+                            if (inv.getItem(s).is(shell)) {
+                                slot = s;
+                                break;
+                            }
+                        }
+                        if (slot < 0) {
+                            if (i == 0) {
+                                sp.displayClientMessage(Component.translatable("message.harddayz.mortar_no_shell").withStyle(ChatFormatting.RED), true);
+                            }
+                            break;
+                        }
+                        inv.getItem(slot).shrink(1);
+                    }
+                    mortarQueue.add(new int[] {type, y == 1 ? 1 : 0});
+                }
+            }
+            case 4 -> mortarAim(sp);
+            case 5 -> {
+                charge = Mth.clamp(a, 0, 3);
+                aimMortar(sp, charge);
+            }
+            default -> {
+            }
+        }
+        sendMortar(sp, false);
+    }
+
+    public void sendMortar(ServerPlayer sp, boolean open) {
+        int[] v = new int[22];
+        float yaw = getYRot() + entityData.get(WANT_TURRET);
+        v[0] = Math.round(Mth.positiveModulo(yaw + 180f, 360f) * 10);
+        v[1] = Math.round(entityData.get(WANT_ELEV) * 10);
+        v[2] = charge;
+        if (mortarTarget != null) {
+            v[3] = 1;
+            v[4] = Mth.floor(mortarTarget.x);
+            v[5] = Mth.floor(mortarTarget.y);
+            v[6] = Mth.floor(mortarTarget.z);
+            v[7] = (int) Math.round(mortarTarget.subtract(position()).multiply(1, 0, 1).length());
+            if (lastImpact != null) {
+                Vec3 d = mortarTarget.subtract(position()).multiply(1, 0, 1).normalize();
+                Vec3 diff = lastImpact.subtract(mortarTarget);
+                v[8] = 1;
+                v[9] = (int) Math.round(diff.x * d.x + diff.z * d.z);
+                v[10] = (int) Math.round(diff.x * -d.z + diff.z * d.x);
+            }
+        }
+        long now = level().getGameTime();
+        v[11] = com.harddayz.war.Wind.fromDeg(now);
+        v[12] = com.harddayz.war.Wind.ms(now);
+        double sp0 = MORTAR_SPEED * CHARGES[charge];
+        double g = Missile.Kind.GRAD.gravity;
+        v[13] = (int) Math.round(2 * sp0 * Math.sin(Math.toRadians(entityData.get(WANT_ELEV))) / g);
+        for (int t = 0; t < 5; t++) {
+            v[14 + t] = sp.isCreative() ? 999 : sp.getInventory().countItem(mortarShell(t));
+        }
+        v[19] = mortarQueue.size();
+        v[20] = (int) (sp0 * sp0 / g * Math.sin(Math.toRadians(170)));
+        v[21] = (int) (sp0 * sp0 / g);
+        com.harddayz.network.Net.toPlayer(sp, new com.harddayz.network.Net.MortarInfo(getId(), open, v));
+    }
+
+    /** Мина или ракета этой установки разорвалась: доклад наводчику — недолёт/перелёт и куда ушла. */
+    public void shellLanded(ServerLevel level, Vec3 at, @Nullable UUID shooter) {
+        if (kind() != Kind.MORTAR) {
+            return;
+        }
+        lastImpact = at;
+        UUID who = mortarGunner != null ? mortarGunner : shooter;
+        if (who == null || !(level.getPlayerByUUID(who) instanceof ServerPlayer sp)) {
+            return;
+        }
+        if (mortarTarget != null) {
+            Vec3 d = mortarTarget.subtract(position()).multiply(1, 0, 1).normalize();
+            Vec3 diff = at.subtract(mortarTarget);
+            int f = (int) Math.round(diff.x * d.x + diff.z * d.z);
+            int s = (int) Math.round(diff.x * -d.z + diff.z * d.x);
+            sp.displayClientMessage(Component.translatable("message.harddayz.mortar_hit",
+                    Component.translatable(f >= 0 ? "message.harddayz.mortar_over" : "message.harddayz.mortar_short"), Math.abs(f),
+                    Component.translatable(s >= 0 ? "message.harddayz.mortar_right" : "message.harddayz.mortar_left"), Math.abs(s))
+                    .withStyle(ChatFormatting.GOLD), true);
+        }
+        sendMortar(sp, false);
+    }
+
+    private void tickMortar(ServerLevel level) {
+        if (mortarQueue.isEmpty() || tickCount < mortarNext) {
+            return;
+        }
+        int[] q = mortarQueue.poll();
+        mortarNext = tickCount + (q[1] == 1 ? 20 : 40);
+        shellFire(level, q[0], q[1] == 1, mortarGunner);
+    }
+
+    /** Выстрел по текущей наводке и заряду. */
+    private void shellFire(ServerLevel level, int type, boolean spread, @Nullable UUID gunner) {
+        float yawSet = getYRot() + entityData.get(WANT_TURRET);
+        float elevSet = entityData.get(WANT_ELEV);
+        float k = spread ? 3.5f : 1f;
+        float yaw = yawSet + (float) random.nextGaussian() * 0.5f * k;
+        Vec3 dir = forward(yaw, elevSet + (float) random.nextGaussian() * 0.35f * k);
+        Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
+        double speed = MORTAR_SPEED * CHARGES[charge] * (1 + random.nextGaussian() * 0.008);
+        int payload = switch (type) {
+            case 1 -> 4;
+            case 3 -> 5;
+            case 4 -> 3;
+            default -> 0;
+        };
+        Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(speed), muzzle.add(dir.scale(80)), this)
+                .owner(owner != null ? owner : gunner).powerMul(0.7f).look(type == 2 ? 8 : 7).payload(payload);
+        entityData.set(FLASH, 4);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
+        com.harddayz.Compat.particles(level, ParticleTypes.POOF, muzzle.x, muzzle.y, muzzle.z, 8, 0.2, 0.2, 0.2, 0.05);
+        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 5f, 0.95f + random.nextFloat() * 0.1f);
+    }
+
     private static String deg(float v) {
         return String.format(java.util.Locale.ROOT, "%.1f", v);
     }
@@ -1273,24 +1521,11 @@ public class Launcher extends Vehicle {
             return;
         }
         mortarNext = tickCount + 40;
-        ServerLevel level = (ServerLevel) level();
-        float yawSet = getYRot() + entityData.get(WANT_TURRET);
-        float elevSet = entityData.get(WANT_ELEV);
-        float yaw = yawSet + (float) random.nextGaussian() * 0.5f;
-        Vec3 dir = forward(yaw, elevSet + (float) random.nextGaussian() * 0.35f);
-        Vec3 muzzle = muzzleBase().add(dir.scale(1.6));
-        boolean illum = stack.is(ModItems.MORTAR_ILLUM.get());
-        Missile.launch(level, Missile.Kind.GRAD, muzzle, dir.scale(MORTAR_SPEED * (1 + random.nextGaussian() * 0.008)), muzzle.add(dir.scale(80)), this)
-                .owner(owner != null ? owner : sp.getUUID()).powerMul(0.7f).look(illum ? 8 : 7);
+        mortarGunner = sp.getUUID();
+        shellFire((ServerLevel) level(), Math.max(0, mortarShellType(stack)), false, sp.getUUID());
         if (!sp.isCreative()) {
             stack.shrink(1);
         }
-        entityData.set(FLASH, 4);
-        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
-        com.harddayz.Compat.particles(level, ParticleTypes.POOF, muzzle.x, muzzle.y, muzzle.z, 8, 0.2, 0.2, 0.2, 0.05);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 5f, 0.95f + random.nextFloat() * 0.1f);
-        sp.displayClientMessage(Component.translatable("message.harddayz.mortar_shot", deg(Mth.positiveModulo(yawSet + 180f, 360f)), deg(elevSet))
-                .withStyle(ChatFormatting.GOLD), true);
     }
 
     public static final double MORTAR_SPEED = 3.8;
@@ -1757,6 +1992,7 @@ public class Launcher extends Vehicle {
         entityData.define(ARM, 0);
         entityData.define(WRECK, 0);
         entityData.define(CAMO, 0);
+        entityData.define(WARHEAD, 0);
         entityData.define(DRONES, "");
         entityData.define(FUEL, 0f);
         entityData.define(SLOTS, ";;;;");
@@ -1774,6 +2010,7 @@ public class Launcher extends Vehicle {
         entityData.set(FUEL, com.harddayz.Compat.getFloat(input, "fuel", tank()));
         entityData.set(WRECK, com.harddayz.Compat.getInt(input, "wreck", 0));
         entityData.set(CAMO, com.harddayz.Compat.getInt(input, "camo", 0));
+        entityData.set(WARHEAD, com.harddayz.Compat.getInt(input, "warhead", 0));
         cookoff = com.harddayz.Compat.getInt(input, "cookoff", -1);
         cookPower = com.harddayz.Compat.getFloat(input, "cookPower", 0f);
         drones.clear();
@@ -1796,6 +2033,7 @@ public class Launcher extends Vehicle {
         output.putFloat("fuel", fuel());
         output.putInt("wreck", wreck());
         output.putInt("camo", netOn() ? 1 : 0);
+        output.putInt("warhead", warhead());
         output.putInt("cookoff", cookoff);
         output.putFloat("cookPower", cookPower);
         output.putString("slots", entityData.get(SLOTS));

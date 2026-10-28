@@ -89,4 +89,5 @@ public final class ModSounds {
     public static final RegistryObject<SoundEvent> DIESEL_LOOP = reg("diesel_loop");
     public static final RegistryObject<SoundEvent> TURBINE_LOOP = reg("turbine_loop");
     public static final RegistryObject<SoundEvent> MORTAR_FIRE = reg("launch_mortar");
+    public static final RegistryObject<SoundEvent> TINNITUS = reg("tinnitus");
 }

@@ -161,6 +161,7 @@ public final class ClientSetup {
         event.registerEntityRenderer(ModEntities.MISSILE.get(), MissileRenderer::new);
         event.registerEntityRenderer(ModEntities.DRONE.get(), DroneRenderer::new);
         event.registerEntityRenderer(ModEntities.MINE.get(), MineRenderer::new);
+        event.registerEntityRenderer(ModEntities.GAS_CLOUD.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
     }
 
     private static void onLayers(EntityRenderersEvent.RegisterLayerDefinitions event) {

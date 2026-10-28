@@ -82,6 +82,14 @@ public final class ModItems {
     public static final RegistryObject<Item> CAMO_NET = item("vehicle_net", Item::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> DECOY = item("decoy", p -> new LauncherItem(p, Launcher.Kind.DECOY), p -> p.stacksTo(2));
     public static final RegistryObject<Item> MORTAR_ILLUM = item("mortar_illum", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> MORTAR_SMOKE = item("mortar_smoke", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> MORTAR_INCEND = item("mortar_incend", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> MORTAR_GAS = item("mortar_gas", AmmoItem::new, p -> p.stacksTo(12));
+    public static final RegistryObject<Item> CLUSTER_KIT = item("cluster_kit", AmmoItem::new, p -> p.stacksTo(4));
+    public static final RegistryObject<Item> MINE_KIT = item("mine_kit", AmmoItem::new, p -> p.stacksTo(4));
+    public static final RegistryObject<Item> GAS_MASK = item("gas_mask", com.harddayz.item.GasMaskItem::new, p -> p.stacksTo(1));
+    public static final RegistryObject<Item> TRENCH_KIT = item("trench_kit", p -> new com.harddayz.item.FortKitItem(p, false), p -> p.stacksTo(8));
+    public static final RegistryObject<Item> DUGOUT_KIT = item("dugout_kit", p -> new com.harddayz.item.FortKitItem(p, true), p -> p.stacksTo(4));
     public static final RegistryObject<Item> JERRYCAN = item("jerrycan", AmmoItem::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> EMPTY_JERRYCAN = item("empty_jerrycan", Item::new, p -> p.stacksTo(4));
     public static final RegistryObject<Item> SAM_POST = item("sam_post", p -> new LauncherItem(p, Launcher.Kind.SAM_POST), p -> p.stacksTo(4));
@@ -200,7 +208,7 @@ public final class ModItems {
             .build());
 
     public static boolean eng(Item i) {
-        return i instanceof com.harddayz.item.MedItem || i instanceof com.harddayz.item.FieldShovelItem
+        return i instanceof com.harddayz.item.MedItem || i instanceof com.harddayz.item.FieldShovelItem || i instanceof com.harddayz.item.FortKitItem
                 || i instanceof net.minecraft.world.item.BlockItem b && (b.getBlock() instanceof com.harddayz.war.EngBlock
                         || ModBlocks.isBuild(b.getBlock()));
     }
