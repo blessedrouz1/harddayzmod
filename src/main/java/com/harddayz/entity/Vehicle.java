@@ -37,7 +37,8 @@ public abstract class Vehicle extends Entity {
 
     // клиентская анимация колёс
     public float wheelSpin;
-    private boolean engineSound;
+    /** Клиент: петля двигателя. */
+    public Object soundLoop;
     public float prevWheelSpin;
     public float steer;
     public float prevSteer;
@@ -116,6 +117,10 @@ public abstract class Vehicle extends Entity {
 
     public float health() {
         return entityData.get(HEALTH);
+    }
+
+    public void setOwner(UUID id) {
+        owner = id;
     }
 
     public void setOwner(Player p) {
@@ -210,8 +215,7 @@ public abstract class Vehicle extends Entity {
             lerp.tick(this);
         }
         if (level().isClientSide()) {
-            if (!engineSound && this instanceof Launcher l && com.harddayz.client.VehicleSound.wants(l)) {
-                engineSound = true;
+            if (tickCount % 20 == 1 && this instanceof Launcher l && com.harddayz.client.VehicleSound.wants(l)) {
                 com.harddayz.client.ClientAccess.vehicleSound(l);
             }
             damageFx();

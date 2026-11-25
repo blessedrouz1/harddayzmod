@@ -37,6 +37,8 @@ public final class Frontline {
         public int y;
         public int z;
         public String name = "";
+        /** Вид точки фронтовой карты (FrontMap.Type) — от него зависит польза. */
+        public @Nullable String kind;
         public @Nullable String owner;
         public @Nullable String capturing;
         public int progress;
@@ -52,12 +54,17 @@ public final class Frontline {
     }
 
     public static void add(BlockPos pos) {
+        add(pos, null, null);
+    }
+
+    public static void add(BlockPos pos, @Nullable String title, @Nullable String kind) {
         List<Point> pts = War.points();
         Point p = new Point();
         p.x = pos.getX();
         p.y = pos.getY();
         p.z = pos.getZ();
-        p.name = String.valueOf((char) ('A' + pts.size() % 26));
+        p.name = title != null ? title : String.valueOf((char) ('A' + pts.size() % 26));
+        p.kind = kind;
         pts.add(p);
         War.save();
         War.broadcast(Component.translatable("message.harddayz.point_added", p.name, p.x, p.y, p.z).withStyle(ChatFormatting.GOLD));
@@ -106,6 +113,21 @@ public final class Frontline {
                     contested = true;
                 }
             }
+            for (String id : BotCommander.present(pos, RADIUS + 5)) {
+                War.Faction f = War.byId(id);
+                if (f == null || f.defeated) {
+                    continue;
+                }
+                if (present == null) {
+                    present = f;
+                } else if (present != f) {
+                    contested = true;
+                }
+            }
+            if (War.prep()) {
+                present = null;
+                contested = false;
+            }
             if (!contested && present != null && !present.id.equals(p.owner)) {
                 if (!present.id.equals(p.capturing)) {
                     p.capturing = present.id;
@@ -141,11 +163,11 @@ public final class Frontline {
         // раз в минуту: доход и очки
         if (now % 1200 < 20) {
             for (War.Faction f : War.factions()) {
-                if (f.defeated || f.members.isEmpty()) {
+                if (f.defeated || !f.playing()) {
                     continue;
                 }
                 long held = War.points().stream().filter(p -> f.id.equals(p.owner)).count();
-                int income = BASE_INCOME + (int) held * POINT_INCOME;
+                int income = BASE_INCOME + (int) held * POINT_INCOME + War.held(f, "CITY") * 150;
                 f.budget += income;
                 f.score += (int) held;
                 for (ServerPlayer m : Supply.members(server, f)) {
@@ -212,9 +234,11 @@ public final class Frontline {
             }
         }
         if (winner == null && !War.siege()) {
-            List<War.Faction> alive = War.factions().stream().filter(f -> !f.defeated && !f.members.isEmpty()).toList();
+            List<War.Faction> alive = War.factions().stream().filter(f -> !f.defeated && f.playing()).toList();
             boolean anyHq = War.factions().stream().anyMatch(f -> f.hadHq);
-            if ((anyHq || War.livesMode()) && alive.size() == 1) {
+            // пока вступила только одна сторона, побеждать некого
+            boolean started = War.factions().stream().filter(f -> f.ai || f.joined).count() >= 2;
+            if (started && (anyHq || War.livesMode()) && alive.size() == 1) {
                 winner = alive.get(0);
             }
         }

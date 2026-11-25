@@ -875,6 +875,10 @@ public class Launcher extends Vehicle {
                     player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
                     return;
                 }
+                if (kind() == Kind.HIMARS) { // пакет поднимается и смотрит на цель
+                    entityData.set(WANT_ELEV, 58f);
+                    entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
+                }
                 if (kind() == Kind.S400) {
                     entityData.set(WANT_ELEV, 88f); // и по земле — вертикальный пуск
                     entityData.set(WANT_TURRET, 0f);
@@ -909,36 +913,52 @@ public class Launcher extends Vehicle {
         return v * v / Missile.Kind.GRAD.gravity;
     }
 
-    /** Угол возвышения неуправляемой ракеты (настильная траектория), или null — не долетит. */
+    /** Скорость схода ракет для текущей цели (тормозные кольца): ближе цель — слабее, зато дуга всегда навесная. 0 — полная. */
+    private double gradV;
+
+    /** Угол возвышения неуправляемой ракеты, или null — не долетит. Всегда 45..62°: ракеты идут вверх и падают сверху. */
     private @Nullable Double gradElevation(Vec3 t) {
-        double v = rocketSpeed();
+        double max = rocketSpeed();
         double g = Missile.Kind.GRAD.gravity;
         Vec3 from = muzzleBase();
         double dx = t.x - from.x, dz = t.z - from.z;
         double x = Math.sqrt(dx * dx + dz * dz);
-        if (x < 20) {
+        if (x < 40) {
             return null;
         }
         // The rocket leaves the tip of the rail (~2 blocks past the pivot), not the pivot, and flies the exact per-tick
         // integration of Missile.grad (gravity first, then move) - solve that, not the continuous parabola.
         float turretDeg = Mth.wrapDegrees(yawTo(t) - getYRot());
-        double ux = dx / x, uz = dz / x;
-        double lo = 1.5, hi = 45;
-        if (landing(v, g, lo, t.y - from.y, ux, uz, turretDeg) > x) {
-            return lo; // closer than the flattest shot reaches
+        double ux = dx / x, uz = dz / x, dy = t.y - from.y;
+        double elev = Mth.clamp(62 - x / maxGradRange() * 20, 46, 62);
+        if (landing(max, g, elev, dy, ux, uz, turretDeg) >= x) {
+            double lo = 0.8, hi = max;
+            for (int i = 0; i < 40; i++) {
+                double mid = (lo + hi) / 2;
+                if (landing(mid, g, elev, dy, ux, uz, turretDeg) < x) {
+                    lo = mid;
+                } else {
+                    hi = mid;
+                }
+            }
+            gradV = hi;
+            return elev;
         }
-        if (landing(v, g, hi, t.y - from.y, ux, uz, turretDeg) < x) {
+        // на пределе: полная скорость, угол подбираем от 44° вверх (дальше — меньше)
+        gradV = max;
+        double lo = 44, hi = elev;
+        if (landing(max, g, lo, dy, ux, uz, turretDeg) < x) {
             return null;
         }
         for (int i = 0; i < 40; i++) {
             double mid = (lo + hi) / 2;
-            if (landing(v, g, mid, t.y - from.y, ux, uz, turretDeg) < x) {
+            if (landing(max, g, mid, dy, ux, uz, turretDeg) >= x) {
                 lo = mid;
             } else {
                 hi = mid;
             }
         }
-        return (lo + hi) / 2;
+        return lo;
     }
 
     /** Horizontal distance from the pivot at which a rocket fired at {@code elev} degrees comes down to height {@code ty}. */
@@ -1063,7 +1083,7 @@ public class Launcher extends Vehicle {
         // мотор работает — топливо уходит (на месте втрое меньше)
         if (usesFuel() && getControllingPassenger() != null && fuel() > 0) {
             boolean moving = !stationary();
-            entityData.set(FUEL, Math.max(0, fuel() - burn() * (moving ? 1 : 0.33f)));
+            entityData.set(FUEL, Math.max(0, fuel() - burn() * (moving ? 1 : 0.33f) / (1 << Math.min(2, com.harddayz.war.War.held(owner, "OIL")))));
             if (fuel() <= 0 && getControllingPassenger() instanceof ServerPlayer d) {
                 d.displayClientMessage(Component.translatable("message.harddayz.no_fuel").withStyle(ChatFormatting.RED), true);
             }
@@ -1223,7 +1243,7 @@ public class Launcher extends Vehicle {
         float pitch = (float) Math.toDegrees(Math.asin(axis.y)) + (float) random.nextGaussian() * 0.15f;
         Vec3 dir = forward(yaw, pitch);
         Vec3 muzzle = launchMuzzle();
-        Vec3 vel = dir.scale(rocketSpeed() * (1 + random.nextGaussian() * 0.004));
+        Vec3 vel = dir.scale((gradV > 0 ? gradV : rocketSpeed()) * (1 + random.nextGaussian() * 0.004));
         Missile m = Missile.launch(level, Missile.Kind.GRAD, muzzle, vel, Vec3.atCenterOf(target), this).owner(owner);
         if (kind() == Kind.TOS) {
             m.thermobaric();
@@ -1498,7 +1518,7 @@ public class Launcher extends Vehicle {
         entityData.set(FLASH, 4);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
         com.harddayz.Compat.particles(level, ParticleTypes.POOF, muzzle.x, muzzle.y, muzzle.z, 8, 0.2, 0.2, 0.2, 0.05);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 5f, 0.95f + random.nextFloat() * 0.1f);
+        com.harddayz.registry.ModSounds.launch(level, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), 260, 0.95f + random.nextFloat() * 0.1f);
     }
 
     private static String deg(float v) {
@@ -1563,7 +1583,7 @@ public class Launcher extends Vehicle {
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 4);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 12, 0.3, 0.3, 0.3, 0.03);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), SoundSource.HOSTILE, 4f, 1f);
+        com.harddayz.registry.ModSounds.launch(level, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.MORTAR_FIRE.get(), 260, 1f);
     }
 
     /** «Калибр»: пуск из ячеек модуля под углом подъёма. Крышки отлетают при выстреле. */
@@ -1571,7 +1591,7 @@ public class Launcher extends Vehicle {
         if (timer++ % 40 != 0) {
             return;
         }
-        if (ammo() <= 0 || target == null || shot >= 2) {
+        if (ammo() <= 0 || target == null) { // весь заряженный пакет
             stow();
             return;
         }
@@ -1579,14 +1599,15 @@ public class Launcher extends Vehicle {
         // Ячейки 2 x 2; точка носа текущей ракеты берётся из кости tipN модели (LauncherGeometry.muzzle)
         Vec3 muzzle = launchMuzzle();
         // Старт под углом подъёма модуля, потом ракета наводится на цель (Drone.Kind.CRUISE)
-        Vec3 launchDir = launchDirection().scale(0.5);
+        Vec3 launchDir = launchDirection();
+        Vec3 nose = muzzle.add(launchDir.scale(1.4));
         Vec3 aim = Vec3.atCenterOf(target).add(random.nextGaussian() * 7, 0, random.nextGaussian() * 7);
         Drone.launchShahed(level, muzzle, launchDir, aim, owner, Drone.Kind.CRUISE);
         entityData.set(AMMO, ammo() - 1);
         entityData.set(FLASH, 8); // крышка отлетает при flash>0 (рендерер)
-        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, muzzle.x, muzzle.y, muzzle.z, 30, 0.8, 0.4, 0.8, 0.05);
-        com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 20, 0.3, 0.2, 0.3, 0.12);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_CRUISE.get(), SoundSource.HOSTILE, 6f, 1f);
+        com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, nose.x, nose.y, nose.z, 20, 0.5, 0.4, 0.5, 0.05);
+        com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, nose.x, nose.y, nose.z, 20, 0.3, 0.2, 0.3, 0.12);
+        com.harddayz.registry.ModSounds.launch(level, muzzle.x, muzzle.y, muzzle.z, com.harddayz.registry.ModSounds.LAUNCH_CRUISE.get(), 500, 1f);
     }
 
     private void fireIskander(ServerLevel level) {
@@ -1642,8 +1663,8 @@ public class Launcher extends Vehicle {
             entityData.set(FLASH, 6);
             com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
             com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-            level.playSound(null, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
-                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), SoundSource.HOSTILE, 5f, 1f);
+            com.harddayz.registry.ModSounds.launch(level, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
+                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), dk.jetDrone() ? 350 : 280, 1f);
             stow();
             return;
         }
@@ -1652,8 +1673,8 @@ public class Launcher extends Vehicle {
         entityData.set(FLASH, 6);
         com.harddayz.Compat.particles(level, ParticleTypes.CAMPFIRE_COSY_SMOKE, muzzle.x, muzzle.y, muzzle.z, 20, 0.6, 0.3, 0.6, 0.04);
         com.harddayz.Compat.particles(level, ParticleTypes.FLAME, muzzle.x, muzzle.y, muzzle.z, 25, 0.4, 0.2, 0.4, 0.1);
-        level.playSound(null, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
-                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), SoundSource.HOSTILE, 5f, 1f);
+        com.harddayz.registry.ModSounds.launch(level, muzzle.x, muzzle.y, muzzle.z, (dk.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE
+                : com.harddayz.registry.ModSounds.LAUNCH_SHAHED).get(), dk.jetDrone() ? 350 : 280, 1f);
     }
 
     /** Пульт оператора по пусковой: дрон стартует и сразу переходит под ручное управление. */
@@ -1687,7 +1708,17 @@ public class Launcher extends Vehicle {
 
     // ------------------------------------------------------------------ ЗРК
 
+    /** Полный боекомплект (снабжение ботов). */
+    public void resupply() {
+        entityData.set(AMMO, kind().capacity);
+    }
+
     private int samRange() {
+        int r = samRangeBase();
+        return com.harddayz.war.War.held(owner, "POWER") > 0 ? r * 6 / 5 : r; // электростанция питает РЛС и ПВО
+    }
+
+    private int samRangeBase() {
         return switch (kind()) {
             case S400 -> 600;
             case PATRIOT -> 450;
@@ -1897,7 +1928,8 @@ public class Launcher extends Vehicle {
             }
             return true;
         }
-        if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.isShiftKeyDown() && getPassengers().isEmpty() && health() > 0) {
+        if (source.getEntity() instanceof Player p && source.getDirectEntity() == p && p.isShiftKeyDown() && getPassengers().isEmpty() && health() > 0
+                && (owner == null || !com.harddayz.war.War.active() || com.harddayz.war.War.allied(owner, p.getUUID()))) {
             spawnAtLocation(new ItemStack(kind().item()));
             if (kind().dronePad()) {
                 for (Drone.Kind k : drones) {
@@ -2152,7 +2184,7 @@ public class Launcher extends Vehicle {
             com.harddayz.war.RadarNet.radarAlive(key, now);
             com.harddayz.war.RadarNet.radarAt(key, blockPosition(), now);
         }
-        int r = com.harddayz.war.RadarNet.RADAR_RANGE;
+        int r = com.harddayz.war.RadarNet.RADAR_RANGE * (com.harddayz.war.War.held(owner, "POWER") > 0 ? 13 : 10) / 10;
         for (Entity e : level.getEntities((Entity) null, new AABB(position(), position()).inflate(r, 600, r), e -> e instanceof Threat)) {
             Threat th = (Threat) e;
             if (!th.isThreat() || com.harddayz.war.War.allied(owner, th.owner()) || e.getY() < getY() - 4) {

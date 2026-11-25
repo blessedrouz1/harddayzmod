@@ -54,6 +54,21 @@ public final class War {
         public int destroyed;
         public int spent;
         public int captured;
+        /** Сколько ботов держит сторона; ai — сторона целиком под управлением ботов. */
+        public int bots;
+        public boolean ai;
+        /** Кто-то из игроков уже вступал. */
+        public boolean joined;
+
+        /** От имени кого воюют боты стороны. */
+        public UUID botId() {
+            return UUID.nameUUIDFromBytes(("harddayz_bot_" + id).getBytes(StandardCharsets.UTF_8));
+        }
+
+        /** Сторона участвует в матче. */
+        public boolean playing() {
+            return ai || !members.isEmpty();
+        }
 
         Faction() {
         }
@@ -78,7 +93,7 @@ public final class War {
         }
 
         public boolean has(UUID u) {
-            return members.contains(u.toString());
+            return members.contains(u.toString()) || u.equals(botId());
         }
     }
 
@@ -100,6 +115,93 @@ public final class War {
         int objectsLost;
         /** Сколько тиков осталось до конца осады (защита выстояла). */
         int siegeLeft;
+        /** Подготовка: тиков до начала боя. */
+        int prepLeft;
+        int difficulty = 2;
+        List<BotCommander.Squad> squads = new ArrayList<>();
+        int squadId;
+    }
+
+    public static List<BotCommander.Squad> squads() {
+        if (data.squads == null) {
+            data.squads = new ArrayList<>();
+        }
+        return data.squads;
+    }
+
+    public static int nextSquad() {
+        return ++data.squadId;
+    }
+
+    /** 1 легко, 2 нормально, 3 тяжело. */
+    public static int difficulty() {
+        return Math.max(1, Math.min(3, data.difficulty));
+    }
+
+    public static boolean coop() {
+        return active() && "coop".equals(data.mode);
+    }
+
+    /** Вражеская сторона в режиме против ботов. */
+    public static @Nullable Faction enemyBots() {
+        return coop() && data.factions.size() > 1 ? data.factions.get(1) : null;
+    }
+
+    /** Идёт подготовка: урона нет, точки не берутся. */
+    public static boolean prep() {
+        return data.active && data.prepLeft > 0;
+    }
+
+    public static int prepLeft() {
+        return data.prepLeft;
+    }
+
+    public static void setPrep(int ticks) {
+        data.prepLeft = Math.max(0, ticks);
+    }
+
+    public static void setBots(int bots, int difficulty) {
+        data.difficulty = difficulty;
+        for (Faction f : data.factions) {
+            f.bots = f.ai ? (int) Math.ceil(Math.max(8, bots) * (0.7 + 0.35 * difficulty())) : bots;
+        }
+        save();
+    }
+
+    public static void createCoop(ServerPlayer by, int budget) {
+        create(by.getUUID(), 2, budget, 0);
+        data.mode = "coop";
+        data.factions.get(0).name = "Союз";
+        data.factions.get(1).name = "Враг";
+        data.factions.get(1).ai = true;
+        syncTeams();
+        save();
+    }
+
+    /** Сколько точек такого вида держит сторона игрока или техники. */
+    public static int held(@Nullable UUID who, String kind) {
+        Faction f = of(who);
+        return f == null ? 0 : held(f, kind);
+    }
+
+    public static int held(Faction f, String kind) {
+        int n = 0;
+        for (Frontline.Point p : points()) {
+            if (kind.equals(p.kind) && f.id.equals(p.owner)) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    /** Аэродром: скидка в магазине, %. */
+    public static int discount(Faction f) {
+        return held(f, "AIRFIELD") > 0 ? 15 : 0;
+    }
+
+    /** Вышки связи: множитель дальности управления дронами. */
+    public static double link(@Nullable UUID who) {
+        return 1 + 0.4 * held(who, "TOWER");
     }
 
     public static List<Frontline.Point> points() {
@@ -206,6 +308,16 @@ public final class War {
         if (f == null) {
             return -1;
         }
+        for (int i = 0; i < PRESETS.length; i++) {
+            if (PRESETS[i][0].equals(f.id)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** Цвет фракции по номеру: 0 синие, 1 красные, 2 зелёные, 3 жёлтые. */
+    public static int presetIndex(Faction f) {
         for (int i = 0; i < PRESETS.length; i++) {
             if (PRESETS[i][0].equals(f.id)) {
                 return i;
@@ -321,6 +433,13 @@ public final class War {
         return null;
     }
 
+    /** Объект города, поставленный самой картой. */
+    public static void addMapObject(BlockPos pos) {
+        objects().add(new int[] {pos.getX(), pos.getY(), pos.getZ()});
+        data.objectsTotal++;
+        save();
+    }
+
     public static List<int[]> objects() {
         if (data.objects == null) {
             data.objects = new ArrayList<>();
@@ -368,10 +487,14 @@ public final class War {
 
     /** {@code lives > 0} — режим «жизни». */
     public static void create(ServerPlayer by, int count, int budget, int lives) {
+        create(by.getUUID(), count, budget, lives);
+    }
+
+    public static void create(UUID by, int count, int budget, int lives) {
         end();
         data.active = true;
         data.mode = lives > 0 ? "lives" : "hq";
-        data.creator = by.getUUID().toString();
+        data.creator = by.toString();
         data.startBudget = budget;
         for (int i = 0; i < Math.max(2, Math.min(4, count)); i++) {
             String[] p = PRESETS[i];
@@ -417,6 +540,7 @@ public final class War {
 
     public static void end() {
         Frontline.clear();
+        BotCommander.reset(server);
         if (server != null) {
             Scoreboard sb = server.getScoreboard();
             for (Faction f : data.factions) {
@@ -440,6 +564,7 @@ public final class War {
             }
         }
         f.members.add(p.getUUID().toString());
+        f.joined = true;
         if (f.commander == null) {
             f.commander = p.getUUID().toString(); // первый вступивший — командир
         }

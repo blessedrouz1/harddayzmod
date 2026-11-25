@@ -215,20 +215,22 @@ public final class Supply {
         if (e.heavy() && !War.isCommander(p)) {
             return Component.translatable("message.harddayz.shop_commander_only");
         }
-        if (f.budget < e.price()) {
-            return Component.translatable("message.harddayz.shop_no_money", e.price(), f.budget);
+        int price = e.price() * (100 - War.discount(f)) / 100;
+        int wait = War.discount(f) > 0 ? e.seconds() / 2 : e.seconds();
+        if (f.budget < price) {
+            return Component.translatable("message.harddayz.shop_no_money", price, f.budget);
         }
         if (e.heavy() && f.orders.stream().filter(o -> CATALOG.get(o.entry).heavy()).count() >= MAX_HEAVY) {
             return Component.translatable("message.harddayz.shop_heavy_limit", MAX_HEAVY);
         }
-        f.budget -= e.price();
-        f.spent += e.price();
+        f.budget -= price;
+        f.spent += price;
         long now = p.level().getServer().overworld().getGameTime();
-        f.orders.add(new Order(index, now + e.seconds() * 20L, p.getScoreboardName()));
+        f.orders.add(new Order(index, now + wait * 20L, p.getScoreboardName()));
         War.save();
         for (ServerPlayer m : members(p.level().getServer(), f)) {
-            m.sendSystemMessage(Component.translatable("message.harddayz.shop_ordered", p.getDisplayName(), e.stack().getHoverName(), e.count(), e.price(),
-                    e.seconds()).withStyle(ChatFormatting.GRAY));
+            m.sendSystemMessage(Component.translatable("message.harddayz.shop_ordered", p.getDisplayName(), e.stack().getHoverName(), e.count(), price,
+                    wait).withStyle(ChatFormatting.GRAY));
         }
         return null;
     }

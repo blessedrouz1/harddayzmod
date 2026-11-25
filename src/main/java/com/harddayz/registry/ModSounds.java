@@ -71,6 +71,18 @@ public final class ModSounds {
         return BLASTS.get("exp_" + BLAST_TYPES[type] + (air ? "_air" : "") + "_" + new String[] {"near", "mid", "far"}[tier]).get();
     }
 
+    /** Звук пуска: слышен на range блоков, до каждого игрока доходит с задержкой по скорости звука. */
+    public static void launch(net.minecraft.world.level.Level level, double x, double y, double z, SoundEvent sound, float range, float pitch) {
+        if (!(level instanceof net.minecraft.server.level.ServerLevel sl)) {
+            return;
+        }
+        var fx = new com.harddayz.network.Net.LaunchSound(sound.getLocation(), x, y, z, range, pitch);
+        for (var p : sl.players()) {
+            // всем в мире: камера дрона может быть далеко от тела пилота, слышимость решает клиент
+            com.harddayz.network.Net.toPlayer(p, fx);
+        }
+    }
+
     private static RegistryObject<SoundEvent> reg(String name) {
         return SOUNDS.register(name, () -> SoundEvent.createVariableRangeEvent(new net.minecraft.resources.ResourceLocation(HardDayz.MODID, name)));
     }

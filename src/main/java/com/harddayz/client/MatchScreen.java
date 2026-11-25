@@ -28,7 +28,7 @@ public class MatchScreen extends HdScreen {
     protected void init() {
         clearWidgets();
         int cx = width / 2;
-        int bottom = height / 2 + 96;
+        int bottom = height / 2 + 116;
         if (state.creator()) {
             addRenderableWidget(Button.builder(Component.translatable(confirm ? "screen.harddayz.match_end_sure" : "screen.harddayz.match_end"), b -> {
                 if (confirm) {
@@ -53,15 +53,15 @@ public class MatchScreen extends HdScreen {
     @Override
     protected void background(Gfx g, int mouseX, int mouseY, float a) {
         int cx = width / 2;
-        g.fill(cx - 160, height / 2 - 110, cx + 160, height / 2 + 124, 0xEE101418);
-        g.outline(cx - 160, height / 2 - 110, 320, 234, 0xFF5A6A40);
+        g.fill(cx - 160, height / 2 - 120, cx + 160, height / 2 + 144, 0xEE101418);
+        g.outline(cx - 160, height / 2 - 120, 320, 264, 0xFF5A6A40);
     }
 
     @Override
     protected void content(Gfx g, int mouseX, int mouseY, float a) {
         int cx = width / 2;
-        g.text(font, title, cx - font.width(title) / 2, height / 2 - 102, 0xFFE0C060, true);
-        int y = height / 2 - 84;
+        g.text(font, title, cx - font.width(title) / 2, height / 2 - 112, 0xFFE0C060, true);
+        int y = height / 2 - 96;
         for (String line : state.lines()) {
             g.text(font, Component.literal(line), cx - 150, y, 0xFFE8F0E0, false);
             y += 12;

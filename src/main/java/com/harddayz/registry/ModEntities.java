@@ -34,6 +34,10 @@ public final class ModEntities {
             () -> EntityType.Builder.<com.harddayz.entity.Mine>of(com.harddayz.entity.Mine::new, MobCategory.MISC).sized(0.6f, 0.2f)
                     .clientTrackingRange(8).updateInterval(20).build("mine"));
 
+    public static final RegistryObject<EntityType<com.harddayz.entity.Soldier>> SOLDIER = ENTITIES.register("soldier",
+            () -> EntityType.Builder.<com.harddayz.entity.Soldier>of(com.harddayz.entity.Soldier::new, MobCategory.MISC).sized(0.6f, 1.8f)
+                    .clientTrackingRange(10).updateInterval(2).build("soldier"));
+
     private ModEntities() {
     }
 }

@@ -31,11 +31,14 @@ public final class Blast {
     }
 
     /** Звук взрыва: тип оружия 1..7 (см. ModSounds.BLAST_TYPES), +16 — подрыв в воздухе. 0 — по силе. */
-    private static int soundOf(@Nullable Entity source, boolean breakBlocks) {
-        int air = breakBlocks ? 0 : 16;
+    private static int soundOf(@Nullable Entity source, boolean inAir) {
+        int air = inAir ? 16 : 0;
         if (source instanceof com.harddayz.entity.Missile m) {
+            if (m.look() == 11 || m.look() == 5) {
+                return 1 | air; // суббоеприпас, Javelin
+            }
             if (m.kind() == com.harddayz.entity.Missile.Kind.SAM) {
-                return 3 | 16;
+                return 3 | air;
             }
             if (m.look() == 7) {
                 return 2 | air;
@@ -57,16 +60,37 @@ public final class Blast {
                 default -> 1;
             } | air;
         }
-        return 0;
+        return air;
+    }
+
+    /** Рядом стена или крыша: попадание в дом на высоте — не подрыв в воздухе. */
+    private static boolean nearSolid(ServerLevel level, Vec3 at) {
+        BlockPos c = BlockPos.containing(at);
+        for (BlockPos p : BlockPos.betweenClosed(c.offset(-2, -2, -2), c.offset(2, 2, 2))) {
+            if (level.getBlockState(p).blocksMotion()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void detonate(ServerLevel level, Vec3 at, float power, boolean breakBlocks, @Nullable Entity source) {
         float p = power * Config.blastScale();
+        if (com.harddayz.war.War.prep()) { // подготовка: только грохот
+            Net.BlastFx only = new Net.BlastFx(at.x, at.y, at.z, p, soundOf(source, false));
+            for (ServerPlayer pl : level.players()) {
+                Net.toPlayer(pl, only);
+            }
+            return;
+        }
+        com.harddayz.war.BotCommander.blast(at, p);
         boolean blocks = breakBlocks && Config.blockDamage();
         RandomSource r = level.getRandom();
         int top = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(at.x), Mth.floor(at.z));
         double ground = Math.min(at.y, top);
         boolean nearGround = at.y - ground < p * 1.5;
+
+        boolean airborne = at.y - top > 5 && !nearSolid(level, at); // до воронки: потом стены уже нет
 
         if (blocks && nearGround) {
             debris(level, at, p, r);
@@ -133,9 +157,9 @@ public final class Blast {
         }
 
         com.harddayz.war.RadarNet.blast(at, !breakBlocks || at.y - ground > 6, level.getGameTime());
-        Net.BlastFx fx = new Net.BlastFx(at.x, at.y, at.z, p, soundOf(source, breakBlocks));
+        Net.BlastFx fx = new Net.BlastFx(at.x, at.y, at.z, p, soundOf(source, airborne));
         for (ServerPlayer pl : level.players()) {
-            if (pl.position().distanceTo(at) < 900) {
+            if (pl.position().distanceTo(at) < 2500) { // с запасом: камера пилота дрона далеко от тела
                 Net.toPlayer(pl, fx);
             }
         }

@@ -91,7 +91,8 @@ public class LauncherGeometryGameTests {
             fire.setAccessible(true);
             java.util.Set<Integer> before = new java.util.HashSet<>();
             for (Entity e : h.getLevel().getAllEntities()) before.add(e.getId());
-            fire.invoke(launcher, h.getLevel());
+            // контейнерным пусковым нужно время: сначала слетает крышка и выезжает ракета
+            for (int i = 0; i < 200 && launcher.ammo() == kind.capacity; i++) fire.invoke(launcher, h.getLevel());
             int found = 0;
             for (Entity e : h.getLevel().getAllEntities()) {
                 if (!before.contains(e.getId()) && (e instanceof Missile || e instanceof Drone)) {

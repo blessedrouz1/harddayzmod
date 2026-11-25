@@ -131,7 +131,7 @@ public final class LauncherGeometry {
             bone = bones.containsKey("tip" + index) ? "tip" + index : "tip0";
             Bone b = bones.get(bone);
             point = b.min.add(b.max).scale(0.5);
-            if (!kind.dronePad()) point = new Vec3(point.x, point.y, b.min.z);
+            if (!kind.dronePad() && kind != Launcher.Kind.KALIBR) point = new Vec3(point.x, point.y, b.min.z);
         } else {
             int i = Math.floorMod(ammo - 1, Math.max(1, kind.capacity));
             point = switch (kind) {

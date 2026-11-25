@@ -29,6 +29,7 @@ public final class ClientSetup {
     public static final KeyMapping CONTROL = new KeyMapping("key.harddayz.control", InputConstants.KEY_V, CATEGORY);
     public static final KeyMapping ENGINE = new KeyMapping("key.harddayz.engine", InputConstants.KEY_B, CATEGORY);
     public static final KeyMapping NIGHT = new KeyMapping("key.harddayz.night", InputConstants.KEY_N, CATEGORY);
+    public static final KeyMapping MAP = new KeyMapping("key.harddayz.map", InputConstants.KEY_M, CATEGORY);
     public static final KeyMapping WAR_MENU = new KeyMapping("key.harddayz.war_menu", InputConstants.KEY_J, CATEGORY);
 
     /**
@@ -108,6 +109,7 @@ public final class ClientSetup {
             e.register(ENGINE);
             e.register(NIGHT);
             e.register(WAR_MENU);
+            e.register(MAP);
         });
         modBus.addListener(ClientSetup::onGuiLayers);
         IEventBus bus = MinecraftForge.EVENT_BUS;
@@ -128,6 +130,7 @@ public final class ClientSetup {
         });
         bus.addListener(ClientBlasts::onFogColor);
         bus.addListener(TargetHighlight::onRender);
+        bus.addListener(BlastRender::onRender);
         bus.addListener((ViewportEvent.ComputeFov e) -> {
             DronePilot.onFov(e);
             ClientGuns.onFov(e);
@@ -161,6 +164,7 @@ public final class ClientSetup {
         event.registerEntityRenderer(ModEntities.MISSILE.get(), MissileRenderer::new);
         event.registerEntityRenderer(ModEntities.DRONE.get(), DroneRenderer::new);
         event.registerEntityRenderer(ModEntities.MINE.get(), MineRenderer::new);
+        event.registerEntityRenderer(ModEntities.SOLDIER.get(), SoldierRenderer::new);
         event.registerEntityRenderer(ModEntities.GAS_CLOUD.get(), net.minecraft.client.renderer.entity.NoopRenderer::new);
     }
 
@@ -217,6 +221,7 @@ public final class ClientSetup {
 
     private static void onGuiLayers(RegisterGuiOverlaysEvent event) {
         overlay(event, "flash", ClientBlasts::renderFlash);
+        overlay(event, "minimap", MiniMap::render);
         overlay(event, "drone_hud", DronePilot::renderHud);
         overlay(event, "vehicle_hp", ClientSetup::renderVehicleHp);
         overlay(event, "gunner", ClientGunner::renderHud);
@@ -310,6 +315,12 @@ public final class ClientSetup {
             alertTicks--;
         }
         Minecraft mc = Minecraft.getInstance();
+        MiniMap.tick();
+        while (MAP.consumeClick()) {
+            if (mc.screen == null && mc.player != null) {
+                mc.setScreen(new MapScreen());
+            }
+        }
         while (WAR_MENU.consumeClick()) {
             if (mc.screen == null && !DronePilot.active()) {
                 com.harddayz.network.Net.toServer(new com.harddayz.network.Net.WarMenuRequest(0)); // сервер решит: выбор режима или ход матча

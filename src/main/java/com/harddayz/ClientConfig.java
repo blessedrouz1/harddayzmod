@@ -19,6 +19,14 @@ public final class ClientConfig {
             .comment("Вспышка и зарево неба от взрывов")
             .define("skyFlash", true);
 
+    public static final ForgeConfigSpec.BooleanValue BLAST_LIGHT = B
+            .comment("Взрывы на мгновение освещают местность. Выключи, если при больших залпах падает FPS")
+            .define("blastLight", true);
+
+    public static final ForgeConfigSpec.BooleanValue MINIMAP = B
+            .comment("Миникарта в углу экрана")
+            .define("minimap", true);
+
     public static final ForgeConfigSpec.BooleanValue GPU_MODELS = B
             .comment("Кеш моделей на видеокарте (постоянные VBO). Если модели пропали — выключи; при ошибке OpenGL мод сам переходит на обычный рендер")
             .define("gpuModelsCache", true);
@@ -46,6 +54,14 @@ public final class ClientConfig {
 
     public static boolean gpuModels() {
         return SPEC.isLoaded() && GPU_MODELS.get();
+    }
+
+    public static boolean minimap() {
+        return get(MINIMAP);
+    }
+
+    public static boolean light() {
+        return get(BLAST_LIGHT);
     }
 
     public static boolean flash() {

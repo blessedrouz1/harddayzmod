@@ -61,6 +61,17 @@ public final class Net {
 
     /** Сервер → клиент: эффекты взрыва. */
     /** sound: 0 — по силе, 1 малый, 2 мина, 3 РСЗО, 4 термобарический, 5 баллистика, 6 Шахед, 7 крылатая; +16 — в воздухе. */
+    /** Сервер → клиент: мир фронтовой, вот сид карты (или обычный мир). */
+    public record FrontInfo(boolean front, long seed) {
+    }
+
+    /** Сервер → клиент раз в секунду: что видно на карте своей стороне (см. WarEvents.mapState). */
+    public record MapState(java.util.List<String> rows) {
+    }
+
+    public record LaunchSound(ResourceLocation sound, double x, double y, double z, float range, float pitch) {
+    }
+
     public record BlastFx(double x, double y, double z, float power, int sound) {
     }
 
@@ -127,7 +138,7 @@ public final class Net {
     }
 
     /** Сервер → клиент: состояние снабжения фракции (открыть/обновить магазин). */
-    public record ShopState(String faction, int budget, boolean commander, java.util.List<String> orders, boolean open) {
+    public record ShopState(String faction, int budget, boolean commander, java.util.List<String> orders, boolean open, int discount) {
     }
 
     /** Клиент → сервер: купить позицию каталога (-1 — просто обновить состояние). */
@@ -139,13 +150,13 @@ public final class Net {
         var f = com.harddayz.war.War.of(p.getUUID());
         java.util.List<String> orders = new java.util.ArrayList<>();
         if (f == null) {
-            return new ShopState("", 0, false, orders, open);
+            return new ShopState("", 0, false, orders, open, 0);
         }
         long now = p.getServer().overworld().getGameTime();
         for (var o : f.orders) {
             orders.add(o.entry + ";" + Math.max(0, (o.due - now) / 20) + ";" + o.by);
         }
-        return new ShopState(f.name, f.budget, com.harddayz.war.War.isCommander(p), orders, open);
+        return new ShopState(f.name, f.budget, com.harddayz.war.War.isCommander(p), orders, open, com.harddayz.war.War.discount(f));
     }
 
     /** Клиент → сервер: запросить картину радара (open — открыть экран). */
@@ -160,7 +171,7 @@ public final class Net {
 
     /** Сервер → клиент: тревога на экране. */
     /** Клиент → сервер: начать матч из меню. mode: 0 — штабы, 1 — жизни, 2 — штаб и город. */
-    public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius) {
+    public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius, int bots, int difficulty, int prep) {
     }
 
     /** Сервер → клиент: открыть меню матча. active=false — выбор режима, иначе ход матча (строки готового текста). */
@@ -207,7 +218,11 @@ public final class Net {
                     b.writeVarInt(m.lives());
                     b.writeVarInt(m.minutes());
                     b.writeVarInt(m.radius());
-                }, b -> new WarSetup(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt()), (p, ctx) -> {
+                    b.writeVarInt(m.bots());
+                    b.writeVarInt(m.difficulty());
+                    b.writeVarInt(m.prep());
+                }, b -> new WarSetup(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(),
+                        b.readVarInt()), (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null) {
                         com.harddayz.war.WarEvents.setup(sp, p);
@@ -276,6 +291,21 @@ public final class Net {
                         l.gunnerFire(sp);
                     }
                 });
+        reg(FrontInfo.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                    b.writeBoolean(m.front());
+                    b.writeLong(m.seed());
+                }, b -> new FrontInfo(b.readBoolean(), b.readLong()), (p, ctx) -> com.harddayz.client.ClientAccess.mapInfo(p));
+        reg(MapState.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> writeList(b, m.rows()), b -> new MapState(readList(b, 2048)),
+                (p, ctx) -> com.harddayz.client.ClientAccess.mapState(p));
+        reg(LaunchSound.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                    b.writeResourceLocation(m.sound());
+                    b.writeDouble(m.x());
+                    b.writeDouble(m.y());
+                    b.writeDouble(m.z());
+                    b.writeFloat(m.range());
+                    b.writeFloat(m.pitch());
+                }, b -> new LaunchSound(b.readResourceLocation(), b.readDouble(), b.readDouble(), b.readDouble(), b.readFloat(), b.readFloat()),
+                (p, ctx) -> com.harddayz.client.ClientAccess.launchSound(p));
         reg(BlastFx.class, NetworkDirection.PLAY_TO_CLIENT, Net::encBlastFx, Net::decBlastFx, (p, ctx) -> com.harddayz.client.ClientBlasts.add(p));
         reg(FireOrder.class, NetworkDirection.PLAY_TO_SERVER, Net::encFireOrder, Net::decFireOrder, Net::onFireOrder);
         reg(DroneMove.class, NetworkDirection.PLAY_TO_SERVER, Net::encDroneMove, Net::decDroneMove, Net::onDroneMove);
@@ -513,10 +543,11 @@ public final class Net {
         b.writeBoolean(m.commander());
         writeList(b, m.orders());
         b.writeBoolean(m.open());
+        b.writeVarInt(m.discount());
     }
 
     private static ShopState decShopState(FriendlyByteBuf b) {
-        return new ShopState(b.readUtf(), b.readVarInt(), b.readBoolean(), readList(b, 4096), b.readBoolean());
+        return new ShopState(b.readUtf(), b.readVarInt(), b.readBoolean(), readList(b, 4096), b.readBoolean(), b.readVarInt());
     }
 
     private static void encShopBuy(ShopBuy m, FriendlyByteBuf b) {

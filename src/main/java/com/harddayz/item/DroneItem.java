@@ -61,10 +61,10 @@ public class DroneItem extends Item {
                 var rnd = sp.getRandom();
                 aim = aim.add(rnd.nextGaussian() * 6, 0, rnd.nextGaussian() * 6); // GPS-наведение тоже промахивается
                 Drone.launchShahed(sl, sp.getEyePosition().add(look.scale(1.5)), dir, aim, sp.getUUID(), kind);
-                sl.playSound(null, sp.blockPosition(), kind.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE.get()
+                com.harddayz.registry.ModSounds.launch(sl, sp.getX(), sp.getY(), sp.getZ(), kind.jetDrone() ? com.harddayz.registry.ModSounds.LAUNCH_JETDRONE.get()
                                 : kind.shahedLike() ? com.harddayz.registry.ModSounds.LAUNCH_SHAHED.get()
                                 : com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(),
-                        net.minecraft.sounds.SoundSource.PLAYERS, 1.5f, 1.2f);
+                        kind.jetDrone() ? 350 : kind.shahedLike() ? 280 : 90, 1.2f);
                 com.harddayz.Compat.consume(player.getItemInHand(hand), player);
                 return new net.minecraft.world.InteractionResultHolder<>(InteractionResult.SUCCESS, player.getItemInHand(hand));
             }

@@ -25,6 +25,9 @@ public final class HardDayz {
         ModItems.ITEMS.register(bus);
         ModItems.TABS.register(bus);
         ModEntities.ENTITIES.register(bus);
+        com.harddayz.world.FrontGenerator.REGISTER.register(bus);
+        bus.addListener((net.minecraftforge.event.entity.EntityAttributeCreationEvent e) ->
+                e.put(com.harddayz.registry.ModEntities.SOLDIER.get(), com.harddayz.entity.Soldier.attributes().build()));
         ModParticles.TYPES.register(bus);
         com.harddayz.registry.ModSounds.SOUNDS.register(bus);
         com.harddayz.registry.ModEffects.EFFECTS.register(bus);

@@ -3,22 +3,24 @@ package com.harddayz.client;
 import com.harddayz.entity.Launcher;
 import com.harddayz.registry.ModSounds;
 
-import net.minecraft.client.resources.sounds.AbstractTickableSoundInstance;
-import net.minecraft.client.resources.sounds.SoundInstance;
 import net.minecraft.sounds.SoundSource;
 
 /** Мотор техники: дизель (грузовики, БМП), винты (вертолёты). Громче и выше на ходу. */
-public class VehicleSound extends AbstractTickableSoundInstance {
+public class VehicleSound extends RangeSound {
     private final Launcher v;
     private final float basePitch;
 
+    private float rev;
+
     public VehicleSound(Launcher v) {
         super(v.kind().heli() ? ModSounds.HELI_LOOP.get() : ModSounds.DIESEL_LOOP.get(),
-                SoundSource.NEUTRAL, SoundInstance.createUnseededRandom());
+                SoundSource.NEUTRAL, switch (v.kind()) {
+                    case KA52, MI8 -> 260;
+                    case TOS, BMP2, BRADLEY -> 110;
+                    default -> 75;
+                });
         this.v = v;
         this.looping = true;
-        this.delay = 0;
-        this.volume = 0;
         this.basePitch = switch (v.kind()) {
             case PICKUP_MG, PICKUP_SAM -> 1.45f;
             case BMP2, BRADLEY -> 1.0f;
@@ -38,11 +40,6 @@ public class VehicleSound extends AbstractTickableSoundInstance {
     }
 
     @Override
-    public boolean canStartSilent() {
-        return true;
-    }
-
-    @Override
     public void tick() {
         if (v.isRemoved()) {
             stop();
@@ -53,8 +50,9 @@ public class VehicleSound extends AbstractTickableSoundInstance {
         z = v.getZ();
         boolean on = !v.getPassengers().isEmpty() || (v.kind().heli() && !v.onGround());
         double sp = v.getDeltaMovement().horizontalDistance();
-        float target = on ? (v.kind().heli() ? 3.5f : 1.4f + (float) Math.min(1.6, sp * 4)) : 0;
-        volume += (target - volume) * 0.1f;
+        float target = on ? (v.kind().heli() ? 1f : 0.55f + (float) Math.min(0.45, sp * 1.5)) : 0;
+        rev += (target - rev) * 0.1f;
+        volume = rev * gainHere();
         pitch = basePitch * (0.85f + (float) Math.min(0.4, sp * 0.8));
         // лязг гусениц
         if (on && sp > 0.05 && v.tickCount % Math.max(3, (int) (8 - sp * 12)) == 0

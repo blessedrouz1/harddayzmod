@@ -133,7 +133,7 @@ public class Drone extends Entity implements Threat {
 
     /** Есть ли связь оператора с дроном: напрямую или через свой ретранслятор рядом с дроном. */
     public boolean linked(ServerPlayer op) {
-        if (op.distanceTo(this) <= SHAHED_LINK_RANGE) {
+        if (op.distanceTo(this) <= SHAHED_LINK_RANGE * com.harddayz.war.War.link(op.getUUID())) {
             return true;
         }
         return !level().getEntitiesOfClass(Launcher.class, getBoundingBox().inflate(RELAY_RANGE, 400, RELAY_RANGE),
@@ -199,9 +199,9 @@ public class Drone extends Entity implements Threat {
             return (float) Mth.clamp((FIBER_RANGE - op.distanceTo(this)) / 15, 0, 1);
         }
         if (!kind().autonomous) {
-            return (float) Mth.clamp(1 - op.distanceTo(this) / SIGNAL_RANGE, 0, 1);
+            return (float) Mth.clamp(1 - op.distanceTo(this) / (SIGNAL_RANGE * com.harddayz.war.War.link(op.getUUID())), 0, 1);
         }
-        double q = 1 - op.distanceTo(this) / SHAHED_LINK_RANGE;
+        double q = 1 - op.distanceTo(this) / (SHAHED_LINK_RANGE * com.harddayz.war.War.link(op.getUUID()));
         for (Launcher l : level().getEntitiesOfClass(Launcher.class, getBoundingBox().inflate(RELAY_RANGE, 400, RELAY_RANGE),
                 l -> l.kind() == Launcher.Kind.RELAY && l.health() > 0 && com.harddayz.war.War.allied(op.getUUID(), l.owner()))) {
             q = Math.max(q, 1 - l.distanceTo(this) / RELAY_RANGE);
@@ -227,7 +227,7 @@ public class Drone extends Entity implements Threat {
     private boolean diving;
     private @Nullable FlightChunks chunks;
     /** Клиент: запущен ли звук мотора. */
-    public boolean soundStarted;
+    public Object soundLoop;
     /** Клиент: вращение винтов. */
     public float rotor;
 
@@ -237,12 +237,16 @@ public class Drone extends Entity implements Threat {
 
     // ------------------------------------------------------------------ создание
 
+    /** Куда смотрела пусковая при старте. */
+    private @Nullable Vec3 startDir;
+
     public static Drone launchShahed(ServerLevel level, Vec3 pos, Vec3 dir, Vec3 target, @Nullable UUID owner, Kind kind) {
         Drone d = new Drone(ModEntities.DRONE.get(), level);
         d.setKind(kind);
         d.setPos(pos);
         d.origin = pos;
         d.setDeltaMovement(dir.scale(0.9));
+        d.startDir = dir.normalize();
         d.target = target;
         d.owner = owner;
         d.face(dir);
@@ -422,7 +426,7 @@ public class Drone extends Entity implements Threat {
         from.displayClientMessage(net.minecraft.network.chat.Component.translatable(on ? "message.harddayz.engine_on" : "message.harddayz.engine_off")
                 .withStyle(on ? net.minecraft.ChatFormatting.GREEN : net.minecraft.ChatFormatting.YELLOW), true);
         if (on) {
-            level().playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), SoundSource.HOSTILE, 1.5f, 1f);
+            com.harddayz.registry.ModSounds.launch(level(), getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), 50, 1f);
         } else {
             level().playSound(null, getX(), getY(), getZ(), SoundEvents.BEACON_DEACTIVATE, SoundSource.HOSTILE, 0.5f, 2f);
         }
@@ -500,7 +504,7 @@ public class Drone extends Entity implements Threat {
         Vec3 dir = (flat.lengthSqr() < 1 ? p.getLookAngle().multiply(1, 0, 1) : flat).normalize().add(0, 1.2, 0).normalize();
         setDeltaMovement(dir.scale(0.6));
         face(dir);
-        level.playSound(null, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), SoundSource.HOSTILE, 3f, 1f);
+        com.harddayz.registry.ModSounds.launch(level, getX(), getY(), getZ(), com.harddayz.registry.ModSounds.LAUNCH_DRONE.get(), 90, 1f);
         com.harddayz.Compat.particles(level, ParticleTypes.CLOUD, getX(), getY(), getZ(), 20, 0.4, 0.2, 0.4, 0.05);
     }
 
@@ -767,17 +771,22 @@ public class Drone extends Entity implements Threat {
             return;
         }
         if (kind() == Kind.CRUISE && flight() < 50) {
-            // выход из шахты: порох выталкивает ракету медленно вверх, потом маршевый разгоняет и плавно кладёт на курс
+            // стартовый ускоритель выталкивает ракету по оси ячейки, потом маршевый двигатель плавно кладёт её на курс
+            if (startDir == null) {
+                startDir = v.lengthSqr() < 1.0E-6 ? new Vec3(0, 1, 0) : v.normalize();
+            }
             if (flight() < 14) {
-                v = new Vec3(0, 0.3 + flight() * 0.02, 0);
-                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, pos.x, pos.y - 0.8, pos.z, 4, 0.25, 0.2, 0.25, 0.02);
-                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, pos.x, pos.y - 0.6, pos.z, 3, 0.1, 0.1, 0.1, 0.02);
+                v = startDir.scale(0.35 + flight() * 0.07);
+                Vec3 tail = pos.subtract(startDir.scale(1.6));
+                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.CAMPFIRE_SIGNAL_SMOKE, tail.x, tail.y, tail.z, 4, 0.2, 0.2, 0.2, 0.02);
+                com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, tail.x, tail.y, tail.z, 4, 0.1, 0.1, 0.1, 0.03);
             } else {
                 double k = (flight() - 14) / 36.0;
                 Vec3 flat = new Vec3(target.x - pos.x, 0, target.z - pos.z);
                 flat = flat.lengthSqr() < 1 ? Vec3.ZERO : flat.normalize();
-                Vec3 dir = new Vec3(0, 1, 0).scale(1 - k).add(flat.scale(k)).normalize();
-                v = dir.scale(0.6 + k * kind().cruise);
+                k = k * k * (3 - 2 * k);
+                Vec3 dir = startDir.scale(1 - k).add(flat.scale(k)).normalize();
+                v = dir.scale(1.3 + k * (kind().cruise - 1.3));
                 com.harddayz.Compat.particles(level, net.minecraft.core.particles.ParticleTypes.FLAME, pos.x - dir.x, pos.y - dir.y, pos.z - dir.z, 2, 0.05, 0.05, 0.05, 0.01);
             }
         } else if (flight() < 25) {

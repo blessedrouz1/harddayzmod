@@ -21,11 +21,11 @@ public class HdParticle extends TextureSheetParticle {
 
     private final Kind kind;
     private final SpriteSet sprites;
-    private final float baseSize;
+    private float baseSize;
     private final float spin;
-    private final float r0;
-    private final float g0;
-    private final float b0;
+    private float r0;
+    private float g0;
+    private float b0;
 
     protected HdParticle(ClientLevel level, double x, double y, double z, double xd, double yd, double zd, SpriteSet sprites, Kind kind) {
         super(level, x, y, z);
@@ -122,6 +122,21 @@ public class HdParticle extends TextureSheetParticle {
         this.quadSize = baseSize * 0.5f;
         setColor(r0, g0, b0);
         setAlpha(kind == Kind.FIRE || kind == Kind.JET_FIRE ? 1f : 0.92f);
+    }
+
+    /** Размер и время жизни под мощность взрыва. */
+    void tune(float size, float life) {
+        baseSize *= size;
+        quadSize *= size;
+        lifetime = Math.max(3, (int) (lifetime * life));
+    }
+
+    /** Цвет пыли под грунт. */
+    void tint(float r, float g, float b) {
+        r0 = Mth.clamp(r, 0, 1);
+        g0 = Mth.clamp(g, 0, 1);
+        b0 = Mth.clamp(b, 0, 1);
+        setColor(r0, g0, b0);
     }
 
     @Override

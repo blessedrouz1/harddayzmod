@@ -30,7 +30,10 @@ public final class WarEvents {
 
     public static void init() {
         var bus = net.minecraftforge.common.MinecraftForge.EVENT_BUS;
-        bus.addListener((ServerStartedEvent e) -> War.load(e.getServer()));
+        bus.addListener((ServerStartedEvent e) -> {
+            War.load(e.getServer());
+            com.harddayz.world.FrontWorld.started(e.getServer());
+        });
         bus.addListener((ServerStoppingEvent e) -> {
             War.unload();
             RadarNet.clear();
@@ -45,6 +48,16 @@ public final class WarEvents {
         bus.addListener((PlayerEvent.PlayerLoggedInEvent e) -> {
             War.syncTeams();
             War.sendLives();
+            if (e.getEntity() instanceof ServerPlayer sp) {
+                var g = com.harddayz.world.FrontWorld.generator(sp.getServer());
+                com.harddayz.network.Net.toPlayer(sp, new com.harddayz.network.Net.FrontInfo(g != null, g == null ? 0 : g.seed()));
+            }
+        });
+        // подготовка: игроки друг друга не ранят
+        bus.addListener((net.minecraftforge.event.entity.living.LivingAttackEvent e) -> {
+            if (War.prep() && e.getEntity() instanceof ServerPlayer v && e.getSource().getEntity() != null && e.getSource().getEntity() != v) {
+                e.setCanceled(true);
+            }
         });
         bus.addListener((net.minecraftforge.event.entity.living.LivingDeathEvent e) -> {
             if (onDeath(e)) {
@@ -80,7 +93,7 @@ public final class WarEvents {
             }
             var src = e.getSource().getEntity();
             java.util.UUID killer = src instanceof ServerPlayer sp ? sp.getUUID() : src instanceof com.harddayz.entity.Threat t ? t.owner()
-                    : src instanceof com.harddayz.entity.Vehicle v ? v.owner() : null;
+                    : src instanceof com.harddayz.entity.Vehicle v ? v.owner() : src instanceof com.harddayz.entity.Soldier s ? s.side() : null;
             War.Faction kf = War.of(killer);
             if (kf != null && kf != df) {
                 kf.kills++;
@@ -92,8 +105,87 @@ public final class WarEvents {
 
     // ------------------------------------------------------------------ проверка штабов: уничтожен — снимаем
 
+    /** Метки карты для игрока: точки, свои игроки, отряды, техника, штабы, замеченные враги, засечки РЛС. */
+    private static java.util.List<String> mapState(ServerPlayer p) {
+        java.util.List<String> out = new java.util.ArrayList<>();
+        ServerLevel level = p.getServer().overworld();
+        War.Faction f = War.of(p.getUUID());
+        for (Frontline.Point pt : War.points()) {
+            War.Faction o = pt.owner == null ? null : War.byId(pt.owner);
+            out.add("point;" + pt.x + ";" + pt.z + ";" + (o == null ? -1 : War.presetIndex(o)) + ";" + pt.name.replace(';', ' '));
+        }
+        if (War.siege() && War.city() != null) {
+            out.add("city;" + War.city()[0] + ";" + War.city()[1] + ";" + War.city()[2] + ";");
+            if (f != null && f == War.defense()) {
+                for (int[] o : War.objects()) {
+                    out.add("object;" + o[0] + ";" + o[2] + ";0;");
+                }
+            }
+        }
+        if (f == null) {
+            return out;
+        }
+        for (int i = 0; i < f.hqs.size(); i++) {
+            out.add("hq;" + f.hqs.get(i)[0] + ";" + f.hqs.get(i)[2] + ";" + War.presetIndex(f) + ";");
+        }
+        for (int[] w : f.warehouses) {
+            out.add("store;" + w[0] + ";" + w[2] + ";" + War.presetIndex(f) + ";");
+        }
+        for (ServerPlayer m : Supply.members(p.getServer(), f)) {
+            if (m != p && m.level() == level) {
+                out.add("ally;" + m.getBlockX() + ";" + m.getBlockZ() + ";" + (int) m.getYRot() + ";" + m.getScoreboardName());
+            }
+        }
+        for (BotCommander.Squad s : War.squads()) {
+            if (s.men > 0 && s.faction.equals(f.id)) {
+                out.add("squad;" + (int) s.x + ";" + (int) s.z + ";" + s.men + ";");
+            } else if (s.men > 0 && BotCommander.spotted(level, f, s)) {
+                out.add("enemy;" + (int) s.x + ";" + (int) s.z + ";" + s.men + ";");
+            }
+        }
+        int n = 0;
+        for (var l : level.getEntities(com.harddayz.registry.ModEntities.LAUNCHER.get(), l -> !l.wrecked() && l.owner() != null && f.has(l.owner()))) {
+            if (n++ < 60) {
+                out.add("vehicle;" + l.getBlockX() + ";" + l.getBlockZ() + ";" + (int) l.getYRot() + ";" + l.kind().name().toLowerCase(java.util.Locale.ROOT));
+            }
+        }
+        String key = RadarNet.key(p.getUUID());
+        long now = level.getGameTime();
+        for (var c : RadarNet.contacts(key, now)) {
+            out.add("contact;" + (int) c.pos.x + ";" + (int) c.pos.z + ";" + (now - c.seen) + ";" + c.type);
+        }
+        for (var l : RadarNet.launches(key, now)) {
+            out.add("launch;" + (int) l.pos.x + ";" + (int) l.pos.z + ";" + (int) Math.ceil(l.err) + ";" + l.type);
+        }
+        return out;
+    }
+
+    /** Отсчёт подготовки (раз в секунду). */
+    private static void tickPrep() {
+        if (!War.prep()) {
+            return;
+        }
+        int before = War.prepLeft();
+        War.setPrep(before - 20);
+        int left = War.prepLeft();
+        for (int s : new int[] {600, 300, 180, 60, 30, 10}) {
+            if (before > s * 20 && left <= s * 20) {
+                War.broadcast(Component.translatable("message.harddayz.prep_left", s / 60, String.format("%02d", s % 60)).withStyle(ChatFormatting.YELLOW));
+            }
+        }
+        if (left <= 0) {
+            War.broadcast(Component.translatable("message.harddayz.prep_over").withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+            War.save();
+        }
+    }
+
     private static void tick(net.minecraft.server.MinecraftServer server) {
         RadarNet.tick(server);
+        if (server.getTickCount() % 20 == 7) {
+            for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+                com.harddayz.network.Net.toPlayer(p, new com.harddayz.network.Net.MapState(mapState(p)));
+            }
+        }
         if (server.getTickCount() % 40 == 0) {
             ServerLevel lv = server.overworld();
             for (var list : War.sirens().values()) {
@@ -106,7 +198,12 @@ public final class WarEvents {
         if (!War.active()) {
             return;
         }
+        BotCommander.tickStrikes(server.overworld());
         if (server.getTickCount() % 20 == 0) {
+            tickPrep();
+            if (!War.prep()) {
+                BotCommander.tick(server);
+            }
             Supply.tick(server);
             Frontline.tick(server);
         }
@@ -125,7 +222,9 @@ public final class WarEvents {
                 }
             }
             int before = War.siegeLeft();
-            War.tickSiege(40);
+            if (!War.prep()) {
+                War.tickSiege(40);
+            }
             int left = War.siegeLeft();
             for (int m : new int[] {30, 10, 5, 1}) {
                 if (before > m * 1200 && left <= m * 1200) {
@@ -226,7 +325,7 @@ public final class WarEvents {
             return new com.harddayz.network.Net.OpenWarMenu(false, true, java.util.List.of());
         }
         java.util.List<String> lines = new java.util.ArrayList<>();
-        String mode = War.siege() ? "screen.harddayz.war_mode.2" : War.livesMode() ? "screen.harddayz.war_mode.1" : "screen.harddayz.war_mode.0";
+        String mode = War.coop() ? "screen.harddayz.war_mode.3" : War.siege() ? "screen.harddayz.war_mode.2" : War.livesMode() ? "screen.harddayz.war_mode.1" : "screen.harddayz.war_mode.0";
         lines.add(Component.translatable(mode).getString());
         if (War.siege()) {
             int left = War.siegeLeft();
@@ -239,12 +338,20 @@ public final class WarEvents {
         } else if (!War.livesMode()) {
             lines.add(Component.translatable("screen.harddayz.match_target", War.targetScore()).getString());
         }
+        if (War.prep()) {
+            lines.add("§e" + Component.translatable("screen.harddayz.match_prep", War.prepLeft() / 1200, String.format("%02d", War.prepLeft() / 20 % 60)).getString());
+        }
+        for (Frontline.Point pt : War.points()) {
+            War.Faction o = pt.owner == null ? null : War.byId(pt.owner);
+            String use = pt.kind == null ? "" : "  §8" + Component.translatable("point.harddayz." + pt.kind.toLowerCase(java.util.Locale.ROOT)).getString();
+            lines.add((o == null ? "§7○ " : "§" + o.format().getChar() + "● ") + pt.name + use);
+        }
         lines.add("");
         War.Faction mine = War.of(p.getUUID());
         for (War.Faction f : War.factions()) {
             String hq = f == mine ? " · " + Component.translatable("screen.harddayz.match_hq", f.hqs.size()).getString() : "";
             String lives = War.livesMode() ? " · " + Component.translatable("screen.harddayz.match_lives", f.lives).getString() : "";
-            lines.add("§" + f.format().getChar() + "§l" + f.name + "§r  " + Component.translatable("screen.harddayz.match_row", f.members.size(), f.score,
+            lines.add("§" + f.format().getChar() + "§l" + f.name + "§r  " + Component.translatable("screen.harddayz.match_row", f.members.size() + (f.bots > 0 ? "+" + BotCommander.men(f) : ""), f.score,
                     f.kills, f.destroyed, f.lost).getString() + lives + hq + (f.defeated ? "  §c" + Component.translatable("message.harddayz.war_defeated").getString() : "")
                     + (f == mine ? "  §a◀" : ""));
         }
@@ -269,21 +376,45 @@ public final class WarEvents {
             return;
         }
         int budget = Math.max(0, Math.min(1000000, s.budget()));
-        if (s.mode() == 2) {
+        int bots = Math.max(0, Math.min(32, s.bots()));
+        int dif = Math.max(1, Math.min(3, s.difficulty()));
+        if (s.mode() == 3) {
+            if (com.harddayz.world.FrontWorld.generator(p.getServer()) == null) {
+                p.sendSystemMessage(Component.translatable("message.harddayz.coop_need_map").withStyle(ChatFormatting.RED));
+                return;
+            }
+            War.createCoop(p, budget);
+            War.setBots(bots, dif);
+            com.harddayz.world.FrontWorld.setup(p.getServer());
+            BotCommander.fortify(p.getServer().overworld(), War.enemyBots());
+            War.broadcast(Component.translatable("message.harddayz.coop_created", p.getDisplayName(), dif).withStyle(ChatFormatting.GOLD));
+            War.broadcast(Component.translatable("message.harddayz.coop_rules", War.targetScore()).withStyle(ChatFormatting.GRAY));
+        } else if (s.mode() == 2) {
             int minutes = Math.max(5, Math.min(600, s.minutes()));
             War.createSiege(p, budget, minutes);
-            War.setCity(p.blockPosition(), Math.max(30, Math.min(2000, s.radius())));
             War.broadcast(Component.translatable("message.harddayz.siege_created", p.getDisplayName(), minutes).withStyle(ChatFormatting.GOLD));
-            War.broadcast(Component.translatable("message.harddayz.city_set", p.getBlockX(), p.getBlockZ(), s.radius()).withStyle(ChatFormatting.GOLD));
+            if (!com.harddayz.world.FrontWorld.setup(p.getServer())) { // на фронтовой карте город уже известен
+                War.setCity(p.blockPosition(), Math.max(30, Math.min(2000, s.radius())));
+                War.broadcast(Component.translatable("message.harddayz.city_set", p.getBlockX(), p.getBlockZ(), s.radius()).withStyle(ChatFormatting.GOLD));
+            }
             War.broadcast(Component.translatable("message.harddayz.siege_rules").withStyle(ChatFormatting.GRAY));
         } else {
             int lives = s.mode() == 1 ? Math.max(1, Math.min(10000, s.lives())) : 0;
             War.create(p, Math.max(2, Math.min(4, s.factions())), budget, lives);
+            com.harddayz.world.FrontWorld.setup(p.getServer());
             War.sendLives();
             if (lives > 0) {
                 War.broadcast(Component.translatable("message.harddayz.lives_mode", lives).withStyle(ChatFormatting.GOLD));
             }
             War.broadcast(Component.translatable("message.harddayz.war_created", p.getDisplayName(), budget).withStyle(ChatFormatting.GOLD));
+        }
+        if (s.mode() != 3) {
+            War.setBots(bots, dif);
+        }
+        BotCommander.announce(bots);
+        War.setPrep(Math.max(0, Math.min(30, s.prep())) * 1200);
+        if (War.prep()) {
+            War.broadcast(Component.translatable("message.harddayz.prep_start", s.prep()).withStyle(ChatFormatting.YELLOW));
         }
         War.broadcast(joinButtons());
     }
@@ -292,6 +423,7 @@ public final class WarEvents {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer p = c.getSource().getPlayerOrException();
         War.createSiege(p, budget, minutes);
+        com.harddayz.world.FrontWorld.setup(p.getServer());
         War.broadcast(Component.translatable("message.harddayz.siege_created", p.getDisplayName(), minutes).withStyle(ChatFormatting.GOLD));
         War.broadcast(Component.translatable("message.harddayz.siege_rules").withStyle(ChatFormatting.GRAY));
         War.broadcast(joinButtons());
@@ -306,6 +438,7 @@ public final class WarEvents {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         ServerPlayer p = c.getSource().getPlayerOrException();
         War.create(p, count, budget, lives);
+        com.harddayz.world.FrontWorld.setup(p.getServer());
         War.sendLives();
         if (lives > 0) {
             War.broadcast(Component.translatable("message.harddayz.lives_mode", lives).withStyle(ChatFormatting.GOLD));
@@ -319,6 +452,9 @@ public final class WarEvents {
     private static Component joinButtons() {
         MutableComponent line = Component.translatable("message.harddayz.war_choose").withStyle(ChatFormatting.GRAY);
         for (War.Faction f : War.factions()) {
+            if (f.ai) {
+                continue;
+            }
             line.append("  ").append(Component.literal("[" + f.name + "]").withStyle(s -> s.withColor(f.format()).withBold(true)
                     .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/war join " + f.id))
                     .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, Component.translatable("message.harddayz.war_join_hover", f.name)))));
@@ -333,11 +469,12 @@ public final class WarEvents {
             return 0;
         }
         War.Faction f = War.byId(StringArgumentType.getString(c, "faction"));
-        if (f == null) {
+        if (f == null || f.ai) {
             c.getSource().sendFailure(Component.translatable("message.harddayz.war_no_faction"));
             return 0;
         }
         War.join(p, f);
+        com.harddayz.world.FrontWorld.joined(p, f);
         if (!f.kitGiven) {
             // стартовый набор командиру: штабы, склад, снабжение, радар
             f.kitGiven = true;

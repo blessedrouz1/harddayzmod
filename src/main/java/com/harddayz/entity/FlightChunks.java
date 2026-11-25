@@ -17,6 +17,7 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class FlightChunks {
     private int waited;
+    private @Nullable ChunkPos held;
 
     public FlightChunks(UUID owner) {
     }
@@ -27,10 +28,12 @@ public final class FlightChunks {
      */
     public boolean update(ServerLevel level, Vec3 pos, Vec3 vel, @Nullable Vec3 target) {
         long t = level.getGameTime() + phase;
-        // свой чанк — раз в 10 тиков (тикет живёт 40), и только если его не держат игроки
-        BlockPos here = BlockPos.containing(pos);
-        if (t % 10 == 0 && !level.isPositionEntityTicking(here)) {
-            com.harddayz.Compat.ticket(level, new ChunkPos(here), 2);
+        // свой чанк держим всегда сами: чужой тикет (соседней ракеты залпа, уходящего игрока) может истечь в любой момент,
+        // а остановленный объект уже никогда не попросит новый
+        ChunkPos here = new ChunkPos(BlockPos.containing(pos));
+        if (waited > 0 || !here.equals(held) || t % 10 == 0) {
+            held = here;
+            com.harddayz.Compat.ticket(level, here, 2);
         }
         // путь вперёд — редко и только незагруженные чанки, без «живых» соседей
         double speed = vel.length();
@@ -56,10 +59,7 @@ public final class FlightChunks {
             return true;
         }
         com.harddayz.Compat.ticket(level, new ChunkPos(next), 2);
-        if (++waited > 40) {
-            waited = 0;
-            return true; // ждали достаточно — летим дальше
-        }
+        waited++; // в неживой чанк влетать нельзя — там объект замрёт навсегда
         return false;
     }
 

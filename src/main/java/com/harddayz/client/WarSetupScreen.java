@@ -7,13 +7,16 @@ import net.minecraft.network.chat.Component;
 
 /** Меню матча: выбор режима и настроек кнопками вместо команд в чате. */
 public class WarSetupScreen extends HdScreen {
-    /** 0 — штабы и рубежи, 1 — жизни, 2 — штаб и город. */
+    /** 0 — штабы и рубежи, 1 — жизни, 2 — штаб и город, 3 — вместе против ботов. */
     private int mode;
     private int factions = 2;
     private int budget = 5000;
     private int lives = 20;
     private int minutes = 60;
     private int radius = 250;
+    private int bots = 12;
+    private int difficulty = 2;
+    private int prep = 5;
 
     public WarSetupScreen() {
         super(Component.translatable("screen.harddayz.war_setup"));
@@ -23,13 +26,13 @@ public class WarSetupScreen extends HdScreen {
     protected void init() {
         clearWidgets();
         int cx = width / 2;
-        int y = height / 2 - 90;
+        int y = height / 2 - 94;
         addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.war_mode." + mode), b -> {
-            mode = (mode + 1) % 3;
+            mode = (mode + 1) % 4;
             init();
         }).bounds(cx - 110, y, 220, 20).build());
         y += 30;
-        if (mode != 2) {
+        if (mode < 2) {
             y = row(y, "screen.harddayz.war_factions", () -> factions, v -> factions = Math.max(2, Math.min(4, v)), 1);
         }
         y = row(y, "screen.harddayz.war_budget", () -> budget, v -> budget = Math.max(0, Math.min(100000, v)), 1000);
@@ -40,9 +43,12 @@ public class WarSetupScreen extends HdScreen {
             y = row(y, "screen.harddayz.war_minutes", () -> minutes, v -> minutes = Math.max(5, Math.min(600, v)), 5);
             y = row(y, "screen.harddayz.war_radius", () -> radius, v -> radius = Math.max(30, Math.min(2000, v)), 50);
         }
-        y += 10;
+        y = row(y, "screen.harddayz.war_bots", () -> bots, v -> bots = Math.max(mode == 3 ? 8 : 0, Math.min(32, v)), 4);
+        y = row(y, "screen.harddayz.war_difficulty", () -> difficulty, v -> difficulty = Math.max(1, Math.min(3, v)), 1);
+        y = row(y, "screen.harddayz.war_prep", () -> prep, v -> prep = Math.max(0, Math.min(30, v)), 1);
+        y += 6;
         addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.war_start"), b -> {
-            Net.toServer(new Net.WarSetup(mode, factions, budget, lives, minutes, radius));
+            Net.toServer(new Net.WarSetup(mode, factions, budget, lives, minutes, radius, bots, difficulty, prep));
             onClose();
         }).bounds(cx - 110, y, 105, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose()).bounds(cx + 5, y, 105, 20).build());
@@ -69,8 +75,8 @@ public class WarSetupScreen extends HdScreen {
     @Override
     protected void background(Gfx g, int mouseX, int mouseY, float a) {
         int cx = width / 2;
-        g.fill(cx - 125, height / 2 - 120, cx + 125, height / 2 + 160, 0xEE101418);
-        g.outline(cx - 125, height / 2 - 120, 250, 280, 0xFF5A6A40);
+        g.fill(cx - 125, height / 2 - 120, cx + 125, height / 2 + 168, 0xEE101418);
+        g.outline(cx - 125, height / 2 - 120, 250, 288, 0xFF5A6A40);
     }
 
     @Override
@@ -85,7 +91,7 @@ public class WarSetupScreen extends HdScreen {
         }
         Component hint = Component.translatable("screen.harddayz.war_hint." + mode);
         var lines = font.split(hint, 230);
-        int y = height / 2 + 112;
+        int y = height / 2 + 122;
         for (var line : lines) {
             g.g.drawString(font, line, cx - 115, y, 0xFF909890, false);
             y += 10;

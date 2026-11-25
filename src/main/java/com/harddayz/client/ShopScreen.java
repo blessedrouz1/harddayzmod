@@ -133,9 +133,10 @@ public class ShopScreen extends HdScreen {
             if (font.width(name) > 128) {
                 name = font.plainSubstrByWidth(name, 122) + "…";
             }
-            boolean afford = state.budget() >= e.price() && (!e.heavy() || state.commander());
+            int price = e.price() * (100 - state.discount()) / 100;
+            boolean afford = state.budget() >= price && (!e.heavy() || state.commander());
             g.text(font, name, l + 28, y, 0xFFE8E8E8, false);
-            g.text(font, Component.literal(e.price() + " ₴  ·  " + e.seconds() + " с" + (e.heavy() ? "  ★" : "")), l + 28, y + 10,
+            g.text(font, Component.literal(price + " ₴  ·  " + (state.discount() > 0 ? e.seconds() / 2 : e.seconds()) + " с" + (e.heavy() ? "  ★" : "")), l + 28, y + 10,
                     afford ? 0xFF90C890 : 0xFFC07060, false);
         }
         // поставки

@@ -203,12 +203,12 @@ public class Missile extends Entity implements Threat {
             if (collide(level, v)) {
                 return;
             }
-            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7 && look() != 5 && look() != 6 && look() != 11) { // мина, РПГ и Javelin звучат сами
-                level.playSound(null, getX(), getY(), getZ(), switch (kind()) {
+            if (tickCount == 1 && kind() != Kind.BOMB && look() != 7 && look() != 5 && look() != 6 && look() != 8 && look() != 11) { // мина, РПГ и Javelin звучат сами
+                com.harddayz.registry.ModSounds.launch(level, getX(), getY(), getZ(), switch (kind()) {
                             case GRAD -> com.harddayz.registry.ModSounds.ROCKET_LAUNCH.get();
                             case SAM -> com.harddayz.registry.ModSounds.SAM_LAUNCH.get();
                             default -> com.harddayz.registry.ModSounds.MISSILE_LAUNCH.get();
-                        }, SoundSource.HOSTILE, kind() == Kind.BALLISTIC ? 8f : 4f, 0.9f + random.nextFloat() * 0.2f);
+                        }, kind() == Kind.BALLISTIC ? 900 : kind() == Kind.SAM ? 450 : 500, 0.9f + random.nextFloat() * 0.2f);
             }
             setPos(position().add(v));
             face(v);
@@ -216,8 +216,7 @@ public class Missile extends Entity implements Threat {
             lerp.tick(this);
             trail(v);
             whistle(v);
-            if (!flySound && tickCount > 1) {
-                flySound = true;
+            if (tickCount > 1) {
                 com.harddayz.client.ClientAccess.missileSound(this);
             }
         }
@@ -719,34 +718,34 @@ public class Missile extends Entity implements Threat {
     // ------------------------------------------------------------------ след на клиенте
 
     private boolean whistled;
-    /** Клиент: звук полёта уже запущен. */
-    private boolean flySound;
+    /** Клиент: петля полёта и тик, когда прозвучал пролёт. */
+    public Object soundLoop;
+    public int flybyAt = -1;
 
     /** Свист снаряда на излёте — слышно, что сейчас прилетит. */
     private void whistle(Vec3 v) {
-        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB || look() == 11 || v.y > -0.2) {
+        if (whistled || kind() == Kind.SAM || kind() == Kind.BOMB || look() == 8 || look() == 11 || v.y > -0.2) {
             return;
         }
-        var me = com.harddayz.client.ClientAccess.localPlayerPos();
-        if (me == null) {
-            return;
-        }
+        Vec3 me = com.harddayz.client.ClientAccess.ears();
         boolean heavy = kind() == Kind.BALLISTIC;
         var sound = heavy ? com.harddayz.registry.ModSounds.INCOMING_BALLISTIC.get()
                 : look() == 7 ? com.harddayz.registry.ModSounds.INCOMING_MORTAR.get()
                 : com.harddayz.registry.ModSounds.INCOMING_ROCKET.get();
         double len = heavy ? 2.8 : look() == 7 ? 2.8 : 2.2;
         int top = level().getHeight(net.minecraft.world.level.levelgen.Heightmap.Types.MOTION_BLOCKING, getBlockX(), getBlockZ());
-        double ticks = (getY() - top) / -v.y;
-        if (ticks > len * 20) {
-            return;
+        // снаряд разгоняется вниз: время до земли с учётом падения
+        double h = Math.max(0, getY() - top), g = kind().gravity;
+        double ticks = g > 0 ? (v.y + Math.sqrt(v.y * v.y + 2 * g * h)) / g : h / -v.y;
+        if (ticks > len * 20 || ticks < len * 10) {
+            return; // рано или уже поздно: обрывок записи хуже тишины
         }
         Vec3 hit = new Vec3(getX() + v.x * ticks, top, getZ() + v.z * ticks);
         if (hit.distanceTo(me) > (heavy ? 260 : 140)) {
             return;
         }
         whistled = true;
-        level().playLocalSound(hit.x, hit.y + 2, hit.z, sound, SoundSource.HOSTILE, heavy ? 7f : 3.5f, 1f, false);
+        com.harddayz.client.ClientAccess.incoming(this, sound, hit, heavy ? 280 : look() == 7 ? 120 : 150);
     }
 
     private void trail(Vec3 v) {
