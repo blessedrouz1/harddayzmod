@@ -146,6 +146,14 @@ public final class BotCommander {
             sabotage(level, s);
         }
         paperFights();
+        for (War.Faction f : War.factions()) {
+            if (f.bots > 0 && !f.defeated) {
+                BotArmy.tick(level, f, seconds);
+            }
+            if (seconds % 2 == 0) {
+                lookout(level, f);
+            }
+        }
         War.Faction ai = War.enemyBots();
         if (ai != null && !ai.defeated) {
             enemyFire(level, ai);
@@ -163,7 +171,9 @@ public final class BotCommander {
                 return s.age[0] > 400;
             }
             Vec3 dir = s.to.subtract(s.from).multiply(1, 0, 1).normalize();
-            if (s.drone == null) {
+            if (s.drone == Drone.Kind.WING_RECON) {
+                Drone.launchShahed(level, s.from, new Vec3(0, 1, 0), s.to, s.side, s.drone);
+            } else if (s.drone == null) {
                 Missile.launch(level, Missile.Kind.BALLISTIC, s.from, new Vec3(0, 0.4, 0), s.to, null).owner(s.side).powerMul(0.7f);
             } else {
                 Drone.launchShahed(level, s.from, dir.add(0, 0.35, 0).normalize(), s.to, s.side, s.drone);
@@ -276,6 +286,16 @@ public final class BotCommander {
         return "obj:" + o[0] + "," + o[1] + "," + o[2];
     }
 
+    private static int helpers(Frontline.Point p) {
+        int n = 0;
+        for (Squad o : War.squads()) {
+            if (o.target != null && o.target.startsWith("help:" + p.name + ":")) {
+                n++;
+            }
+        }
+        return n;
+    }
+
     private static int guards(String faction, Frontline.Point p) {
         int n = 0;
         for (Squad o : War.squads()) {
@@ -295,7 +315,118 @@ public final class BotCommander {
         return null;
     }
 
+    /** Высоты: с них видно округу — враги рядом попадают в разведку владельца. */
+    private static void lookout(ServerLevel level, War.Faction f) {
+        String key = RadarNet.key(f.botId());
+        long now = level.getGameTime();
+        for (Frontline.Point p : War.points()) {
+            if (!"HILL".equals(p.kind) || !f.id.equals(p.owner)) {
+                continue;
+            }
+            for (Entity e : level.getEntities((Entity) null, new AABB(p.x, p.y, p.z, p.x, p.y, p.z).inflate(260, 60, 260),
+                    e -> (e instanceof ServerPlayer || e instanceof Soldier || e instanceof Vehicle) && e.isAlive())) {
+                UUID o = Soldier.sideOf(e);
+                if (o != null && War.of(o) != null && !War.allied(f.botId(), o) && !(e instanceof ServerPlayer sp && sp.isSpectator())) {
+                    RadarNet.spot(key, e, now);
+                }
+            }
+        }
+    }
+
+    private static final Map<String, Long> LAST_CONTACT = new HashMap<>();
+
+    /** Боец впервые заметил врага: людям своей стороны — короткий доклад. */
+    public static void contact(ServerLevel level, Soldier by, Entity foe) {
+        War.Faction f = War.of(by.side());
+        if (f == null || f.ai) {
+            return;
+        }
+        long now = level.getGameTime();
+        if (now - LAST_CONTACT.getOrDefault(f.id, -1000L) < 300) {
+            return;
+        }
+        LAST_CONTACT.put(f.id, now);
+        String where = "";
+        var g = com.harddayz.world.FrontWorld.generator(level.getServer());
+        if (g != null) {
+            where = g.map().region(foe.getX(), foe.getZ()).name();
+        }
+        Component what = Component.translatable(foe instanceof Vehicle ? "message.harddayz.contact_veh" : "message.harddayz.contact_inf");
+        Component msg = Component.translatable("message.harddayz.contact", what, where, foe.getBlockX(), foe.getBlockZ()).withStyle(ChatFormatting.YELLOW);
+        for (ServerPlayer p : level.players()) {
+            if (f.has(p.getUUID())) {
+                p.displayClientMessage(msg, true);
+            }
+        }
+    }
+
+    /** Запуск дрона с базы, когда место старта загрузится. */
+    public static void launchLater(Vec3 from, Vec3 to, UUID side, Drone.Kind kind) {
+        STRIKES.add(new Strike(from, to, side, kind, new int[] {0}));
+    }
+
+    private static boolean guarding(Squad s) {
+        if (s.target == null) {
+            return false;
+        }
+        for (Frontline.Point p : War.points()) {
+            if (p.name.equals(s.target) && s.faction.equals(p.owner)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Свежая цель разведки рядом с отрядом. */
+    private static @Nullable Vec3 prey(Squad s, double r) {
+        War.Faction f = War.byId(s.faction);
+        if (f == null) {
+            return null;
+        }
+        Vec3 best = null;
+        double bd = r;
+        MinecraftServer server = War.server();
+        long now = server == null ? 0 : server.overworld().getGameTime();
+        for (RadarNet.Spot sp : RadarNet.ground(RadarNet.key(f.botId()), now)) {
+            double d = Math.hypot(sp.pos.x - s.x, sp.pos.z - s.z);
+            if (now - sp.seen < 400 && d < bd) {
+                bd = d;
+                best = sp.pos;
+            }
+        }
+        return best;
+    }
+
     private static void orders(Squad s) {
+        // своя точка под захватом — ближние отряды идут на помощь
+        if (s.target == null || !s.target.startsWith("help:")) {
+            for (Frontline.Point p : War.points()) {
+                if (s.faction.equals(p.owner) && p.capturing != null && !p.capturing.equals(s.faction) && p.progress > 0
+                        && Math.hypot(p.x - s.x, p.z - s.z) < 450 && !guarding(s) && helpers(p) < 2) {
+                    s.target = "help:" + p.name + ":" + seconds;
+                    s.tx = p.x;
+                    s.tz = p.z;
+                    return;
+                }
+            }
+        }
+        // замечен враг — отряд идёт на него (охрана точки — только если враг совсем рядом)
+        if ((s.target == null || !s.target.startsWith("hunt:") && !s.target.startsWith("help:")) && (seconds + s.id) % 4 == 0) {
+            Vec3 e = prey(s, guarding(s) ? 90 : 240);
+            if (e != null) {
+                s.target = "hunt:" + seconds;
+                s.tx = Mth.floor(e.x);
+                s.tz = Mth.floor(e.z);
+                return;
+            }
+        }
+        if (s.target != null && (s.target.startsWith("hunt:") || s.target.startsWith("help:"))) {
+            int at = Integer.parseInt(s.target.substring(s.target.lastIndexOf(':') + 1));
+            if (seconds - at < (s.target.startsWith("hunt:") ? 50 : 90)) {
+                return;
+            }
+            s.target = null;
+        }
         if (valid(s)) {
             return;
         }

@@ -138,7 +138,7 @@ public final class WarEvents {
         }
         for (BotCommander.Squad s : War.squads()) {
             if (s.men > 0 && s.faction.equals(f.id)) {
-                out.add("squad;" + (int) s.x + ";" + (int) s.z + ";" + s.men + ";");
+                out.add("squad;" + (int) s.x + ";" + (int) s.z + ";" + s.men + ";" + s.tx + "," + s.tz);
             } else if (s.men > 0 && BotCommander.spotted(level, f, s)) {
                 out.add("enemy;" + (int) s.x + ";" + (int) s.z + ";" + s.men + ";");
             }
@@ -151,6 +151,9 @@ public final class WarEvents {
         }
         String key = RadarNet.key(p.getUUID());
         long now = level.getGameTime();
+        for (RadarNet.Spot sp : RadarNet.ground(key, now)) {
+            out.add("spot;" + (int) sp.pos.x + ";" + (int) sp.pos.z + ";" + (now - sp.seen) + ";" + sp.type);
+        }
         for (var c : RadarNet.contacts(key, now)) {
             out.add("contact;" + (int) c.pos.x + ";" + (int) c.pos.z + ";" + (now - c.seen) + ";" + c.type);
         }

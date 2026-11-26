@@ -14,13 +14,27 @@ import net.minecraft.util.Mth;
  */
 public final class FrontMap {
     /** Половина стороны карты. */
-    public static final int HALF = 1800;
+    public static final int HALF = 1100;
     public static final int WATER = 63;
     public static final double RIVER_HALF = 14;
 
     public enum Type {
-        BASE, CITY, VILLAGE, POWER, OIL, AIRFIELD, TOWER
+        BASE, CITY, VILLAGE, POWER, OIL, AIRFIELD, TOWER, HILL
     }
+
+    /** Местность карты: у каждого сида своя. */
+    public enum Theme {
+        STEPPE("Степь"), FOREST("Леса и болота"), HILLS("Холмы и балки"), LAKES("Озёрный край");
+
+        public final String title;
+
+        Theme(String title) {
+            this.title = title;
+        }
+    }
+
+    public final Theme theme;
+    public final boolean winter;
 
     /** Место: центр, полуразмер ровной площадки, высота земли (верхний блок). */
     public record Site(Type type, String name, int x, int z, int radius, int blend, int y) {
@@ -102,11 +116,11 @@ public final class FrontMap {
     public final List<Site> sites = new ArrayList<>();
     /** Линия надолбов перед окопами: 1 — здесь стоит надолб. */
     public boolean teeth(int x, int z) {
-        if (Math.abs(z) > 850 || Math.floorMod(z, 3) != 0 || noise(0, z, 130, 80) < 0.5) {
+        if (Math.abs(z) > HALF - 120 || Math.floorMod(z, 3) != 0 || noise(0, z, 130, 80) < 0.5) {
             return false;
         }
         for (int sign = -1; sign <= 1; sign += 2) {
-            int w = (int) (sign * 340 + (noise(0, z, 200, 81 + sign) - 0.5) * 60);
+            int w = (int) (sign * 235 + (noise(0, z, 200, 81 + sign) - 0.5) * 50);
             if (x == w || x == w + 3 && Math.floorMod(z, 2) == 0) {
                 return true;
             }
@@ -128,6 +142,8 @@ public final class FrontMap {
     public FrontMap(long seed) {
         this.seed = seed;
         Random r = new Random(seed * 31 + 7);
+        theme = Theme.values()[r.nextInt(Theme.values().length)];
+        winter = r.nextInt(3) == 0;
         riverA = (90 + r.nextDouble() * 110) * (r.nextBoolean() ? 1 : -1);
         riverB = 25 + r.nextDouble() * 30;
         riverP = r.nextDouble() * 6;
@@ -137,7 +153,7 @@ public final class FrontMap {
     // ------------------------------------------------------------------ места
 
     private Site site(Type t, String name, int x, int z, int radius, int blend) {
-        int y = (int) Math.round(Mth.clamp(base(x, z), t == Type.CITY ? 70 : 68, t == Type.CITY ? 74 : 84));
+        int y = (int) Math.round(Mth.clamp(base(x, z), t == Type.CITY ? 70 : 68, t == Type.CITY ? 74 : 84)) + (t == Type.HILL ? (theme == Theme.HILLS ? 22 : 15) : 0);
         Site s = new Site(t, name, x, z, radius, blend, y);
         sites.add(s);
         return s;
@@ -145,29 +161,30 @@ public final class FrontMap {
 
     private boolean free(double x, double z, int radius) {
         for (Site s : sites) {
-            if (Math.hypot(s.x - x, s.z - z) < (s.radius + radius) * 1.2 + 120) {
+            if (Math.hypot(s.x - x, s.z - z) < (s.radius + radius) * 1.15 + 70) {
                 return false;
             }
         }
-        return Math.abs(x - riverX(z)) > radius * 1.25 + 70;
+        return Math.abs(x - riverX(z)) > radius * 1.25 + 50 && lake(x, z) < 0.5 && Math.abs(x) < HALF - radius - 60 && Math.abs(z) < HALF - radius - 60;
     }
 
     private void plan(Random r) {
-        int zb = r.nextInt(801) - 400;
-        city = site(Type.CITY, "Город", 0, 0, 232, 70);
+        int zb = r.nextInt(401) - 200;
+        city = site(Type.CITY, "Город", 0, 0, 190, 60);
         streets(r);
-        west = site(Type.BASE, "База «Запад»", -1400, zb, 66, 60);
-        east = site(Type.BASE, "База «Восток»", 1400, -zb, 66, 60);
+        west = site(Type.BASE, "База «Запад»", -880, zb, 66, 50);
+        east = site(Type.BASE, "База «Восток»", 880, -zb, 66, 50);
         // на севере и юге по нейтральной точке, на сторону реки их кидает случай
         int side = r.nextBoolean() ? 1 : -1;
-        int ax = side * (300 + r.nextInt(150));
-        int az = 950 + r.nextInt(250);
-        site(Type.AIRFIELD, "Аэродром", ax, -az, 140, 60);
-        site(Type.POWER, "Электростанция", -ax, az, 58, 50);
+        int ax = side * (200 + r.nextInt(120));
+        int az = 600 + r.nextInt(120);
+        site(Type.AIRFIELD, "Аэродром", ax, -az, 140, 50);
+        site(Type.POWER, "Электростанция", -ax, az, 58, 45);
         // зеркальные пары: у каждой стороны своя
-        pair(r, Type.OIL, "Нефтебаза", 44, 600, 1050, 1000);
-        pair(r, Type.TOWER, "Вышка связи", 22, 450, 900, 1200);
-        int n = 4;
+        pair(r, Type.OIL, "Нефтебаза", 44, 330, 640, 700);
+        pair(r, Type.TOWER, "Вышка связи", 22, 260, 620, 820);
+        pair(r, Type.HILL, "Высота", 22, 240, 560, 800);
+        int n = 3;
         int name = r.nextInt(VILLAGES.length);
         for (int i = 0; i < n; i++) {
             pairNamed(r, VILLAGES[(name + i * 2) % VILLAGES.length], VILLAGES[(name + i * 2 + 1) % VILLAGES.length]);
@@ -184,8 +201,13 @@ public final class FrontMap {
         for (int i = 0; i < 300; i++) {
             int x = -(x0 + r.nextInt(x1 - x0)), z = r.nextInt(zMax * 2) - zMax;
             if (free(x, z, radius) && free(-x, -z, radius)) {
-                site(t, name + " (запад)", x, z, radius, 40);
-                site(t, name + " (восток)", -x, -z, radius, 40);
+                int blend = t == Type.HILL ? 110 : 40;
+                Site w = site(t, name + " (запад)", x, z, radius, blend);
+                Site e = site(t, name + " (восток)", -x, -z, radius, blend);
+                if (t == Type.HILL) { // высоты называют по отметке
+                    sites.set(sites.indexOf(w), new Site(t, "Высота " + (w.y + 140) + " (запад)", w.x, w.z, w.radius, w.blend, w.y));
+                    sites.set(sites.indexOf(e), new Site(t, "Высота " + (e.y + 140) + " (восток)", e.x, e.z, e.radius, e.blend, e.y));
+                }
                 return;
             }
         }
@@ -193,7 +215,7 @@ public final class FrontMap {
 
     private void pairNamed(Random r, String a, String b) {
         for (int i = 0; i < 300; i++) {
-            int x = -(330 + r.nextInt(820)), z = r.nextInt(2600) - 1300;
+            int x = -(170 + r.nextInt(560)), z = r.nextInt(1800) - 900;
             if (free(x, z, 85) && free(-x, -z, 85)) {
                 site(Type.VILLAGE, a, x, z, 85, 45);
                 site(Type.VILLAGE, b, -x, -z, 85, 45);
@@ -208,26 +230,26 @@ public final class FrontMap {
         for (int side = -1; side <= 1; side += 2) {
             vertical.add(new Street(side * 24, 0, 1, 0, side));
             double at = 24;
-            while (at < 300) {
+            while (at < 250) {
                 at += 50 + r.nextInt(20);
                 vertical.add(new Street(26 + side * at, 4 + r.nextDouble() * 5, 55 + r.nextDouble() * 60, r.nextDouble() * 6, 0));
             }
         }
-        double z = -305 + r.nextInt(20);
-        while (z < 305) {
+        double z = -255 + r.nextInt(20);
+        while (z < 255) {
             horizontal.add(new Street(z, 4 + r.nextDouble() * 5, 60 + r.nextDouble() * 70, r.nextDouble() * 6, 0));
             z += 50 + r.nextInt(20);
         }
         vertical.sort(java.util.Comparator.comparingDouble(s -> s.river != 0 ? 26 + s.at : s.at));
         // районы: центр у реки, остальные вокруг по кругу в случайном порядке, промзона и вокзал — к железной дороге на севере
-        districts.add(new District(Zone.CENTER, -45, (r.nextDouble() - 0.5) * 40));
-        districts.add(new District(Zone.OLD, -130, 40 + r.nextInt(50)));
-        districts.add(new District(Zone.STATION, 95, -165));
-        districts.add(new District(Zone.INDUSTRY, r.nextBoolean() ? -130 : 175, r.nextBoolean() ? -170 : -150));
-        districts.add(new District(Zone.SLEEP, 130, 20 + r.nextInt(50)));
-        districts.add(new District(Zone.SLEEP, -60 - r.nextInt(60), 150 + r.nextInt(30)));
-        districts.add(new District(Zone.RIVERSIDE, 90, 160));
-        districts.add(new District(Zone.PRIVATE, -190, 130 - r.nextInt(220)));
+        districts.add(new District(Zone.CENTER, -40, (r.nextDouble() - 0.5) * 40));
+        districts.add(new District(Zone.OLD, -110, 40 + r.nextInt(40)));
+        districts.add(new District(Zone.STATION, 85, -135));
+        districts.add(new District(Zone.INDUSTRY, r.nextBoolean() ? -110 : 150, r.nextBoolean() ? -140 : -120));
+        districts.add(new District(Zone.SLEEP, 115, 20 + r.nextInt(40)));
+        districts.add(new District(Zone.SLEEP, -50 - r.nextInt(50), 125 + r.nextInt(25)));
+        districts.add(new District(Zone.RIVERSIDE, 80, 135));
+        districts.add(new District(Zone.PRIVATE, -160, 110 - r.nextInt(180)));
     }
 
     public double streetX(int k, double z) {
@@ -320,7 +342,7 @@ public final class FrontMap {
             int i = v ? k / 2 : (k - vertical.size() * 2) / 2;
             int sign = k % 2 == 0 ? 1 : -1;
             double x = 0, z = 0, t = 0;
-            for (t = 320; t > 60; t -= 2) {
+            for (t = 270; t > 60; t -= 2) {
                 x = v ? streetX(i, sign * t) : sign * t;
                 z = v ? sign * t : streetZ(i, sign * t);
                 if (inCity(x, z)) {
@@ -545,7 +567,7 @@ public final class FrontMap {
             double x = -HALF + i * 20;
             double k = smooth((Math.abs(x) - 250) / 350);
             rail.x[i] = x;
-            rail.z[i] = city.z - 328 - k * (40 + a * (1 + Math.sin(x / 330 + ph)));
+            rail.z[i] = city.z - 272 - k * (40 + a * (1 + Math.sin(x / 330 + ph)));
         }
         for (int pass = 0; pass < 6; pass++) { // объезд площадок плавной дугой
             for (int i = 0; i < n; i++) {
@@ -637,7 +659,7 @@ public final class FrontMap {
     // ------------------------------------------------------------------ рельеф
 
     public double riverX(double z) {
-        double k = smooth((Math.abs(z) - 320) / 260); // в городе русло спокойное, между набережными
+        double k = smooth((Math.abs(z) - 260) / 220); // в городе русло спокойное, между набережными
         return 26 + 11 * Math.sin(z / 95 + riverP) * (1 - k) + k * (riverA * Math.sin(z / 430) + riverB * Math.sin(z / 170 + riverP));
     }
 
@@ -649,9 +671,36 @@ public final class FrontMap {
 
     /** Холмы без площадок, реки и дорог. */
     public double base(double x, double z) {
-        double h = 74 + (noise(x, z, 430, 1) - 0.5) * 30 + (noise(x, z, 190, 2) - 0.5) * 12 + (noise(x, z, 60, 3) - 0.5) * 3;
+        double amp = switch (theme) {
+            case STEPPE -> 0.45;
+            case HILLS -> 1.7;
+            case LAKES -> 0.8;
+            default -> 1;
+        };
+        double h = 74 + ((noise(x, z, 430, 1) - 0.5) * 30 + (noise(x, z, 190, 2) - 0.5) * 12) * amp + (noise(x, z, 60, 3) - 0.5) * 3;
+        // балки: извилистые овраги вдоль линий шума
+        double depth = theme == Theme.HILLS ? 11 : theme == Theme.STEPPE ? 6 : theme == Theme.FOREST ? 4 : 0;
+        if (depth > 0) {
+            double n = Math.abs(noise(x, z, 320, 7) - 0.5);
+            if (n < 0.03) {
+                h -= depth * (1 - n / 0.03) * (1 - n / 0.03);
+            }
+        }
         double edge = Math.max(Math.abs(x), Math.abs(z)) - (HALF - 60);
         return Math.max(67, h) + (edge > 0 ? edge * 0.25 : 0); // у края карты холмы прикрывают границу
+    }
+
+    /** Озеро: больше 0.5 — вода (только в озёрном краю; в лесах — болотные окна). */
+    public double lake(double x, double z) {
+        if (theme == Theme.LAKES) {
+            return (noise(x, z, 230, 8) - 0.72) / 0.1 + 0.5;
+        }
+        return theme == Theme.FOREST ? (noise(x, z, 170, 9) - 0.75) / 0.08 + 0.5 : -1;
+    }
+
+    /** Болото: низина в лесах. */
+    public boolean swamp(double x, double z) {
+        return theme == Theme.FOREST && noise(x, z, 170, 9) > 0.66;
     }
 
     /** С площадками. */
@@ -675,6 +724,11 @@ public final class FrontMap {
         }
         if (road.d < 22) {
             h = Mth.lerp(smooth((road.d - 4.5) / 17), road.y, h);
+        }
+        double lk = lake(x, z);
+        if (lk > 0 && siteAt(x, z, 20) == null) {
+            double floor = theme == Theme.LAKES ? 56 : 61.5;
+            h = lk >= 0.5 ? Math.min(h, Mth.lerp(Math.min(1, (lk - 0.5) * 2.5), 62.4, floor)) : Math.min(h, Mth.lerp(lk * 2, h, 63.5));
         }
         double r = river(x, z);
         double bank = city.dist(x, z) < city.radius ? 1.5 : 30;
@@ -720,7 +774,7 @@ public final class FrontMap {
     }
 
     public Field field(double x, double z) {
-        double s = 115;
+        double s = theme == Theme.STEPPE ? 165 : theme == Theme.FOREST ? 85 : 115;
         int gx = Mth.floor(x / s), gz = Mth.floor(z / s);
         Field f = new Field();
         double d1 = 1.0E9, d2 = 1.0E9;
@@ -748,13 +802,13 @@ public final class FrontMap {
 
     /** Расстояние до линии окопов (по одной с каждой стороны, зигзаг с разрывами), 1e9 — нет. */
     public double trench(double x, double z) {
-        if (Math.abs(z) > 900) {
+        if (Math.abs(z) > HALF - 100) {
             return 1.0E9;
         }
         double best = 1.0E9;
         for (int line = 0; line < 4; line++) {
             double sign = line % 2 == 0 ? -1 : 1;
-            double cx = sign * (line < 2 ? 430 : 560);
+            double cx = sign * (line < 2 ? 300 : 400);
             double w = cx + (noise(0, z, 220, 20 + line) - 0.5) * 120;
             if (Math.abs(x - w) > 14 || noise(0, z, 90, 30 + line) < 0.33) {
                 continue;

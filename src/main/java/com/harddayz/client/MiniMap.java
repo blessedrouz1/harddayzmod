@@ -320,12 +320,23 @@ final class MiniMap {
                     }
                 }
                 case "squad" -> {
+                    String[] t = p[4].split(",");
+                    if (labels && t.length == 2) { // куда идёт отряд
+                        int tx = (int) (x + w / 2.0 + (num(t[0]) - cx) / k), ty = (int) (y + h / 2.0 + (num(t[1]) - cz) / k);
+                        line(g, px, py, tx, ty, 0x9060F080);
+                    }
                     g.fill(px - 2, py - 2, px + 3, py + 3, 0xFF000000);
                     g.fill(px - 1, py - 1, px + 2, py + 2, 0xFF60F080);
                 }
                 case "enemy" -> {
                     g.fill(px - 2, py - 2, px + 3, py + 3, 0xFF000000);
                     g.fill(px - 1, py - 1, px + 2, py + 2, 0xFFFF4040);
+                }
+                case "spot" -> {
+                    int a = (int) Mth.clamp(255 - v / 4, 90, 255);
+                    boolean veh = p[4].equals("veh");
+                    g.fill(px - (veh ? 3 : 2), py - (veh ? 3 : 2), px + (veh ? 4 : 3), py + (veh ? 4 : 3), a << 24);
+                    g.fill(px - (veh ? 2 : 1), py - (veh ? 2 : 1), px + (veh ? 3 : 2), py + (veh ? 3 : 2), a << 24 | 0xFF3030);
                 }
                 case "vehicle" -> g.fill(px - 2, py - 1, px + 3, py + 2, 0xFF80C0FF);
                 case "contact" -> g.fill(px - 1, py - 1, px + 2, py + 2, ((int) Mth.clamp(255 - v * 2, 80, 255) << 24) | 0xFF6030);
@@ -358,6 +369,14 @@ final class MiniMap {
             return Double.parseDouble(s);
         } catch (NumberFormatException e) {
             return 0;
+        }
+    }
+
+    private static void line(Gfx g, int x0, int y0, int x1, int y1, int col) {
+        int n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+        for (int i = 0; i <= n; i += 2) {
+            int px = x0 + (x1 - x0) * i / Math.max(1, n), py = y0 + (y1 - y0) * i / Math.max(1, n);
+            g.fill(px, py, px + 1, py + 1, col);
         }
     }
 

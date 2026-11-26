@@ -529,5 +529,17 @@
   "config.harddayz.minimap": "Миникарта",
   "screen.harddayz.map": "Карта",
   "screen.harddayz.map_hint": "ЛКМ тащить · колесо масштаб · ПКМ скопировать координаты · Shift+ПКМ метка",
-  "screen.harddayz.map_copied": "Скопировано: %s %s %s"
+  "screen.harddayz.map_copied": "Скопировано: %s %s %s",
+  "message.harddayz.contact": "Контакт: %s, %s (%s %s)",
+  "message.harddayz.contact_inf": "пехота",
+  "message.harddayz.contact_veh": "техника",
+  "message.harddayz.bots_deploy": "Боты развернули %s у %s %s",
+  "message.harddayz.bots_fire": "Боты: %s бьёт по %s %s",
+  "entity.harddayz.kind.radar": "РЛС",
+  "entity.harddayz.kind.grad": "«Град»",
+  "entity.harddayz.kind.grad_p": "лёгкая РСЗО",
+  "entity.harddayz.kind.sam": "ЗРК",
+  "entity.harddayz.kind.uragan": "«Ураган»",
+  "entity.harddayz.kind.iskander": "«Искандер»",
+  "point.harddayz.hill": "видно врагов в 260 блоках"
 }

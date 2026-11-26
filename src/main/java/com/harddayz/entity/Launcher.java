@@ -806,43 +806,44 @@ public class Launcher extends Vehicle {
     }
 
     /** Приказ на пуск по точке. */
-    public void order(ServerPlayer player, BlockPos t) {
+    /** Приказ на пуск. player может быть null — так стреляют боты. true — приказ принят. */
+    public boolean order(@Nullable ServerPlayer player, BlockPos t) {
         if (kind() == Kind.EW) {
-            player.displayClientMessage(Component.translatable("message.harddayz.ew_auto").withStyle(ChatFormatting.YELLOW), true);
-            return;
+            tell(player, Component.translatable("message.harddayz.ew_auto").withStyle(ChatFormatting.YELLOW), true);
+            return false;
         }
         if (kind().samLike() && kind() != Kind.S400) {
-            player.displayClientMessage(Component.translatable("message.harddayz.sam_auto").withStyle(ChatFormatting.YELLOW), true);
-            return;
+            tell(player, Component.translatable("message.harddayz.sam_auto").withStyle(ChatFormatting.YELLOW), true);
+            return false;
         }
         if (ammo() <= 0) {
-            player.displayClientMessage(Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
-            return;
+            tell(player, Component.translatable("message.harddayz.empty").withStyle(ChatFormatting.RED), true);
+            return false;
         }
         if (state != State.IDLE) {
-            player.displayClientMessage(Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW), true);
-            return;
+            tell(player, Component.translatable("message.harddayz.busy").withStyle(ChatFormatting.YELLOW), true);
+            return false;
         }
         if (tickCount < reloadUntil) {
-            player.displayClientMessage(Component.translatable("message.harddayz.reloading_launcher", (reloadUntil - tickCount) / 20 + 1)
+            tell(player, Component.translatable("message.harddayz.reloading_launcher", (reloadUntil - tickCount) / 20 + 1)
                     .withStyle(ChatFormatting.YELLOW), true);
-            return;
+            return false;
         }
         if (!stationary()) {
-            player.displayClientMessage(Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW), true);
-            return;
+            tell(player, Component.translatable("message.harddayz.stop_first").withStyle(ChatFormatting.YELLOW), true);
+            return false;
         }
         Vec3 tv = Vec3.atCenterOf(t);
         double dist = Math.sqrt(tv.distanceToSqr(getX(), tv.y, getZ()));
         switch (kind()) {
             case MORTAR -> {
-                player.displayClientMessage(Component.translatable("message.harddayz.mortar_manual").withStyle(ChatFormatting.YELLOW), false);
-                return;
+                tell(player, Component.translatable("message.harddayz.mortar_manual").withStyle(ChatFormatting.YELLOW), false);
+                return false;
             }
             case KALIBR -> {
                 if (dist < 150 || dist > Drone.SHAHED_RANGE) {
-                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
-                    return;
+                    tell(player, Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
+                    return false;
                 }
                 // крылатые ракеты: модуль поднимается гидроцилиндрами под стартовый угол и разворачивается на цель
                 entityData.set(WANT_ELEV, KALIBR_LAUNCH_ELEV);
@@ -852,18 +853,18 @@ public class Launcher extends Vehicle {
                 Double elev = gradElevation(tv);
                 if (elev == null) {
                     int dy = (int) (tv.y - muzzleBase().y);
-                    player.displayClientMessage((Math.abs(dy) > 8 && dist <= maxGradRange()
+                    tell(player, (Math.abs(dy) > 8 && dist <= maxGradRange()
                             ? Component.translatable("message.harddayz.out_of_range_h", (int) dist, dy, (int) maxGradRange())
                             : Component.translatable("message.harddayz.out_of_range", (int) dist, (int) maxGradRange())).withStyle(ChatFormatting.RED), true);
-                    return;
+                    return false;
                 }
                 entityData.set(WANT_ELEV, elev.floatValue());
                 entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
             }
             case SHAHED, RAMP -> {
                 if (dist < 80 || dist > Drone.SHAHED_RANGE) {
-                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
-                    return;
+                    tell(player, Component.translatable("message.harddayz.out_of_range", (int) dist, Drone.SHAHED_RANGE).withStyle(ChatFormatting.RED), true);
+                    return false;
                 }
                 entityData.set(WANT_ELEV, 18f);
                 entityData.set(WANT_TURRET, Mth.wrapDegrees(yawTo(tv) - getYRot()));
@@ -872,8 +873,8 @@ public class Launcher extends Vehicle {
                 int max = kind() == Kind.S400 ? 2500 : kind() == Kind.HIMARS ? 3000 : kind() == Kind.TOCHKA ? com.harddayz.Config.ballisticRange() / 2
                         : com.harddayz.Config.ballisticRange();
                 if (dist > max || dist < 60) {
-                    player.displayClientMessage(Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
-                    return;
+                    tell(player, Component.translatable("message.harddayz.out_of_range", (int) dist, max).withStyle(ChatFormatting.RED), true);
+                    return false;
                 }
                 if (kind() == Kind.HIMARS) { // пакет поднимается и смотрит на цель
                     entityData.set(WANT_ELEV, 58f);
@@ -890,9 +891,28 @@ public class Launcher extends Vehicle {
         entityData.set(OUTRIG, kind().mobile ? 1f : 0f);
         timer = 0;
         shot = 0;
-        player.displayClientMessage(Component.translatable("message.harddayz.order", t.getX(), t.getY(), t.getZ(), (int) dist).withStyle(ChatFormatting.GOLD), true);
+        tell(player, Component.translatable("message.harddayz.order", t.getX(), t.getY(), t.getZ(), (int) dist).withStyle(ChatFormatting.GOLD), true);
         level().playSound(null, blockPosition(), SoundEvents.PISTON_EXTEND, SoundSource.BLOCKS, 1.2f, 0.5f);
+        return true;
     }
+
+    private static void tell(@Nullable ServerPlayer p, Component msg, boolean bar) {
+        if (p != null) {
+            p.displayClientMessage(msg, bar);
+        }
+    }
+
+    /** Свободна и заряжена: можно отдавать приказ. */
+    public boolean ready() {
+        return state == State.IDLE && ammo() > 0 && tickCount >= reloadUntil && stationary();
+    }
+
+    /** Боты сразу накрывают технику маскировочной сетью. */
+    public void netByBots() {
+        entityData.set(CAMO, 1);
+    }
+
+
 
     private float yawTo(Vec3 p) {
         return (float) Math.toDegrees(Math.atan2(-(p.x - getX()), p.z - getZ()));

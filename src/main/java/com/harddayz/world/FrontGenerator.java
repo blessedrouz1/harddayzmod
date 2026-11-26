@@ -186,8 +186,12 @@ public class FrontGenerator extends ChunkGenerator {
         BlockState top = Blocks.GRASS_BLOCK.defaultBlockState();
         BlockState plant = null, plant2 = null;
         double rnd = m.hash(x, z, 50);
+        boolean swamp = wild && m.swamp(x, z);
+        if (swamp && h <= FrontMap.WATER + 1 && rnd < 0.35) {
+            h = FrontMap.WATER - 1; // болотные окна
+        }
         if (h < FrontMap.WATER) {
-            top = (river < 8 ? Blocks.GRAVEL : Blocks.SAND).defaultBlockState();
+            top = (river < 8 ? Blocks.GRAVEL : swamp || m.theme == FrontMap.Theme.FOREST ? Blocks.MUD : Blocks.SAND).defaultBlockState();
         } else if (h == FrontMap.WATER && river < FrontMap.RIVER_HALF + 8) {
             top = (rnd < 0.6 ? Blocks.SAND : Blocks.GRASS_BLOCK).defaultBlockState();
         } else if (trench < 1.0) {
@@ -306,7 +310,10 @@ public class FrontGenerator extends ChunkGenerator {
             }
         }
         for (int y = h + 1; y <= FrontMap.WATER; y++) {
-            c.set(x, y, z, Blocks.WATER.defaultBlockState());
+            c.set(x, y, z, (m.winter && y == FrontMap.WATER && river > FrontMap.RIVER_HALF * 0.55 ? Blocks.ICE : Blocks.WATER).defaultBlockState());
+        }
+        if (h < FrontMap.WATER && swamp && rnd > 0.93 && !m.winter) {
+            c.set(x, FrontMap.WATER + 1, z, Blocks.LILY_PAD.defaultBlockState());
         }
         if (deck != null) {
             c.set(x, deckY, z, deck);
@@ -337,6 +344,27 @@ public class FrontGenerator extends ChunkGenerator {
             c.set(x, surface + 1, z, ModBlocks.SANDBAG_WALL.get().defaultBlockState());
             return;
         }
+        if (m.winter && h >= FrontMap.WATER) { // зима: снег поверх всего, что не дорога
+            if (plant != null && plant.is(Blocks.HAY_BLOCK)) {
+                c.set(x, h + 1, z, plant);
+                c.set(x, h + 2, z, Blocks.SNOW.defaultBlockState());
+                return;
+            }
+            boolean paved = top.is(Blocks.GRAY_CONCRETE) || top.is(Blocks.WHITE_CONCRETE) || top.is(Blocks.SMOOTH_STONE) || top.is(Blocks.DIRT_PATH)
+                    || top.is(Blocks.ANDESITE) || top.is(Blocks.STONE_BRICKS);
+            if (top.is(Blocks.FARMLAND)) {
+                c.set(x, h, z, Blocks.COARSE_DIRT.defaultBlockState());
+            } else if (top.is(Blocks.GRASS_BLOCK)) {
+                c.set(x, h, z, Blocks.GRASS_BLOCK.defaultBlockState().setValue(net.minecraft.world.level.block.GrassBlock.SNOWY, true));
+            }
+            if (!paved && !b.taken(x, z, 0)) {
+                c.set(x, h + 1, z, Blocks.SNOW.defaultBlockState().setValue(net.minecraft.world.level.block.SnowLayerBlock.LAYERS, rnd < 0.5 ? 1 : 2));
+            }
+            return;
+        }
+        if (swamp && plant == null && rnd > 0.6) {
+            plant = rnd > 0.9 ? Blocks.FERN.defaultBlockState() : Blocks.GRASS.defaultBlockState();
+        }
         if (plant != null && h >= FrontMap.WATER && !b.taken(x, z, 0)) {
             c.set(x, h + 1, z, plant);
             if (plant2 != null) {
@@ -357,10 +385,12 @@ public class FrontGenerator extends ChunkGenerator {
     /** 0 пшеница, 1 пашня, 2 подсолнух, 3 луг со стогами, 4 луг, 5 лес. */
     public static int field(FrontMap m, FrontMap.Field f, int x, int z) {
         double t = m.hash(f.cx, f.cz, 60);
-        if (m.noise(f.cx * 115, f.cz * 115, 420, 61) > 0.62) {
-            return t < 0.75 ? 5 : 4; // большие леса
-        }
-        return t < 0.24 ? 0 : t < 0.38 ? 1 : t < 0.46 ? 2 : t < 0.62 ? 3 : t < 0.9 ? 4 : 5;
+        double big = m.noise(f.cx * 115, f.cz * 115, 420, 61);
+        return switch (m.theme) {
+            case STEPPE -> big > 0.8 ? (t < 0.6 ? 5 : 4) : t < 0.32 ? 0 : t < 0.48 ? 1 : t < 0.62 ? 2 : t < 0.76 ? 3 : t < 0.985 ? 4 : 5;
+            case FOREST -> big > 0.45 || t > 0.7 ? (t < 0.85 ? 5 : 4) : t < 0.2 ? 0 : t < 0.32 ? 1 : t < 0.5 ? 3 : 4;
+            default -> big > 0.62 ? (t < 0.75 ? 5 : 4) : t < 0.24 ? 0 : t < 0.38 ? 1 : t < 0.46 ? 2 : t < 0.62 ? 3 : t < 0.9 ? 4 : 5;
+        };
     }
 
     public static boolean hedge(FrontMap m, FrontMap.Field f) {
@@ -389,7 +419,7 @@ public class FrontGenerator extends ChunkGenerator {
             tree = roll < 0.22 ? (roll < 0.1 ? 1 : 0) : -1; // приречные
         } else if (kind == 5 && f.edge > 2) {
             double sp = m.noise(x, z, 150, 73);
-            tree = roll < 0.62 ? (sp > 0.6 ? 2 : sp > 0.4 ? 0 : 1) : -1;
+            tree = roll < (m.theme == FrontMap.Theme.FOREST ? 0.72 : 0.62) ? (m.winter || sp > 0.6 ? 2 : sp > 0.4 ? 0 : 1) : -1;
         } else if (hedge(m, f) && f.edge < 4.5) {
             tree = roll < 0.8 ? (m.hash(f.cx + f.nx, f.cz + f.nz, 74) < 0.5 ? 3 : roll < 0.4 ? 0 : 1) : -1; // лесополоса
         } else if (kind >= 3 && roll < 0.012) {
@@ -426,7 +456,42 @@ public class FrontGenerator extends ChunkGenerator {
             }
             return;
         }
+        if (m.winter && tree != 2 && roll < 0.5) {
+            tree = 2;
+        }
         FrontBuildings.tree(c, x, h + 1, z, tree, new Random(m.seed ^ gx * 91815541L ^ gz * 6542989L));
+    }
+
+    // ------------------------------------------------------------------ биомы: оттенок травы и погода по местности
+
+    private net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> biome(net.minecraft.resources.ResourceKey<net.minecraft.world.level.biome.Biome> want) {
+        net.minecraft.core.Holder<net.minecraft.world.level.biome.Biome> any = null;
+        for (var h : biomeSource.possibleBiomes()) {
+            if (h.is(want)) {
+                return h;
+            }
+            if (any == null || h.is(net.minecraft.world.level.biome.Biomes.PLAINS)) {
+                any = h;
+            }
+        }
+        return any;
+    }
+
+    @Override
+    public CompletableFuture<ChunkAccess> createBiomes(Executor executor, RandomState rs, Blender blender, StructureManager sm, ChunkAccess chunk) {
+        return CompletableFuture.supplyAsync(() -> {
+            FrontMap m = map();
+            var B = net.minecraft.world.level.biome.Biomes.class;
+            var main = biome(m.winter ? net.minecraft.world.level.biome.Biomes.SNOWY_PLAINS : switch (m.theme) {
+                case STEPPE -> net.minecraft.world.level.biome.Biomes.SAVANNA;
+                case FOREST -> net.minecraft.world.level.biome.Biomes.FOREST;
+                case HILLS -> net.minecraft.world.level.biome.Biomes.MEADOW;
+                default -> net.minecraft.world.level.biome.Biomes.PLAINS;
+            });
+            var swamp = m.winter ? main : biome(net.minecraft.world.level.biome.Biomes.SWAMP);
+            chunk.fillBiomesFromNoise((qx, qy, qz, sampler) -> m.swamp(qx << 2, qz << 2) ? swamp : main, rs.sampler());
+            return chunk;
+        }, executor);
     }
 
     // ------------------------------------------------------------------ остальное ванильному движку не нужно

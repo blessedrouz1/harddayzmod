@@ -8,6 +8,7 @@ import com.harddayz.network.Net;
 import com.harddayz.registry.ModSounds;
 import com.harddayz.war.BotCommander;
 import com.harddayz.war.Medic;
+import com.harddayz.war.RadarNet;
 import com.harddayz.war.War;
 
 import net.minecraft.core.BlockPos;
@@ -246,6 +247,14 @@ public class Soldier extends PathfinderMob {
                 best = e;
                 bestK = k;
             }
+        }
+        if (best != null) {
+            if (RadarNet.spot(RadarNet.key(side), best, level.getGameTime())) {
+                BotCommander.contact(level, this, best);
+            }
+        }
+        if (enemy != null) {
+            RadarNet.spot(RadarNet.key(side), enemy, level.getGameTime());
         }
         if (best != null && best != enemy) {
             enemy = best;

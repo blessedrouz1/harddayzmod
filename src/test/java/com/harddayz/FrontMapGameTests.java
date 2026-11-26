@@ -22,8 +22,9 @@ import net.minecraftforge.gametest.PrefixGameTestTemplate;
 @PrefixGameTestTemplate(false)
 public class FrontMapGameTests {
     private static FrontGenerator generator(GameTestHelper h, long seed) {
-        var biome = h.getLevel().registryAccess().registryOrThrow(Registries.BIOME).getHolderOrThrow(Biomes.PLAINS);
-        FrontGenerator g = new FrontGenerator(new FixedBiomeSource(biome));
+        var reg = h.getLevel().registryAccess().registryOrThrow(Registries.BIOME);
+        FrontGenerator g = new FrontGenerator(new net.minecraft.world.level.biome.CheckerboardColumnBiomeSource(
+                net.minecraft.core.HolderSet.direct(reg.getHolderOrThrow(Biomes.PLAINS), reg.getHolderOrThrow(Biomes.SNOWY_PLAINS)), 2));
         g.seed(seed);
         return g;
     }
@@ -35,6 +36,9 @@ public class FrontMapGameTests {
             FrontMap m = new FrontMap(seed * 7919);
             for (FrontMap.Type t : FrontMap.Type.values()) {
                 long want = t == FrontMap.Type.CITY || t == FrontMap.Type.AIRFIELD || t == FrontMap.Type.POWER ? 1 : t == FrontMap.Type.VILLAGE ? 4 : 2;
+                if (t == FrontMap.Type.HILL) {
+                    want = 2;
+                }
                 long n = m.sites.stream().filter(s -> s.type() == t).count();
                 h.assertTrue(n >= want, "seed " + seed + ": " + t + " " + n);
             }
@@ -60,7 +64,7 @@ public class FrontMapGameTests {
         h.assertTrue(!solid[0], "HQ place must be free");
         String dump = System.getProperty("harddayz.mapdump", System.getenv("HARDDAYZ_MAPDUMP"));
         if (dump != null) {
-            long[] seeds = {12345, 777};
+            long[] seeds = {12345, 777, 31, 4242, 9001, 55};
             for (long seed : seeds) {
                 overview(generator(h, seed), new File(dump, "map_" + seed + ".png"), 4);
             }

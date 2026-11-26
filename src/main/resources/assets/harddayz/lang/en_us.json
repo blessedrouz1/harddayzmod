@@ -529,5 +529,17 @@
   "config.harddayz.minimap": "Minimap",
   "screen.harddayz.map": "Map",
   "screen.harddayz.map_hint": "LMB drag · wheel zoom · RMB copy coordinates · Shift+RMB marker",
-  "screen.harddayz.map_copied": "Copied: %s %s %s"
+  "screen.harddayz.map_copied": "Copied: %s %s %s",
+  "message.harddayz.contact": "Contact: %s, %s (%s %s)",
+  "message.harddayz.contact_inf": "infantry",
+  "message.harddayz.contact_veh": "vehicle",
+  "message.harddayz.bots_deploy": "Bots deployed %s at %s %s",
+  "message.harddayz.bots_fire": "Bots: %s fires at %s %s",
+  "entity.harddayz.kind.radar": "radar",
+  "entity.harddayz.kind.grad": "Grad",
+  "entity.harddayz.kind.grad_p": "light MLRS",
+  "entity.harddayz.kind.sam": "SAM",
+  "entity.harddayz.kind.uragan": "Uragan",
+  "entity.harddayz.kind.iskander": "Iskander",
+  "point.harddayz.hill": "spots enemies within 260 blocks"
 }

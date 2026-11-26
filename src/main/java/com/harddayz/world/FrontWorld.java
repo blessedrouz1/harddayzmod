@@ -100,6 +100,7 @@ public final class FrontWorld {
                     case CITY -> pos(b.plaza);
                     case AIRFIELD -> new BlockPos(s.x(), s.y() + 1, s.z());
                     case TOWER -> new BlockPos(s.x(), s.y() + 1, s.z());
+                    case HILL -> new BlockPos(s.x() - 7, s.y() + 1, s.z() + 7);
                     default -> new BlockPos(s.x(), s.y() + 1, s.z() + (s.type() == FrontMap.Type.POWER ? -2 : 0));
                 };
                 put(level, at, ModBlocks.FRONTLINE.get());

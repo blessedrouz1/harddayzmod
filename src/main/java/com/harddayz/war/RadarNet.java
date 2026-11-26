@@ -177,6 +177,42 @@ public final class RadarNet {
         return "unknown";
     }
 
+    /** Замеченная на земле цель: пехота, техника. */
+    public static final class Spot {
+        public String type = "inf";
+        public Vec3 pos = Vec3.ZERO;
+        public long seen;
+        public int id;
+    }
+
+    private static final Map<String, Map<Integer, Spot>> GROUND = new HashMap<>();
+
+    /** Свои (солдаты, разведдрон, высота) видят цель на земле. true — новая. */
+    public static boolean spot(String key, Entity e, long now) {
+        Map<Integer, Spot> m = GROUND.computeIfAbsent(key, k -> new HashMap<>());
+        Spot s = m.get(e.getId());
+        boolean fresh = s == null || now - s.seen > 600;
+        if (s == null) {
+            s = new Spot();
+            s.id = e.getId();
+            m.put(e.getId(), s);
+        }
+        s.type = e instanceof com.harddayz.entity.Vehicle ? "veh" : "inf";
+        s.pos = e.position();
+        s.seen = now;
+        return fresh;
+    }
+
+    public static List<Spot> ground(String key, long now) {
+        List<Spot> out = new ArrayList<>();
+        Map<Integer, Spot> m = GROUND.get(key);
+        if (m != null) {
+            m.values().removeIf(s -> now - s.seen > (s.type.equals("veh") ? 1800 : 900));
+            out.addAll(m.values());
+        }
+        return out;
+    }
+
     /** РЛС засекла цель. */
     public static void report(String key, Entity e, long now) {
         Contact c = NETS.computeIfAbsent(key, k -> new HashMap<>()).computeIfAbsent(e.getId(), Contact::new);
@@ -286,6 +322,7 @@ public final class RadarNet {
 
     public static void clear() {
         LAUNCHES.clear();
+        GROUND.clear();
         MARKS.clear();
         RADAR_SEEN.clear();
         NETS.clear();

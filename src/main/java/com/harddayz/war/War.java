@@ -56,6 +56,9 @@ public final class War {
         public int captured;
         /** Сколько ботов держит сторона; ai — сторона целиком под управлением ботов. */
         public int bots;
+        /** Казна и техника ботов стороны: «uuid;вид;x;z». */
+        public int botBudget;
+        public List<String> botAssets = new ArrayList<>();
         public boolean ai;
         /** Кто-то из игроков уже вступал. */
         public boolean joined;
@@ -164,6 +167,10 @@ public final class War {
         data.difficulty = difficulty;
         for (Faction f : data.factions) {
             f.bots = f.ai ? (int) Math.ceil(Math.max(8, bots) * (0.7 + 0.35 * difficulty())) : bots;
+            f.botBudget = f.bots <= 0 ? 0 : f.ai ? 1500 + 900 * difficulty() : 1500;
+            if (f.botAssets == null) {
+                f.botAssets = new ArrayList<>();
+            }
         }
         save();
     }
@@ -541,6 +548,7 @@ public final class War {
     public static void end() {
         Frontline.clear();
         BotCommander.reset(server);
+        RadarNet.clear();
         if (server != null) {
             Scoreboard sb = server.getScoreboard();
             for (Faction f : data.factions) {

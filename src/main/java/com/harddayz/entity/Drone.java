@@ -713,7 +713,15 @@ public class Drone extends Entity implements Threat {
             for (Entity e : level.getEntities(this, getBoundingBox().inflate(150, 120, 150), e -> (e instanceof Player || e instanceof Vehicle
                     || e instanceof Drone) && !(e instanceof Launcher l && (l.wrecked() || l.hidden())) && !com.harddayz.war.War.allied(owner, e instanceof Player p ? p.getUUID()
                             : e instanceof Vehicle vh ? vh.owner() : ((Drone) e).owner()))) {
-                com.harddayz.war.RadarNet.report(key, e, now);
+                if (e instanceof Drone) {
+                    com.harddayz.war.RadarNet.report(key, e, now);
+                } else {
+                    com.harddayz.war.RadarNet.spot(key, e, now); // наземные цели — в разведку, а не в воздушную обстановку
+                }
+            }
+            for (Entity e : level.getEntities(this, getBoundingBox().inflate(150, 120, 150), e -> e instanceof com.harddayz.entity.Soldier s
+                    && !com.harddayz.war.War.allied(owner, s.side()))) {
+                com.harddayz.war.RadarNet.spot(key, e, now);
             }
             com.harddayz.war.RadarNet.radarAlive(key, now);
         }

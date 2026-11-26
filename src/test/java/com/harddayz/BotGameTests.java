@@ -34,6 +34,28 @@ public class BotGameTests {
         return s;
     }
 
+    /** Боты отдают приказ РСЗО без игрока; ракеты уходят вверх, а не по прямой. */
+    @GameTest(template = "empty", batch = "bots2", timeoutTicks = 600)
+    public static void botsOrderLaunchers(GameTestHelper h) {
+        BlockPos p = h.absolutePos(new BlockPos(1, 2, 1));
+        com.harddayz.entity.Launcher l = ModEntities.LAUNCHER.get().create(h.getLevel());
+        l.setKind(com.harddayz.entity.Launcher.Kind.GRAD);
+        l.setPos(p.getX() + 0.5, p.getY(), p.getZ() + 0.5);
+        l.resupply();
+        h.getLevel().addFreshEntity(l);
+        h.assertTrue(l.ready(), "fresh launcher ready");
+        h.assertTrue(l.order(null, p.offset(0, 0, 320)), "order without player");
+        h.assertTrue(!l.order(null, p.offset(0, 0, 330)), "busy launcher refuses");
+        double[] maxPitch = {0};
+        h.onEachTick(() -> {
+            for (var m : h.getLevel().getEntitiesOfClass(com.harddayz.entity.Missile.class, new net.minecraft.world.phys.AABB(p).inflate(40))) {
+                var v = m.getDeltaMovement();
+                maxPitch[0] = Math.max(maxPitch[0], Math.toDegrees(Math.atan2(v.y, Math.hypot(v.x, v.z))));
+            }
+        });
+        h.succeedWhen(() -> h.assertTrue(maxPitch[0] > 40, "rocket must leave steep, got " + maxPitch[0]));
+    }
+
     /** Солдаты разных сторон находят и убивают друг друга, своих не трогают; отряды на бумаге берут точки. */
     @GameTest(template = "empty", batch = "bots", timeoutTicks = 1200)
     public static void soldiersFight(GameTestHelper h) {

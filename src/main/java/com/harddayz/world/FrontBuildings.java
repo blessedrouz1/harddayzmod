@@ -52,6 +52,7 @@ public final class FrontBuildings {
                 case OIL -> oil(s);
                 case AIRFIELD -> airfield(s);
                 case TOWER -> tower(s);
+                case HILL -> hill(s);
             }
         }
         details(new Random(map.seed * 17 + 3));
@@ -1110,6 +1111,41 @@ public final class FrontBuildings {
         hangar(x + 10, z + in * 18 - 9, 19, 26, y, true);
     }
 
+    /** Высота: опорный пункт на вершине — окопы кольцом, блиндаж, наблюдательная вышка. */
+    private void hill(FrontMap.Site s) {
+        int x = s.x(), z = s.z(), y = s.y();
+        add(x - 20, z - 20, x + 20, z + 20, d -> {
+            for (int a = 0; a < 72; a++) {
+                double t = a * Math.PI * 2 / 72;
+                int px = x + (int) Math.round(Math.cos(t) * 15), pz = z + (int) Math.round(Math.sin(t) * 15);
+                if (a % 18 < 2) {
+                    continue; // проходы
+                }
+                d.box(px, y - 1, pz, px, y, pz, Blocks.AIR);
+                d.set(px, y - 2, pz, Blocks.COARSE_DIRT);
+                int ox = x + (int) Math.round(Math.cos(t) * 16.5), oz = z + (int) Math.round(Math.sin(t) * 16.5);
+                d.set(ox, y + 1, oz, ModBlocks.SANDBAG_WALL.get());
+            }
+            d.box(x - 4, y - 3, z - 4, x + 4, y + 1, z + 4, ModBlocks.BUNKER_CONCRETE.get());
+            d.box(x - 3, y - 2, z - 3, x + 3, y, z + 3, Blocks.AIR);
+            d.box(x - 1, y - 2, z + 4, x + 1, y, z + 4, Blocks.AIR);
+            d.box(x - 1, y - 1, z + 5, x + 1, y, z + 6, Blocks.AIR);
+            d.box(x - 4, y + 2, z - 4, x + 4, y + 2, z + 4, Blocks.COARSE_DIRT);
+            d.set(x, y + 1, z, Blocks.SEA_LANTERN);
+            int tx = x + 8, tz = z - 8; // вышка наблюдения
+            for (int h = 1; h <= 9; h++) {
+                for (int[] c : new int[][] {{-1, -1}, {1, -1}, {-1, 1}, {1, 1}}) {
+                    d.set(tx + c[0], y + h, tz + c[1], Blocks.SPRUCE_LOG);
+                }
+                d.set(tx, y + h, tz, Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.SOUTH));
+            }
+            d.box(tx - 2, y + 10, tz - 2, tx + 2, y + 10, tz + 2, Blocks.SPRUCE_PLANKS);
+            d.set(tx, y + 10, tz, Blocks.LADDER.defaultBlockState().setValue(LadderBlock.FACING, Direction.SOUTH));
+            d.walls(tx - 2, y + 11, tz - 2, tx + 2, y + 11, tz + 2, ModBlocks.SANDBAGS.get());
+            d.box(tx - 2, y + 13, tz - 2, tx + 2, y + 13, tz + 2, Blocks.SPRUCE_SLAB);
+        });
+    }
+
     private void tower(FrontMap.Site s) {
         int x = s.x(), z = s.z(), y = s.y();
         int tx = x + 8;
@@ -1144,7 +1180,7 @@ public final class FrontBuildings {
         int y = c.y();
         for (int k = 0; k < map.streetsV() + map.streetsH(); k++) {
             boolean v = k < map.streetsV();
-            for (int t = -300; t <= 300; t += 13) {
+            for (int t = -260; t <= 260; t += 13) {
                 double sx = v ? map.streetX(k, t) : t, sz = v ? t : map.streetZ(k - map.streetsV(), t);
                 if (c.dist(sx, sz) > c.radius() - 6 || map.river(sx, sz) < FrontMap.RIVER_HALF + 8) {
                     continue;
@@ -1195,9 +1231,9 @@ public final class FrontBuildings {
         }
         // доты у окопов
         for (int line = 0; line < 2; line++) {
-            for (int z = -860; z <= 860; z += 24) {
+            for (int z = -FrontMap.HALF + 120; z <= FrontMap.HALF - 120; z += 24) {
                 int sign = line == 0 ? -1 : 1;
-                for (int x = sign * 430 - 90; x <= sign * 430 + 90; x += 2) {
+                for (int x = sign * 300 - 90; x <= sign * 300 + 90; x += 2) {
                     if (map.trench(x, z) < 1 && Math.floorMod(z / 24 * 7 + line, 4) == 0) {
                         int px = x - sign * 7;
                         if (map.siteAt(px, z, 12) == null && map.road(px, z).d > 14 && map.rail(px, z).d > 12 && map.river(px, z) > 45) {
