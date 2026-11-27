@@ -182,6 +182,10 @@ public final class Net {
     public record WarMenuRequest(int action) {
     }
 
+    /** Сервер → клиент раз в секунду: таймер выживания. */
+    public record SurvivalState(int round, int time, int left, boolean lull, boolean seen, int drones, int alive) {
+    }
+
     public record Alert(String text) {
     }
 
@@ -299,6 +303,16 @@ public final class Net {
                 }, b -> new FrontInfo(b.readBoolean(), b.readLong()), (p, ctx) -> com.harddayz.client.ClientAccess.mapInfo(p));
         reg(MapState.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> writeList(b, m.rows()), b -> new MapState(readList(b, 2048)),
                 (p, ctx) -> com.harddayz.client.ClientAccess.mapState(p));
+        reg(SurvivalState.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                    b.writeVarInt(m.round());
+                    b.writeVarInt(m.time());
+                    b.writeVarInt(m.left());
+                    b.writeBoolean(m.lull());
+                    b.writeBoolean(m.seen());
+                    b.writeVarInt(m.drones());
+                    b.writeVarInt(m.alive());
+                }, b -> new SurvivalState(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(), b.readBoolean(), b.readVarInt(), b.readVarInt()),
+                (p, ctx) -> com.harddayz.client.ClientAccess.survival(p));
         reg(LaunchSound.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
                     b.writeResourceLocation(m.sound());
                     b.writeDouble(m.x());

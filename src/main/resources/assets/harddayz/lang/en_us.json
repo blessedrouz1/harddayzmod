@@ -571,5 +571,7 @@
   "message.harddayz.surv_over": "Everyone is down. Round %s, survived %s:%s. World record %s:%s",
   "hud.harddayz.surv": "Round %s · %s:%s · drones up %s",
   "hud.harddayz.surv_hot": "Round %s · %s:%s · YOU ARE SEEN (%s drones)",
-  "screen.harddayz.surv_status": "Round %s, %s:%s under fire, %s drones up"
+  "screen.harddayz.surv_status": "Round %s, %s:%s under fire, %s drones up",
+  "hud.harddayz.surv_line": "Round %s  ·  %s elapsed  ·  round ends in %s  ·  drones %s  ·  alive %s",
+  "hud.harddayz.surv_line_lull": "Round %s survived  ·  %s elapsed  ·  lull %s  ·  drones %s  ·  alive %s"
 }

@@ -128,9 +128,7 @@ public final class Survival {
                 kit(p, false);
             }
         }
-        if (clock % 5 == 0) {
-            bar(alive, r);
-        }
+        bar(level.getServer(), alive, r);
         if (lull()) {
             return;
         }
@@ -150,13 +148,18 @@ public final class Survival {
         return out;
     }
 
-    private static void bar(List<ServerPlayer> alive, int r) {
-        int t = War.survivalTime();
-        for (ServerPlayer p : alive) {
+    /** Таймер внизу экрана — всем в матче, и погибшим-зрителям тоже. */
+    private static void bar(MinecraftServer server, List<ServerPlayer> alive, int r) {
+        int t = War.survivalTime(), in = t % (ROUND + BREAK);
+        boolean lull = in >= ROUND;
+        int left = lull ? ROUND + BREAK - in : ROUND - in;
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (War.of(p.getUUID()) == null) {
+                continue;
+            }
             double[] s = SEEN.get(p.getUUID());
-            boolean hot = s != null && clock - s[3] < 20;
-            p.displayClientMessage(Component.translatable(hot ? "hud.harddayz.surv_hot" : "hud.harddayz.surv", r, t / 60, String.format("%02d", t % 60),
-                    DRONES.size()).withStyle(hot ? ChatFormatting.RED : ChatFormatting.GRAY), true);
+            boolean hot = s != null && clock - s[3] < 20 && alive.contains(p);
+            Net.toPlayer(p, new Net.SurvivalState(r, t, left, lull, hot, DRONES.size(), alive.size()));
         }
     }
 
@@ -174,6 +177,30 @@ public final class Survival {
 
     private static void drones(ServerLevel level, int r) {
         DRONES.removeIf(id -> !(level.getEntity(id) instanceof Drone d) || !d.isAlive());
+        // поиск: каждые ~20 с дрон перелетает — чаще туда, где люди, чем в пустоту
+        if (clock % 20 == 0) {
+            List<ServerPlayer> alive = alive(level.getServer());
+            for (UUID id : DRONES) {
+                if (level.getEntity(id) instanceof Drone d && !alive.isEmpty()) {
+                    double[] seen = null;
+                    for (double[] s : SEEN.values()) {
+                        if (clock - s[3] < 30 && (seen == null || s[3] > seen[3])) {
+                            seen = s;
+                        }
+                    }
+                    Vec3 go;
+                    if (seen != null) {
+                        go = new Vec3(seen[0], seen[1], seen[2]).add(R.nextGaussian() * 25, 0, R.nextGaussian() * 25);
+                    } else if (R.nextDouble() < 0.45 + 0.05 * r) {
+                        Vec3 p = alive.get(R.nextInt(alive.size())).position();
+                        go = p.add(R.nextGaussian() * 70, 0, R.nextGaussian() * 70); // догадка: где-то тут
+                    } else {
+                        go = center().add(R.nextGaussian() * radius() * 0.5, 0, R.nextGaussian() * radius() * 0.5);
+                    }
+                    d.retarget(go);
+                }
+            }
+        }
         int want = War.botAllowed(War.BOT_RECON) ? Math.min(6, 1 + r / 2) : 0;
         if (DRONES.size() >= want || clock < nextDrone) {
             return;
@@ -223,10 +250,10 @@ public final class Survival {
             double chance = 0;
             for (Drone d : eyes) {
                 double dist = Math.hypot(d.getX() - p.getX(), d.getZ() - p.getZ());
-                if (dist > 120) {
+                if (dist > 140) {
                     continue;
                 }
-                double c = 0.18 + 0.04 * r + (p.getDeltaMovement().horizontalDistanceSqr() > 0.004 ? 0.2 : 0) - (p.isCrouching() ? 0.15 : 0) - dist / 600;
+                double c = 0.4 + 0.05 * r + (p.getDeltaMovement().horizontalDistanceSqr() > 0.004 ? 0.25 : 0) - (p.isCrouching() ? 0.2 : 0) - dist / 400;
                 if (c > chance && exposed(level, p)) {
                     chance = c;
                     seer = d;

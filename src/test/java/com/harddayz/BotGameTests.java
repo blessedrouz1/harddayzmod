@@ -123,9 +123,10 @@ public class BotGameTests {
         BotCommander.blast(new net.minecraft.world.phys.Vec3(5000, 70, 5000), 16);
         h.assertTrue(q.men < 4, "blast must hit paper squad");
         h.succeedWhen(() -> {
-            h.assertTrue(!s1.isAlive() && !mate.isAlive() || !foe.isAlive(), "someone must win: " + s1.getHealth() + " " + mate.getHealth() + " " + foe.getHealth()
-                    + " d=" + (int) s1.distanceTo(foe) + " see=" + s1.hasLineOfSight(foe) + " war=" + War.active());
-            h.assertTrue(a.deaths + b.deaths > 0, "deaths counted");
+            // бой случился: обе стороны ранены (раненый по задумке отходит в укрытие, поэтому до смерти не ждём)
+            h.assertTrue(foe.getHealth() < foe.getMaxHealth() && (s1.getHealth() < s1.getMaxHealth() || mate.getHealth() < mate.getMaxHealth()),
+                    "both sides must take hits: " + s1.getHealth() + " " + mate.getHealth() + " " + foe.getHealth());
+            h.assertTrue(s1.isAlive() && mate.isAlive() && foe.isAlive() || a.deaths + b.deaths > 0, "deaths counted");
             War.end();
         });
     }

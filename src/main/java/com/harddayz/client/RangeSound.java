@@ -81,9 +81,14 @@ abstract class RangeSound extends AbstractTickableSoundInstance {
         }
     }
 
+    /**
+     * Запуск звука. Не сразу, а после текущего кадра: эту функцию зовут и из тика других звуков (пролёт дрона),
+     * а движок в это время перебирает свой список звуков — новый звук посреди перебора роняет игру.
+     */
     static void play(SoundEvent sound, SoundSource source, Vec3 at, double range, float loud, float pitch, @Nullable BooleanSupplier alive) {
         if (ears().distanceTo(at) < range) {
-            Minecraft.getInstance().getSoundManager().play(new OneShot(sound, source, at, range, loud, pitch, alive));
+            Minecraft mc = Minecraft.getInstance();
+            mc.tell(() -> mc.getSoundManager().play(new OneShot(sound, source, at, range, loud, pitch, alive)));
         }
     }
 }

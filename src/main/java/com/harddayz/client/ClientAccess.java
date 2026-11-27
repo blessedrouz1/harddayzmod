@@ -90,6 +90,10 @@ public final class ClientAccess {
         });
     }
 
+    public static void survival(com.harddayz.network.Net.SurvivalState p) {
+        SurvivalHud.state(p);
+    }
+
     public static void mapInfo(com.harddayz.network.Net.FrontInfo p) {
         MiniMap.info(p);
     }

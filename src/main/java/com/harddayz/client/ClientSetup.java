@@ -222,6 +222,7 @@ public final class ClientSetup {
     private static void onGuiLayers(RegisterGuiOverlaysEvent event) {
         overlay(event, "flash", ClientBlasts::renderFlash);
         overlay(event, "minimap", MiniMap::render);
+        overlay(event, "survival", SurvivalHud::render);
         overlay(event, "drone_hud", DronePilot::renderHud);
         overlay(event, "vehicle_hp", ClientSetup::renderVehicleHp);
         overlay(event, "gunner", ClientGunner::renderHud);
