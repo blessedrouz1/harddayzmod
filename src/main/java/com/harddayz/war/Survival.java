@@ -1,0 +1,416 @@
+package com.harddayz.war;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
+
+import javax.annotation.Nullable;
+
+import com.harddayz.entity.Drone;
+import com.harddayz.entity.Missile;
+import com.harddayz.network.Net;
+import com.harddayz.registry.ModBlocks;
+import com.harddayz.registry.ModItems;
+import com.harddayz.registry.ModSounds;
+
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.util.Mth;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.levelgen.Heightmap;
+import net.minecraft.world.phys.Vec3;
+
+/**
+ * Режим «Выжить под обстрелом». Разведдроны кружат над районом и ищут людей; кого увидели — по тому месту бьют.
+ * Каждый раунд дронов больше, удары чаще, точнее и тяжелее. Под крышей, в лесу и под землёй дрон не видит.
+ * Погибший смотрит дальше как зритель; конец — когда не осталось живых.
+ */
+public final class Survival {
+    public static final int ROUND = 150;
+    public static final int BREAK = 25;
+    private static final Random R = new Random();
+    /** Где и когда видели игрока. */
+    private static final Map<UUID, double[]> SEEN = new HashMap<>();
+    private static final List<UUID> DRONES = new ArrayList<>();
+    private static int clock;
+    private static int nextStrike;
+    private static int nextHarass;
+    private static int nextDrone;
+
+    private Survival() {
+    }
+
+    public static void reset() {
+        SEEN.clear();
+        DRONES.clear();
+        PENDING.clear();
+        clock = 0;
+        nextStrike = 0;
+        nextHarass = 0;
+        nextDrone = 0;
+    }
+
+    public static int round() {
+        return 1 + War.survivalTime() / (ROUND + BREAK);
+    }
+
+    /** Затишье между раундами. */
+    public static boolean lull() {
+        return War.survivalTime() % (ROUND + BREAK) >= ROUND;
+    }
+
+    // ------------------------------------------------------------------ запуск и снаряжение
+
+    public static void start(MinecraftServer server, ServerPlayer by, int radius) {
+        reset();
+        War.createSurvival(by, Math.max(40, Math.min(600, radius)));
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            War.join(p, War.factions().get(0));
+            kit(p, true);
+        }
+    }
+
+    public static void kit(ServerPlayer p, boolean first) {
+        List<ItemStack> k = new ArrayList<>();
+        if (first) {
+            k.add(new ItemStack(ModItems.FIELD_SHOVEL.get()));
+            k.add(new ItemStack(ModItems.TRENCH_KIT.get(), 2));
+            k.add(new ItemStack(ModItems.DUGOUT_KIT.get()));
+            k.add(new ItemStack(ModBlocks.BUNKER_CONCRETE_ITEM.get(), 32));
+            k.add(new ItemStack(ModBlocks.CAMO_NET_ITEM.get(), 16));
+            k.add(new ItemStack(ModItems.MEDKIT.get(), 2));
+        }
+        k.add(new ItemStack(ModBlocks.SANDBAGS_ITEM.get(), first ? 64 : 24));
+        k.add(new ItemStack(ModItems.BANDAGE.get(), first ? 6 : 3));
+        k.add(new ItemStack(ModItems.SMOKE_GRENADE.get(), first ? 2 : 1));
+        for (ItemStack s : k) {
+            if (!p.getInventory().add(s)) {
+                p.spawnAtLocation(s);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ раз в секунду
+
+    public static void tick(MinecraftServer server) {
+        ServerLevel level = server.overworld();
+        List<ServerPlayer> alive = alive(server);
+        if (alive.isEmpty()) {
+            finish(server);
+            return;
+        }
+        if (War.prep()) {
+            return;
+        }
+        int before = round();
+        boolean wasLull = lull();
+        War.tickSurvival();
+        clock++;
+        int r = round();
+        if (r != before) {
+            War.broadcast(Component.translatable("message.harddayz.surv_round", r).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+            for (ServerPlayer p : alive) {
+                p.playNotifySound(SoundEvents.RAID_HORN.value(), SoundSource.HOSTILE, 1f, 1f);
+            }
+        } else if (!wasLull && lull()) {
+            War.broadcast(Component.translatable("message.harddayz.surv_lull", r, BREAK).withStyle(ChatFormatting.GREEN));
+            for (ServerPlayer p : alive) {
+                kit(p, false);
+            }
+        }
+        if (clock % 5 == 0) {
+            bar(alive, r);
+        }
+        if (lull()) {
+            return;
+        }
+        drones(level, r);
+        watch(level, alive, r);
+        strikes(level, alive, r);
+    }
+
+    private static List<ServerPlayer> alive(MinecraftServer server) {
+        List<ServerPlayer> out = new ArrayList<>();
+        War.Faction f = War.factions().isEmpty() ? null : War.factions().get(0);
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (f != null && f.has(p.getUUID()) && p.isAlive() && !p.isSpectator()) {
+                out.add(p);
+            }
+        }
+        return out;
+    }
+
+    private static void bar(List<ServerPlayer> alive, int r) {
+        int t = War.survivalTime();
+        for (ServerPlayer p : alive) {
+            double[] s = SEEN.get(p.getUUID());
+            boolean hot = s != null && clock - s[3] < 20;
+            p.displayClientMessage(Component.translatable(hot ? "hud.harddayz.surv_hot" : "hud.harddayz.surv", r, t / 60, String.format("%02d", t % 60),
+                    DRONES.size()).withStyle(hot ? ChatFormatting.RED : ChatFormatting.GRAY), true);
+        }
+    }
+
+    // ------------------------------------------------------------------ разведка
+
+    private static Vec3 center() {
+        int[] c = War.city();
+        return c == null ? Vec3.ZERO : new Vec3(c[0], 70, c[1]);
+    }
+
+    private static int radius() {
+        int[] c = War.city();
+        return c == null ? 150 : c[2];
+    }
+
+    private static void drones(ServerLevel level, int r) {
+        DRONES.removeIf(id -> !(level.getEntity(id) instanceof Drone d) || !d.isAlive());
+        int want = War.botAllowed(War.BOT_RECON) ? Math.min(6, 1 + r / 2) : 0;
+        if (DRONES.size() >= want || clock < nextDrone) {
+            return;
+        }
+        nextDrone = clock + Math.max(15, 45 - r * 4);
+        Vec3 c = center();
+        // взлетает недалеко от живого игрока: там мир точно загружен
+        List<ServerPlayer> alive = alive(level.getServer());
+        Vec3 near = alive.isEmpty() ? c : alive.get(R.nextInt(alive.size())).position();
+        double a = R.nextDouble() * Math.PI * 2, d = 90;
+        Vec3 from = new Vec3(near.x + Math.cos(a) * d, 0, near.z + Math.sin(a) * d);
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(from.x), Mth.floor(from.z));
+        from = from.add(0, y + 45, 0);
+        Vec3 over = c.add(R.nextGaussian() * radius() * 0.4, 0, R.nextGaussian() * radius() * 0.4);
+        War.Faction ai = War.enemyFaction();
+        if (ai == null) {
+            return;
+        }
+        Drone dr = Drone.launchShahed(level, from, over.subtract(from).multiply(1, 0, 1).normalize(), over, ai.botId(), Drone.Kind.WING_RECON);
+        DRONES.add(dr.getUUID());
+    }
+
+    /** Видно ли человека сверху: открытое небо над головой, не под маскировочной сетью и не в лесу. */
+    private static boolean exposed(ServerLevel level, ServerPlayer p) {
+        BlockPos head = BlockPos.containing(p.getEyePosition());
+        if (!level.canSeeSky(head)) {
+            return false;
+        }
+        for (int dy = 1; dy <= 3; dy++) {
+            if (level.getBlockState(head.above(dy)).is(ModBlocks.CAMO_NET.get())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static void watch(ServerLevel level, List<ServerPlayer> alive, int r) {
+        List<Drone> eyes = new ArrayList<>();
+        for (UUID id : DRONES) {
+            if (level.getEntity(id) instanceof Drone d) {
+                eyes.add(d);
+            }
+        }
+        for (ServerPlayer p : alive) {
+            boolean outside = p.position().distanceTo(new Vec3(center().x, p.getY(), center().z)) > radius();
+            Drone seer = null;
+            double chance = 0;
+            for (Drone d : eyes) {
+                double dist = Math.hypot(d.getX() - p.getX(), d.getZ() - p.getZ());
+                if (dist > 120) {
+                    continue;
+                }
+                double c = 0.18 + 0.04 * r + (p.getDeltaMovement().horizontalDistanceSqr() > 0.004 ? 0.2 : 0) - (p.isCrouching() ? 0.15 : 0) - dist / 600;
+                if (c > chance && exposed(level, p)) {
+                    chance = c;
+                    seer = d;
+                }
+            }
+            if (outside) {
+                chance = 1; // вышел из района — виден всем
+            }
+            if (chance > 0 && R.nextDouble() < chance) {
+                double[] was = SEEN.get(p.getUUID());
+                SEEN.put(p.getUUID(), new double[] {p.getX(), p.getY(), p.getZ(), clock});
+                if (seer != null) {
+                    seer.retarget(p.position()); // дрон подходит ближе и кружит над целью
+                }
+                if (was == null || clock - was[3] > 12) {
+                    Net.toPlayer(p, new Net.Alert(Component.translatable(outside ? "message.harddayz.surv_outside" : "message.harddayz.surv_spotted").getString()));
+                    p.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.HOSTILE, 1f, 0.6f);
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ удары
+
+    private static void strikes(ServerLevel level, List<ServerPlayer> alive, int r) {
+        War.Faction ai = War.enemyFaction();
+        if (ai == null) {
+            return;
+        }
+        if (clock >= nextStrike) {
+            ServerPlayer target = null;
+            double[] spot = null;
+            for (ServerPlayer p : alive) {
+                double[] s = SEEN.get(p.getUUID());
+                if (s != null && clock - s[3] < 25 && (spot == null || s[3] > spot[3])) {
+                    spot = s;
+                    target = p;
+                }
+            }
+            if (spot != null) {
+                nextStrike = clock + Math.max(5, 26 - r * 2);
+                double err = Math.max(4, 28 - r * 2.5);
+                int volley = 1 + Math.min(4, (r - 1) / 2);
+                Vec3 at = new Vec3(spot[0], spot[1], spot[2]);
+                for (int i = 0; i < volley; i++) {
+                    fire(level, ai, at.add(R.nextGaussian() * err, 0, R.nextGaussian() * err), r, i * 8);
+                }
+                if (target != null) {
+                    target.displayClientMessage(Component.translatable("message.harddayz.surv_incoming").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), true);
+                }
+            }
+        }
+        if (clock >= nextHarass) { // беспокоящий огонь по площади, даже без засечки
+            nextHarass = clock + Math.max(12, 60 - r * 5);
+            Vec3 c = center();
+            fire(level, ai, c.add(R.nextGaussian() * radius() * 0.5, 0, R.nextGaussian() * radius() * 0.5), Math.max(1, r - 2), 0);
+        }
+    }
+
+    /** Чем бить: с каждым раундом открывается оружие тяжелее. */
+    private static void fire(ServerLevel level, War.Faction ai, Vec3 at, int r, int delay) {
+        List<Integer> pool = new ArrayList<>();
+        if (War.botAllowed(War.BOT_MORTAR)) {
+            pool.add(0);
+        }
+        if (r >= 2 && War.botAllowed(War.BOT_GRAD)) {
+            pool.add(1);
+        }
+        if (r >= 3 && War.botAllowed(War.BOT_SHAHED)) {
+            pool.add(2);
+        }
+        if (r >= 4 && War.botAllowed(War.BOT_CLUSTER)) {
+            pool.add(3);
+        }
+        if (r >= 5 && War.botAllowed(War.BOT_TOS)) {
+            pool.add(4);
+        }
+        if (r >= 6 && War.botAllowed(War.BOT_CRUISE)) {
+            pool.add(5);
+        }
+        if (r >= 7 && War.botAllowed(War.BOT_ISKANDER)) {
+            pool.add(6);
+        }
+        if (pool.isEmpty()) {
+            pool.add(0);
+        }
+        // тяжёлое чаще к концу
+        int w = pool.get(Math.min(pool.size() - 1, (int) Math.floor(Math.pow(R.nextDouble(), 0.7) * pool.size())));
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(at.x), Mth.floor(at.z));
+        Vec3 t = new Vec3(at.x, y, at.z);
+        PENDING.add(new Object[] {t, w, ai.botId(), level.getGameTime() + delay});
+    }
+
+    private static final List<Object[]> PENDING = new ArrayList<>();
+
+    /** Каждый тик: удары с задержкой внутри залпа. */
+    public static void tickShots(ServerLevel level) {
+        long now = level.getGameTime();
+        PENDING.removeIf(p -> {
+            if ((long) p[3] > now) {
+                return false;
+            }
+            shoot(level, (Vec3) p[0], (int) p[1], (UUID) p[2]);
+            return true;
+        });
+    }
+
+    static void shoot(ServerLevel level, Vec3 t, int w, UUID side) {
+        double az = R.nextDouble() * Math.PI * 2;
+        Vec3 dir = new Vec3(Math.cos(az), 0, Math.sin(az));
+        switch (w) {
+            case 0, 1, 3, 4, 6 -> {
+                // мина или ракета прилетает издалека: заводим её на последних 150 блоках настоящей дуги
+                double range = w == 0 ? 230 : 650, v = w == 0 ? 3.8 : 6.3, g = Missile.Kind.GRAD.gravity;
+                double s = Math.min(1, range * g / (v * v));
+                double th = Math.PI / 2 - Math.asin(s) / 2; // навесное решение
+                double vx = v * Math.cos(th), vy = v * Math.sin(th);
+                Vec3 src = t.subtract(dir.scale(range));
+                // заводим на нисходящей ветви; если там выше потолка мира — ещё ближе к цели, дугу не ломаем
+                double rest = Math.min(range, 150), t0 = 0;
+                Vec3 pos = src;
+                for (; rest > 30; rest -= 10) {
+                    t0 = (range - rest) / vx;
+                    pos = src.add(dir.scale(vx * t0)).add(0, vy * t0 - g * t0 * t0 / 2, 0);
+                    if (pos.y < level.getMaxBuildHeight() - 20) {
+                        break;
+                    }
+                }
+                Vec3 vel = dir.scale(vx).add(0, vy - g * t0, 0);
+                Missile m = Missile.launch(level, Missile.Kind.GRAD, pos, vel, t, null).owner(side);
+                switch (w) {
+                    case 0 -> m.powerMul(0.7f).look(7);
+                    case 3 -> m.payload(1);
+                    case 4 -> m.thermobaric();
+                    case 6 -> m.powerMul(3.4f).look(1);
+                    default -> {
+                    }
+                }
+                ModSounds.launch(level, src.x, t.y, src.z, (w == 0 ? ModSounds.MORTAR_FIRE : w == 6 ? ModSounds.MISSILE_LAUNCH : ModSounds.ROCKET_LAUNCH).get(), 900, 1f);
+            }
+            default -> {
+                Drone.Kind k = w == 5 ? Drone.Kind.CRUISE : R.nextInt(3) == 0 ? Drone.Kind.GERBERA : Drone.Kind.SHAHED;
+                Vec3 from = t.subtract(dir.scale(150)).add(0, 45, 0);
+                Drone.launchShahed(level, from, dir, t, side, k);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ смерть и конец
+
+    /** Погибший в этом режиме дальше только смотрит. */
+    public static void died(ServerPlayer p) {
+        War.broadcast(Component.translatable("message.harddayz.surv_dead", p.getDisplayName(), round(), War.survivalTime() / 60,
+                String.format("%02d", War.survivalTime() % 60)).withStyle(ChatFormatting.DARK_RED));
+        War.survivalDied(p.getUUID());
+    }
+
+    public static void respawned(ServerPlayer p) {
+        if (War.survival() && War.survivalDead(p.getUUID())) {
+            p.setGameMode(GameType.SPECTATOR);
+        }
+    }
+
+    private static void finish(MinecraftServer server) {
+        int t = War.survivalTime();
+        int best = War.survivalBest(t);
+        War.broadcast(Component.translatable("message.harddayz.surv_over", round(), t / 60, String.format("%02d", t % 60), best / 60,
+                String.format("%02d", best % 60)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) {
+            if (p.isSpectator() && War.survivalDead(p.getUUID())) {
+                p.setGameMode(GameType.SURVIVAL);
+                Vec3 c = center();
+                ServerLevel lv = server.overworld();
+                int y = lv.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(c.x), Mth.floor(c.z));
+                p.teleportTo(lv, c.x, y + 1, c.z, p.getYRot(), 0);
+            }
+        }
+        War.end();
+        War.sendLives();
+        reset();
+    }
+
+    public static @Nullable String status() {
+        return War.survival() ? Component.translatable("screen.harddayz.surv_status", round(), War.survivalTime() / 60,
+                String.format("%02d", War.survivalTime() % 60), DRONES.size()).getString() : null;
+    }
+}

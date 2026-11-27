@@ -7,15 +7,17 @@ import net.minecraft.network.chat.Component;
 
 /** Меню матча: выбор режима и настроек кнопками вместо команд в чате. */
 public class WarSetupScreen extends HdScreen {
-    /** 0 — штабы и рубежи, 1 — жизни, 2 — штаб и город, 3 — вместе против ботов. */
+    /** 0 — штабы и рубежи, 1 — жизни, 2 — штаб и город, 3 — вместе против ботов, 4 — выжить под обстрелом. */
     private int mode;
     private int factions = 2;
     private int budget = 5000;
     private int lives = 20;
     private int minutes = 60;
     private int radius = 250;
-    private int bots = 12;
-    private int difficulty = 2;
+    static int bots = 12;
+    static int difficulty = 2;
+    static int botMask = -1;
+    static int botMoney = 100;
     private int prep = 5;
 
     public WarSetupScreen() {
@@ -28,7 +30,7 @@ public class WarSetupScreen extends HdScreen {
         int cx = width / 2;
         int y = height / 2 - 94;
         addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.war_mode." + mode), b -> {
-            mode = (mode + 1) % 4;
+            mode = (mode + 1) % 5;
             init();
         }).bounds(cx - 110, y, 220, 20).build());
         y += 30;
@@ -39,16 +41,23 @@ public class WarSetupScreen extends HdScreen {
         if (mode == 1) {
             y = row(y, "screen.harddayz.war_lives", () -> lives, v -> lives = Math.max(1, Math.min(500, v)), 5);
         }
+        if (mode == 4) {
+            y = row(y, "screen.harddayz.war_radius", () -> radius, v -> radius = Math.max(40, Math.min(600, v)), 20);
+        }
         if (mode == 2) {
             y = row(y, "screen.harddayz.war_minutes", () -> minutes, v -> minutes = Math.max(5, Math.min(600, v)), 5);
             y = row(y, "screen.harddayz.war_radius", () -> radius, v -> radius = Math.max(30, Math.min(2000, v)), 50);
         }
-        y = row(y, "screen.harddayz.war_bots", () -> bots, v -> bots = Math.max(mode == 3 ? 8 : 0, Math.min(32, v)), 4);
-        y = row(y, "screen.harddayz.war_difficulty", () -> difficulty, v -> difficulty = Math.max(1, Math.min(3, v)), 1);
+        if (mode == 4) {
+            y = row(y, "screen.harddayz.war_difficulty", () -> difficulty, v -> difficulty = Math.max(1, Math.min(3, v)), 1);
+        }
+        addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.bots_button", bots, difficulty), b -> minecraft.setScreen(new BotSettingsScreen(this)))
+                .bounds(width / 2 - 110, y, 220, 20).build());
+        y += 24;
         y = row(y, "screen.harddayz.war_prep", () -> prep, v -> prep = Math.max(0, Math.min(30, v)), 1);
         y += 6;
         addRenderableWidget(Button.builder(Component.translatable("screen.harddayz.war_start"), b -> {
-            Net.toServer(new Net.WarSetup(mode, factions, budget, lives, minutes, radius, bots, difficulty, prep));
+            Net.toServer(new Net.WarSetup(mode, factions, budget, lives, minutes, radius, bots, difficulty, prep, botMask, botMoney));
             onClose();
         }).bounds(cx - 110, y, 105, 20).build());
         addRenderableWidget(Button.builder(Component.translatable("gui.cancel"), b -> onClose()).bounds(cx + 5, y, 105, 20).build());

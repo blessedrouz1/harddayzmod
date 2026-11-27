@@ -123,6 +123,100 @@ public final class War {
         int difficulty = 2;
         List<BotCommander.Squad> squads = new ArrayList<>();
         int squadId;
+        /** Что ботам можно: биты BOT_*. */
+        int botMask = -1;
+        /** Деньги штаба ботов, % от обычного. */
+        int botMoney = 100;
+        /** Выживание: секунд под обстрелом, погибшие, лучший результат мира. */
+        int survivalTime;
+        List<String> survivalDead = new ArrayList<>();
+        int survivalBest;
+    }
+
+    public static final int BOT_INFANTRY = 0;
+    public static final int BOT_RADAR = 1;
+    public static final int BOT_GRAD = 2;
+    public static final int BOT_SAM = 3;
+    public static final int BOT_GRAD_P = 4;
+    public static final int BOT_URAGAN = 5;
+    public static final int BOT_ISKANDER = 6;
+    public static final int BOT_SHAHED = 7;
+    public static final int BOT_CRUISE = 8;
+    public static final int BOT_RECON = 9;
+    public static final int BOT_MORTAR = 10;
+    public static final int BOT_CLUSTER = 11;
+    public static final int BOT_TOS = 12;
+
+    public static boolean botAllowed(int bit) {
+        return (data.botMask & 1 << bit) != 0;
+    }
+
+    public static int botMoney() {
+        return Math.max(0, data.botMoney);
+    }
+
+    public static void setBotRules(int mask, int money) {
+        data.botMask = mask;
+        data.botMoney = money;
+        save();
+    }
+
+    // ------------------------------------------------------------------ выживание под обстрелом
+
+    public static boolean survival() {
+        return active() && "survival".equals(data.mode);
+    }
+
+    public static void createSurvival(ServerPlayer by, int radius) {
+        create(by.getUUID(), 2, 0, 0);
+        data.mode = "survival";
+        data.factions.get(0).name = "Выжившие";
+        data.factions.get(1).name = "Противник";
+        data.factions.get(1).ai = true;
+        data.city = new int[] {by.getBlockX(), by.getBlockZ(), radius};
+        data.survivalTime = 0;
+        data.survivalDead = new ArrayList<>();
+        syncTeams();
+        save();
+    }
+
+    public static int survivalTime() {
+        return data.survivalTime;
+    }
+
+    public static void tickSurvival() {
+        data.survivalTime++;
+        if (data.survivalTime % 30 == 0) {
+            save();
+        }
+    }
+
+    public static void survivalDied(UUID p) {
+        if (data.survivalDead == null) {
+            data.survivalDead = new ArrayList<>();
+        }
+        data.survivalDead.add(p.toString());
+        save();
+    }
+
+    public static boolean survivalDead(UUID p) {
+        return data.survivalDead != null && data.survivalDead.contains(p.toString());
+    }
+
+    /** Записать результат, вернуть рекорд мира. */
+    public static int survivalBest(int t) {
+        data.survivalBest = Math.max(data.survivalBest, t);
+        return data.survivalBest;
+    }
+
+    /** Сторона ботов-противника (против ботов и выживание). */
+    public static @Nullable Faction enemyFaction() {
+        for (Faction f : data.factions) {
+            if (f.ai) {
+                return f;
+            }
+        }
+        return null;
     }
 
     public static List<BotCommander.Squad> squads() {
@@ -147,7 +241,7 @@ public final class War {
 
     /** Вражеская сторона в режиме против ботов. */
     public static @Nullable Faction enemyBots() {
-        return coop() && data.factions.size() > 1 ? data.factions.get(1) : null;
+        return (coop()) && data.factions.size() > 1 ? data.factions.get(1) : null;
     }
 
     /** Идёт подготовка: урона нет, точки не берутся. */
@@ -167,7 +261,7 @@ public final class War {
         data.difficulty = difficulty;
         for (Faction f : data.factions) {
             f.bots = f.ai ? (int) Math.ceil(Math.max(8, bots) * (0.7 + 0.35 * difficulty())) : bots;
-            f.botBudget = f.bots <= 0 ? 0 : f.ai ? 1500 + 900 * difficulty() : 1500;
+            f.botBudget = (f.bots <= 0 ? 0 : f.ai ? 1500 + 900 * difficulty() : 1500) * botMoney() / 100;
             if (f.botAssets == null) {
                 f.botAssets = new ArrayList<>();
             }
@@ -559,8 +653,10 @@ public final class War {
             }
         }
         var keep = sirens();
+        int best = data.survivalBest;
         data = new Data();
         data.sirens = keep;
+        data.survivalBest = best;
         save();
     }
 

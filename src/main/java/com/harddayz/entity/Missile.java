@@ -101,9 +101,11 @@ public class Missile extends Entity implements Threat {
             m.setYRot(l.getYRot() + (l.kind() == Launcher.Kind.ISKANDER || l.kind() == Launcher.Kind.TOCHKA ? 0 : l.turret(1)));
         }
         m.face(velocity);
+        // чанк старта может быть соседним с пусковой и «спящим»: тогда ракета не сделала бы ни одного тика
         m.yRotO = m.getYRot();
         m.xRotO = m.getXRot();
         level.addFreshEntity(m);
+        FlightChunks.born(level, m);
         return m;
     }
 
@@ -180,6 +182,7 @@ public class Missile extends Entity implements Threat {
         super.tick();
         Vec3 v = getDeltaMovement();
         if (level() instanceof ServerLevel level) {
+            Vec3 before = v;
             v = guide(level, v);
             setDeltaMovement(v);
             if ((payload == 1 || payload == 2) && burst(level, v)) {
@@ -197,6 +200,7 @@ public class Missile extends Entity implements Threat {
                     chunks = new FlightChunks(getUUID());
                 }
                 if (!chunks.update(level, position(), v, target)) {
+                    setDeltaMovement(before); // ждём на месте — и скорость не копим, иначе после паузы ракета пикирует с недолётом
                     return; // впереди чанк ещё грузится — ждём тик
                 }
             }

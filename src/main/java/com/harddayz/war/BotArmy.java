@@ -31,16 +31,16 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class BotArmy {
     /** Что может купить штаб ботов: вид, цена, сколько держать (по сложности 1..3). */
-    private record Buy(Launcher.Kind kind, int price, int[] cap, double depth) {
+    private record Buy(Launcher.Kind kind, int price, int[] cap, double depth, int bit) {
     }
 
     private static final Buy[] SHOP = {
-            new Buy(Launcher.Kind.RADAR, 700, new int[] {1, 1, 1}, 0.25),
-            new Buy(Launcher.Kind.GRAD, 900, new int[] {1, 1, 2}, 0.55),
-            new Buy(Launcher.Kind.SAM, 900, new int[] {1, 1, 2}, 0.45),
-            new Buy(Launcher.Kind.GRAD_P, 450, new int[] {0, 1, 2}, 0.75),
-            new Buy(Launcher.Kind.URAGAN, 1400, new int[] {0, 1, 1}, 0.4),
-            new Buy(Launcher.Kind.ISKANDER, 2200, new int[] {0, 0, 1}, 0.12),
+            new Buy(Launcher.Kind.RADAR, 700, new int[] {1, 1, 1}, 0.25, War.BOT_RADAR),
+            new Buy(Launcher.Kind.GRAD, 900, new int[] {1, 1, 2}, 0.55, War.BOT_GRAD),
+            new Buy(Launcher.Kind.SAM, 900, new int[] {1, 1, 2}, 0.45, War.BOT_SAM),
+            new Buy(Launcher.Kind.GRAD_P, 450, new int[] {0, 1, 2}, 0.75, War.BOT_GRAD_P),
+            new Buy(Launcher.Kind.URAGAN, 1400, new int[] {0, 1, 1}, 0.4, War.BOT_URAGAN),
+            new Buy(Launcher.Kind.ISKANDER, 2200, new int[] {0, 0, 1}, 0.12, War.BOT_ISKANDER),
     };
     private static final Random R = new Random();
 
@@ -51,7 +51,7 @@ public final class BotArmy {
     static void tick(ServerLevel level, War.Faction f, int seconds) {
         if (seconds % 60 == 0) {
             int held = (int) War.points().stream().filter(p -> f.id.equals(p.owner)).count();
-            f.botBudget += (int) ((90 + held * 45) * (f.ai ? 0.6 + 0.3 * War.difficulty() : 1));
+            f.botBudget += (int) ((90 + held * 45) * (f.ai ? 0.6 + 0.3 * War.difficulty() : 1) * War.botMoney() / 100);
         }
         if (seconds % 10 == 3) {
             assets(level, f);
@@ -114,7 +114,7 @@ public final class BotArmy {
         int d = War.difficulty() - 1;
         for (Buy b : SHOP) {
             int cap = f.ai ? b.cap[d] : Math.min(b.cap[1], Math.max(0, f.bots / 6));
-            if (count(f, b.kind) >= cap || f.botBudget < b.price) {
+            if (!War.botAllowed(b.bit) || count(f, b.kind) >= cap || f.botBudget < b.price) {
                 continue;
             }
             Vec3 at = rear(level, f, b.depth);
@@ -248,7 +248,7 @@ public final class BotArmy {
 
     /** Разведчик над фронтом: всё, что увидит, попадает в сеть стороны. */
     private static void recon(ServerLevel level, War.Faction f) {
-        if (f.botBudget < 300 || War.prep()) {
+        if (f.botBudget < 300 || War.prep() || !War.botAllowed(War.BOT_RECON)) {
             return;
         }
         int[] b = FrontWorld.baseOf(level.getServer(), f);

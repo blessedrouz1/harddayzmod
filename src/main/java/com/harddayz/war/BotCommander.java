@@ -112,7 +112,7 @@ public final class BotCommander {
         ServerLevel level = server.overworld();
         seconds++;
         for (War.Faction f : War.factions()) {
-            if (f.bots > 0 && !f.defeated) {
+            if (f.bots > 0 && !f.defeated && War.botAllowed(War.BOT_INFANTRY)) {
                 reinforce(server, f);
             }
         }
@@ -701,6 +701,12 @@ public final class BotCommander {
             boolean heavy = dif >= 2 && i == 0 && R.nextInt(5 - dif) == 0;
             Drone.Kind kind = heavy ? (dif == 3 && R.nextBoolean() ? null : Drone.Kind.CRUISE) : dif >= 2 && R.nextInt(3) == 0 ? Drone.Kind.SHAHED_238
                     : R.nextInt(4) == 0 ? Drone.Kind.GERBERA : Drone.Kind.SHAHED;
+            if (kind == null && !War.botAllowed(War.BOT_ISKANDER) || kind == Drone.Kind.CRUISE && !War.botAllowed(War.BOT_CRUISE)) {
+                kind = Drone.Kind.SHAHED;
+            }
+            if (kind != null && kind != Drone.Kind.CRUISE && !War.botAllowed(War.BOT_SHAHED)) {
+                continue;
+            }
             Vec3 to = target.add(R.nextGaussian() * 14, 0, R.nextGaussian() * 14);
             Vec3 from = new Vec3(b[0] + R.nextGaussian() * 12, b[1] + 22 + R.nextInt(6), b[2] + R.nextGaussian() * 12);
             STRIKES.add(new Strike(from, to, ai.botId(), kind, new int[] {-i * 30}));

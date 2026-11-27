@@ -45,6 +45,11 @@ public final class WarEvents {
                 tick(e.getServer());
             }
         });
+        bus.addListener((PlayerEvent.PlayerRespawnEvent e) -> {
+            if (e.getEntity() instanceof ServerPlayer sp) {
+                Survival.respawned(sp);
+            }
+        });
         bus.addListener((PlayerEvent.PlayerLoggedInEvent e) -> {
             War.syncTeams();
             War.sendLives();
@@ -74,6 +79,9 @@ public final class WarEvents {
             }
             if (!(e.getEntity() instanceof ServerPlayer dead) || !War.active()) {
                 return false;
+            }
+            if (War.survival() && War.of(dead.getUUID()) != null && !War.survivalDead(dead.getUUID())) {
+                Survival.died(dead);
             }
             War.Faction df = War.of(dead.getUUID());
             if (df != null) {
@@ -114,7 +122,7 @@ public final class WarEvents {
             War.Faction o = pt.owner == null ? null : War.byId(pt.owner);
             out.add("point;" + pt.x + ";" + pt.z + ";" + (o == null ? -1 : War.presetIndex(o)) + ";" + pt.name.replace(';', ' '));
         }
-        if (War.siege() && War.city() != null) {
+        if ((War.siege() || War.survival()) && War.city() != null) {
             out.add("city;" + War.city()[0] + ";" + War.city()[1] + ";" + War.city()[2] + ";");
             if (f != null && f == War.defense()) {
                 for (int[] o : War.objects()) {
@@ -184,6 +192,7 @@ public final class WarEvents {
 
     private static void tick(net.minecraft.server.MinecraftServer server) {
         RadarNet.tick(server);
+        com.harddayz.entity.FlightChunks.tickBorn(server.overworld());
         if (server.getTickCount() % 20 == 7) {
             for (ServerPlayer p : server.getPlayerList().getPlayers()) {
                 com.harddayz.network.Net.toPlayer(p, new com.harddayz.network.Net.MapState(mapState(p)));
@@ -202,6 +211,14 @@ public final class WarEvents {
             return;
         }
         BotCommander.tickStrikes(server.overworld());
+        if (War.survival()) {
+            Survival.tickShots(server.overworld());
+            if (server.getTickCount() % 20 == 0) {
+                tickPrep();
+                Survival.tick(server);
+            }
+            return;
+        }
         if (server.getTickCount() % 20 == 0) {
             tickPrep();
             if (!War.prep()) {
@@ -328,7 +345,7 @@ public final class WarEvents {
             return new com.harddayz.network.Net.OpenWarMenu(false, true, java.util.List.of());
         }
         java.util.List<String> lines = new java.util.ArrayList<>();
-        String mode = War.coop() ? "screen.harddayz.war_mode.3" : War.siege() ? "screen.harddayz.war_mode.2" : War.livesMode() ? "screen.harddayz.war_mode.1" : "screen.harddayz.war_mode.0";
+        String mode = War.survival() ? "screen.harddayz.war_mode.4" : War.coop() ? "screen.harddayz.war_mode.3" : War.siege() ? "screen.harddayz.war_mode.2" : War.livesMode() ? "screen.harddayz.war_mode.1" : "screen.harddayz.war_mode.0";
         lines.add(Component.translatable(mode).getString());
         if (War.siege()) {
             int left = War.siegeLeft();
@@ -340,6 +357,9 @@ public final class WarEvents {
             }
         } else if (!War.livesMode()) {
             lines.add(Component.translatable("screen.harddayz.match_target", War.targetScore()).getString());
+        }
+        if (Survival.status() != null) {
+            lines.add(Survival.status());
         }
         if (War.prep()) {
             lines.add("§e" + Component.translatable("screen.harddayz.match_prep", War.prepLeft() / 1200, String.format("%02d", War.prepLeft() / 20 % 60)).getString());
@@ -379,8 +399,21 @@ public final class WarEvents {
             return;
         }
         int budget = Math.max(0, Math.min(1000000, s.budget()));
-        int bots = Math.max(0, Math.min(32, s.bots()));
+        int bots = Math.max(0, Math.min(40, s.bots()));
         int dif = Math.max(1, Math.min(3, s.difficulty()));
+        if (s.mode() == 4) {
+            Survival.start(p.getServer(), p, s.radius());
+            War.setBotRules(s.botMask(), Math.max(0, Math.min(400, s.botMoney())));
+            War.setBots(0, dif);
+            War.setPrep(Math.max(0, Math.min(30, s.prep())) * 1200);
+            War.broadcast(Component.translatable("message.harddayz.surv_created", p.getDisplayName(), s.radius()).withStyle(ChatFormatting.GOLD));
+            War.broadcast(Component.translatable("message.harddayz.surv_rules").withStyle(ChatFormatting.GRAY));
+            if (War.prep()) {
+                War.broadcast(Component.translatable("message.harddayz.prep_start", s.prep()).withStyle(ChatFormatting.YELLOW));
+            }
+            return;
+        }
+        War.setBotRules(s.botMask(), Math.max(0, Math.min(400, s.botMoney())));
         if (s.mode() == 3) {
             if (com.harddayz.world.FrontWorld.generator(p.getServer()) == null) {
                 p.sendSystemMessage(Component.translatable("message.harddayz.coop_need_map").withStyle(ChatFormatting.RED));

@@ -1095,7 +1095,7 @@ public class Launcher extends Vehicle {
         }
         // заряженная пусковая держит свой участок мира загруженным
         if ((ammo() > 0 || kind() == Kind.RELAY) && tickCount % 20 == 0) {
-            com.harddayz.Compat.ticket(level, chunkPosition(), 2);
+            com.harddayz.Compat.ticket(level, chunkPosition(), 3); // и соседние: ракеты выходят из сопла уже за границей чанка
         }
         if (flash() > 0) {
             entityData.set(FLASH, flash() - 1);

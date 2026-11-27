@@ -63,6 +63,29 @@ public final class FlightChunks {
         return false;
     }
 
+    private static final java.util.List<java.lang.ref.WeakReference<net.minecraft.world.entity.Entity>> NEW = new java.util.ArrayList<>();
+
+    /** Только что запущенный объект: держим его чанк, пока он не сделает первый тик (дальше он держит сам). */
+    public static void born(ServerLevel level, net.minecraft.world.entity.Entity e) {
+        com.harddayz.Compat.ticket(level, new ChunkPos(e.blockPosition()), 2);
+        NEW.add(new java.lang.ref.WeakReference<>(e));
+    }
+
+    /** Каждый тик сервера. */
+    public static void tickBorn(ServerLevel level) {
+        if (NEW.isEmpty() || level.getGameTime() % 10 != 0) {
+            return;
+        }
+        NEW.removeIf(r -> {
+            var e = r.get();
+            if (e == null || e.isRemoved() || e.tickCount > 1) {
+                return true;
+            }
+            com.harddayz.Compat.ticket(level, new ChunkPos(e.blockPosition()), 2);
+            return false;
+        });
+    }
+
     /** Сдвиг по времени, чтобы ракеты одного залпа не обновлялись в один и тот же тик. */
     private final int phase = (int) (Math.random() * 20);
 

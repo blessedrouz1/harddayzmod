@@ -171,7 +171,7 @@ public final class Net {
 
     /** Сервер → клиент: тревога на экране. */
     /** Клиент → сервер: начать матч из меню. mode: 0 — штабы, 1 — жизни, 2 — штаб и город. */
-    public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius, int bots, int difficulty, int prep) {
+    public record WarSetup(int mode, int factions, int budget, int lives, int minutes, int radius, int bots, int difficulty, int prep, int botMask, int botMoney) {
     }
 
     /** Сервер → клиент: открыть меню матча. active=false — выбор режима, иначе ход матча (строки готового текста). */
@@ -221,8 +221,10 @@ public final class Net {
                     b.writeVarInt(m.bots());
                     b.writeVarInt(m.difficulty());
                     b.writeVarInt(m.prep());
+                    b.writeInt(m.botMask());
+                    b.writeVarInt(m.botMoney());
                 }, b -> new WarSetup(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readVarInt(),
-                        b.readVarInt()), (p, ctx) -> {
+                        b.readVarInt(), b.readInt(), b.readVarInt()), (p, ctx) -> {
                     ServerPlayer sp = ctx.getSender();
                     if (sp != null) {
                         com.harddayz.war.WarEvents.setup(sp, p);

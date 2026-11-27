@@ -56,6 +56,52 @@ public class BotGameTests {
         h.succeedWhen(() -> h.assertTrue(maxPitch[0] > 40, "rocket must leave steep, got " + maxPitch[0]));
     }
 
+    /** Удары режима выживания приходят издалека и падают у цели (у каждого оружия своя площадка: воронка соседа не мешает). */
+    @GameTest(template = "empty", batch = "surv", timeoutTicks = 900)
+    public static void survivalShotsLand(GameTestHelper h) throws Exception {
+        var level = h.getLevel();
+        // ПВО из других тестов сбило бы наши ракеты
+        for (var e : level.getAllEntities()) {
+            if (e instanceof com.harddayz.entity.Launcher) {
+                e.discard();
+            }
+        }
+        var m = com.harddayz.war.Survival.class.getDeclaredMethod("shoot", net.minecraft.server.level.ServerLevel.class, net.minecraft.world.phys.Vec3.class, int.class, UUID.class);
+        m.setAccessible(true);
+        UUID side = UUID.randomUUID();
+        int[] weapons = {0, 1, 6};
+        java.util.Map<Long, double[]> hits = new java.util.HashMap<>();
+        net.minecraft.world.phys.Vec3[] targets = new net.minecraft.world.phys.Vec3[weapons.length];
+        for (int i = 0; i < weapons.length; i++) {
+            // площадки в открытом небе: рельеф тестового мира не мешает
+            BlockPos c = h.absolutePos(new BlockPos(1, 1, 1)).offset(i * 120, 0, 0).atY(200);
+            for (int dx = -30; dx <= 30; dx++) {
+                for (int dz = -30; dz <= 30; dz++) {
+                    level.setBlockAndUpdate(c.offset(dx, 0, dz), Blocks.STONE.defaultBlockState());
+                }
+            }
+            targets[i] = net.minecraft.world.phys.Vec3.atBottomCenterOf(c.above());
+        }
+        net.minecraftforge.common.MinecraftForge.EVENT_BUS.addListener((net.minecraftforge.event.level.ExplosionEvent.Start e) -> {
+            if (e.getExplosion().getDirectSourceEntity() instanceof com.harddayz.entity.Missile mm && mm.owner() != null
+                    && mm.owner().getMostSignificantBits() == side.getMostSignificantBits()) {
+                var at = e.getExplosion().getPosition();
+                hits.putIfAbsent(mm.owner().getLeastSignificantBits(), new double[] {at.x, at.y, at.z});
+            }
+        });
+        for (int i = 0; i < weapons.length; i++) {
+            m.invoke(null, level, targets[i], weapons[i], new UUID(side.getMostSignificantBits(), i));
+        }
+        h.succeedWhen(() -> {
+            h.assertTrue(hits.size() == weapons.length, "shots landed: " + hits.size());
+            for (var e : hits.entrySet()) {
+                var t = targets[e.getKey().intValue()];
+                double d = Math.hypot(e.getValue()[0] - t.x, e.getValue()[2] - t.z);
+                h.assertTrue(d < 12 && Math.abs(e.getValue()[1] - t.y) < 4, "weapon " + weapons[e.getKey().intValue()] + " missed by " + (int) d);
+            }
+        });
+    }
+
     /** Солдаты разных сторон находят и убивают друг друга, своих не трогают; отряды на бумаге берут точки. */
     @GameTest(template = "empty", batch = "bots", timeoutTicks = 1200)
     public static void soldiersFight(GameTestHelper h) {
@@ -77,7 +123,8 @@ public class BotGameTests {
         BotCommander.blast(new net.minecraft.world.phys.Vec3(5000, 70, 5000), 16);
         h.assertTrue(q.men < 4, "blast must hit paper squad");
         h.succeedWhen(() -> {
-            h.assertTrue(!s1.isAlive() && !mate.isAlive() || !foe.isAlive(), "someone must win");
+            h.assertTrue(!s1.isAlive() && !mate.isAlive() || !foe.isAlive(), "someone must win: " + s1.getHealth() + " " + mate.getHealth() + " " + foe.getHealth()
+                    + " d=" + (int) s1.distanceTo(foe) + " see=" + s1.hasLineOfSight(foe) + " war=" + War.active());
             h.assertTrue(a.deaths + b.deaths > 0, "deaths counted");
             War.end();
         });

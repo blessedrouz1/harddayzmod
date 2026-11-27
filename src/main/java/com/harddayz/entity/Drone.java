@@ -237,6 +237,11 @@ public class Drone extends Entity implements Threat {
 
     // ------------------------------------------------------------------ создание
 
+    /** Новая точка для разведчика: подойти и кружить над ней. */
+    public void retarget(Vec3 p) {
+        target = p;
+    }
+
     /** Куда смотрела пусковая при старте. */
     private @Nullable Vec3 startDir;
 
@@ -253,6 +258,7 @@ public class Drone extends Entity implements Threat {
         d.yRotO = d.getYRot();
         d.xRotO = d.getXRot();
         level.addFreshEntity(d);
+        FlightChunks.born(level, d);
         return d;
     }
 
