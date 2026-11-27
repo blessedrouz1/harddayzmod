@@ -18,6 +18,7 @@ import com.harddayz.registry.ModSounds;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -32,38 +33,62 @@ import net.minecraft.world.level.levelgen.Heightmap;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Режим «Выжить под обстрелом». Разведдроны кружат над районом и ищут людей; кого увидели — по тому месту бьют.
- * Каждый раунд дронов больше, удары чаще, точнее и тяжелее. Под крышей, в лесу и под землёй дрон не видит.
- * Погибший смотрит дальше как зритель; конец — когда не осталось живых.
+ * Режим «Выжить под обстрелом». Удар не мгновенный, а цепочкой, и на каждом шаге можно увернуться:
+ * поиск (дроны кружат) → засечка (дрон должен несколько секунд держать человека, индикатор растёт) → наводка
+ * (позицию передали на батарею, ещё несколько секунд) → пуск (сигнал с типом, направлением и временем подлёта) → подлёт.
+ * Каждый раунд — задача (добежать, удержать, сбить дроны); выполнили — подвоз, провалили — следующий раунд злее.
  */
 public final class Survival {
     public static final int ROUND = 150;
     public static final int BREAK = 25;
     private static final Random R = new Random();
-    /** Где и когда видели игрока. */
+
+    /** Засечка игрока 0..1 и наводка: тик, когда батарея получит координаты, и сами координаты. */
+    private static final Map<UUID, double[]> HEAT = new HashMap<>();
+    private static final Map<UUID, double[]> HANDOFF = new HashMap<>();
+    /** Последнее место, где видели (x, y, z, clock). */
     private static final Map<UUID, double[]> SEEN = new HashMap<>();
     private static final List<UUID> DRONES = new ArrayList<>();
+    private static final Map<UUID, UUID> HUNTERS = new HashMap<>();
+    private static final List<Object[]> PENDING = new ArrayList<>();
     private static int clock;
-    private static int nextStrike;
     private static int nextHarass;
     private static int nextDrone;
+    /** Задача раунда: вид (1 добежать, 2 удержать, 3 сбить дроны), точка, прогресс и цель. */
+    private static int task;
+    private static int taskX;
+    private static int taskZ;
+    private static int taskHave;
+    private static int taskNeed;
+    private static boolean taskDone;
+    private static int fails;
+    private static int done;
 
     private Survival() {
     }
 
     public static void reset() {
+        HEAT.clear();
+        HANDOFF.clear();
         SEEN.clear();
         DRONES.clear();
-        PENDING.clear();
         HUNTERS.clear();
+        PENDING.clear();
         clock = 0;
-        nextStrike = 0;
         nextHarass = 0;
         nextDrone = 0;
+        task = 0;
+        fails = 0;
+        done = 0;
     }
 
     public static int round() {
         return 1 + War.survivalTime() / (ROUND + BREAK);
+    }
+
+    /** Сила раунда: номер плюс проваленные задачи, плюс сложность. */
+    private static int power() {
+        return round() + fails + (War.difficulty() - 2);
     }
 
     /** Затишье между раундами. */
@@ -95,6 +120,10 @@ public final class Survival {
         k.add(new ItemStack(ModBlocks.SANDBAGS_ITEM.get(), first ? 64 : 24));
         k.add(new ItemStack(ModItems.BANDAGE.get(), first ? 6 : 3));
         k.add(new ItemStack(ModItems.SMOKE_GRENADE.get(), first ? 2 : 1));
+        give(p, k);
+    }
+
+    private static void give(ServerPlayer p, List<ItemStack> k) {
         for (ItemStack s : k) {
             if (!p.getInventory().add(s)) {
                 p.spawnAtLocation(s);
@@ -119,24 +148,28 @@ public final class Survival {
         War.tickSurvival();
         clock++;
         int r = round();
-        if (r != before) {
-            War.broadcast(Component.translatable("message.harddayz.surv_round", r).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
-            for (ServerPlayer p : alive) {
-                p.playNotifySound(SoundEvents.RAID_HORN.value(), SoundSource.HOSTILE, 1f, 1f);
+        if (r != before || clock == 1) {
+            if (r != before) {
+                War.broadcast(Component.translatable("message.harddayz.surv_round", r).withStyle(ChatFormatting.RED, ChatFormatting.BOLD));
+                for (ServerPlayer p : alive) {
+                    p.playNotifySound(SoundEvents.RAID_HORN.value(), SoundSource.HOSTILE, 1f, 1f);
+                }
             }
+            newTask(level, alive);
         } else if (!wasLull && lull()) {
+            endTask(alive);
             War.broadcast(Component.translatable("message.harddayz.surv_lull", r, BREAK).withStyle(ChatFormatting.GREEN));
             for (ServerPlayer p : alive) {
                 kit(p, false);
             }
         }
-        bar(level.getServer(), alive, r);
-        if (lull()) {
-            return;
+        if (!lull()) {
+            drones(level, power());
+            watch(level, alive, power());
+            strikes(level, alive, power());
+            taskTick(level, alive);
         }
-        drones(level, r);
-        watch(level, alive, r);
-        strikes(level, alive, r);
+        bar(server, alive, r);
     }
 
     private static List<ServerPlayer> alive(MinecraftServer server) {
@@ -150,7 +183,7 @@ public final class Survival {
         return out;
     }
 
-    /** Таймер внизу экрана — всем в матче, и погибшим-зрителям тоже. */
+    /** Таймер, засечка и задача — всем в матче, и погибшим-зрителям тоже. */
     private static void bar(MinecraftServer server, List<ServerPlayer> alive, int r) {
         int t = War.survivalTime(), in = t % (ROUND + BREAK);
         boolean lull = in >= ROUND;
@@ -159,9 +192,12 @@ public final class Survival {
             if (War.of(p.getUUID()) == null) {
                 continue;
             }
-            double[] s = SEEN.get(p.getUUID());
-            boolean hot = s != null && clock - s[3] < 20 && alive.contains(p);
-            Net.toPlayer(p, new Net.SurvivalState(r, t, left, lull, hot, DRONES.size(), alive.size()));
+            double[] h = HEAT.get(p.getUUID());
+            double[] ho = HANDOFF.get(p.getUUID());
+            int heat = h == null ? 0 : (int) (h[0] * 100);
+            int hand = ho == null ? -1 : Math.max(0, (int) Math.ceil((ho[0] - server.overworld().getGameTime()) / 20.0));
+            Net.toPlayer(p, new Net.SurvivalState(r, t, left, lull, heat, hand, DRONES.size(), alive.size(), lull ? 0 : task, taskHave, taskNeed, taskX, taskZ,
+                    taskDone));
         }
     }
 
@@ -179,23 +215,15 @@ public final class Survival {
 
     private static void drones(ServerLevel level, int r) {
         DRONES.removeIf(id -> !(level.getEntity(id) instanceof Drone d) || !d.isAlive());
+        List<ServerPlayer> alive = alive(level.getServer());
         // поиск: каждые ~20 с дрон перелетает — чаще туда, где люди, чем в пустоту
         if (clock % 20 == 0) {
-            List<ServerPlayer> alive = alive(level.getServer());
             for (UUID id : DRONES) {
                 if (level.getEntity(id) instanceof Drone d && !alive.isEmpty()) {
-                    double[] seen = null;
-                    for (double[] s : SEEN.values()) {
-                        if (clock - s[3] < 30 && (seen == null || s[3] > seen[3])) {
-                            seen = s;
-                        }
-                    }
                     Vec3 go;
-                    if (seen != null) {
-                        go = new Vec3(seen[0], seen[1], seen[2]).add(R.nextGaussian() * 25, 0, R.nextGaussian() * 25);
-                    } else if (R.nextDouble() < 0.45 + 0.05 * r) {
+                    if (R.nextDouble() < 0.35 + 0.05 * r) {
                         Vec3 p = alive.get(R.nextInt(alive.size())).position();
-                        go = p.add(R.nextGaussian() * 70, 0, R.nextGaussian() * 70); // догадка: где-то тут
+                        go = p.add(R.nextGaussian() * 80, 0, R.nextGaussian() * 80); // догадка: где-то тут
                     } else {
                         go = center().add(R.nextGaussian() * radius() * 0.5, 0, R.nextGaussian() * radius() * 0.5);
                     }
@@ -203,24 +231,22 @@ public final class Survival {
                 }
             }
         }
-        int want = War.botAllowed(War.BOT_RECON) ? Math.min(6, 1 + r / 2) : 0;
+        int want = War.botAllowed(War.BOT_RECON) ? Mth.clamp(1 + r / 2, 1, 7) : 0;
         if (DRONES.size() >= want || clock < nextDrone) {
             return;
         }
-        nextDrone = clock + Math.max(15, 45 - r * 4);
-        Vec3 c = center();
-        // взлетает недалеко от живого игрока: там мир точно загружен
-        List<ServerPlayer> alive = alive(level.getServer());
-        Vec3 near = alive.isEmpty() ? c : alive.get(R.nextInt(alive.size())).position();
-        double a = R.nextDouble() * Math.PI * 2, d = 90;
-        Vec3 from = new Vec3(near.x + Math.cos(a) * d, 0, near.z + Math.sin(a) * d);
-        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(from.x), Mth.floor(from.z));
-        from = from.add(0, y + 45, 0);
-        Vec3 over = c.add(R.nextGaussian() * radius() * 0.4, 0, R.nextGaussian() * radius() * 0.4);
+        nextDrone = clock + Math.max(12, 40 - r * 4);
         War.Faction ai = War.enemyFaction();
-        if (ai == null) {
+        if (ai == null || alive.isEmpty()) {
             return;
         }
+        // взлетает недалеко от живого игрока: там мир точно загружен
+        Vec3 near = alive.get(R.nextInt(alive.size())).position();
+        double a = R.nextDouble() * Math.PI * 2;
+        Vec3 from = new Vec3(near.x + Math.cos(a) * 100, 0, near.z + Math.sin(a) * 100);
+        int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(from.x), Mth.floor(from.z));
+        from = from.add(0, y + 45, 0);
+        Vec3 over = center().add(R.nextGaussian() * radius() * 0.4, 0, R.nextGaussian() * radius() * 0.4);
         Drone dr = Drone.launchShahed(level, from, over.subtract(from).multiply(1, 0, 1).normalize(), over, ai.botId(), Drone.Kind.WING_RECON);
         DRONES.add(dr.getUUID());
     }
@@ -239,6 +265,7 @@ public final class Survival {
         return true;
     }
 
+    /** Засечка копится, пока дрон держит человека в поле зрения, и тает, когда спрятался. */
     private static void watch(ServerLevel level, List<ServerPlayer> alive, int r) {
         List<Drone> eyes = new ArrayList<>();
         for (UUID id : DRONES) {
@@ -246,34 +273,43 @@ public final class Survival {
                 eyes.add(d);
             }
         }
+        double dif = War.difficulty() == 1 ? 0.75 : War.difficulty() == 3 ? 1.3 : 1;
         for (ServerPlayer p : alive) {
+            double[] h = HEAT.computeIfAbsent(p.getUUID(), k -> new double[] {0});
             boolean outside = p.position().distanceTo(new Vec3(center().x, p.getY(), center().z)) > radius();
             Drone seer = null;
-            double chance = 0;
-            for (Drone d : eyes) {
-                double dist = Math.hypot(d.getX() - p.getX(), d.getZ() - p.getZ());
-                if (dist > 140) {
-                    continue;
-                }
-                double c = 0.4 + 0.05 * r + (p.getDeltaMovement().horizontalDistanceSqr() > 0.004 ? 0.25 : 0) - (p.isCrouching() ? 0.2 : 0) - dist / 400;
-                if (c > chance && exposed(level, p)) {
-                    chance = c;
-                    seer = d;
+            double best = 0;
+            if (exposed(level, p)) {
+                for (Drone d : eyes) {
+                    double dist = Math.hypot(d.getX() - p.getX(), d.getZ() - p.getZ());
+                    double f = 1.2 - dist / 150;
+                    if (f > best) {
+                        best = f;
+                        seer = d;
+                    }
                 }
             }
+            double gain = best <= 0 ? 0 : best * (0.2 + 0.025 * r) * dif * (p.getDeltaMovement().horizontalDistanceSqr() > 0.004 ? 1.5 : 1)
+                    * (p.isCrouching() ? 0.5 : 1);
             if (outside) {
-                chance = 1; // вышел из района — виден всем
+                gain = Math.max(gain, 0.5);
             }
-            if (chance > 0 && R.nextDouble() < chance) {
-                double[] was = SEEN.get(p.getUUID());
-                SEEN.put(p.getUUID(), new double[] {p.getX(), p.getY(), p.getZ(), clock});
-                if (seer != null) {
+            if (gain > 0) {
+                h[0] = Math.min(1, h[0] + gain);
+                if (seer != null && h[0] > 0.3) {
                     seer.retarget(p.position()); // дрон подходит ближе и кружит над целью
                 }
-                if (was == null || clock - was[3] > 12) {
-                    Net.toPlayer(p, new Net.Alert(Component.translatable(outside ? "message.harddayz.surv_outside" : "message.harddayz.surv_spotted").getString()));
-                    p.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.HOSTILE, 1f, 0.6f);
-                }
+            } else {
+                h[0] = Math.max(0, h[0] - 0.3);
+            }
+            if (h[0] >= 1 && !HANDOFF.containsKey(p.getUUID())) {
+                // засекли: координаты уходят на батарею — несколько секунд, чтобы уйти
+                h[0] = 0.4;
+                SEEN.put(p.getUUID(), new double[] {p.getX(), p.getY(), p.getZ(), clock});
+                double delay = Math.max(3, (8.5 - r * 0.5) / dif);
+                HANDOFF.put(p.getUUID(), new double[] {level.getGameTime() + delay * 20, p.getX(), p.getY(), p.getZ()});
+                Net.toPlayer(p, new Net.Alert(Component.translatable(outside ? "message.harddayz.surv_outside" : "message.harddayz.surv_spotted").getString()));
+                p.playNotifySound(SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.HOSTILE, 1f, 0.6f);
             }
         }
     }
@@ -286,33 +322,24 @@ public final class Survival {
             return;
         }
         hunters(level, alive);
-        if (clock >= nextStrike) {
-            ServerPlayer target = null;
-            double[] spot = null;
-            for (ServerPlayer p : alive) {
-                double[] s = SEEN.get(p.getUUID());
-                if (s != null && clock - s[3] < 20 && (spot == null || s[3] > spot[3])) {
-                    spot = s;
-                    target = p;
-                }
+        long now = level.getGameTime();
+        HANDOFF.entrySet().removeIf(e -> {
+            double[] h = e.getValue();
+            if (h[0] > now) {
+                return false;
             }
-            if (spot != null) {
-                nextStrike = clock + Math.max(4, 13 - r);
-                double err = Math.max(3, 13 - r * 1.5);
-                Vec3 at = new Vec3(spot[0], spot[1], spot[2]);
-                int attacks = 1 + r / 3;
-                for (int i = 0; i < attacks; i++) {
-                    attack(level, ai, at, err, r, i * 30, target);
-                }
-                if (target != null) {
-                    target.displayClientMessage(Component.translatable("message.harddayz.surv_incoming").withStyle(ChatFormatting.RED, ChatFormatting.BOLD), true);
-                }
+            ServerPlayer prey = level.getServer().getPlayerList().getPlayer(e.getKey());
+            double err = Math.max(3, (13 - r * 1.3) / (War.difficulty() == 3 ? 1.3 : 1));
+            int attacks = 1 + Math.max(0, r - 2) / 3;
+            for (int i = 0; i < attacks; i++) {
+                attack(level, ai, new Vec3(h[1], h[2], h[3]), err, r, i * 40, prey);
             }
-        }
+            return true;
+        });
         if (clock >= nextHarass) { // беспокоящий огонь по площади, даже без засечки
-            nextHarass = clock + Math.max(8, 30 - r * 3);
+            nextHarass = clock + Math.max(10, 34 - r * 3);
             Vec3 c = center();
-            attack(level, ai, c.add(R.nextGaussian() * radius() * 0.45, 0, R.nextGaussian() * radius() * 0.45), 18, r, 0, null);
+            attack(level, ai, c.add(R.nextGaussian() * radius() * 0.45, 0, R.nextGaussian() * radius() * 0.45), 18, Math.max(1, r - 1), 0, null);
         }
     }
 
@@ -323,7 +350,19 @@ public final class Survival {
             {3, War.BOT_CLUSTER, 2, 1}, {4, War.BOT_TOS, 2, 1}, {8, War.BOT_URAGAN, 2, 1}, {5, War.BOT_CRUISE, 1, 1}, {6, War.BOT_ISKANDER, 1, 1},
     };
 
-    /** Один удар: залп, серия или стая. */
+    /** Время полёта, тиков: всего и на последнем участке, где снаряд уже настоящий. */
+    private static int[] flight(int w) {
+        return switch (w) {
+            case 0 -> new int[] {136, 36};
+            case 2 -> new int[] {200, 120};
+            case 5 -> new int[] {140, 56};
+            case 7 -> new int[] {90, 70};
+            case 8 -> new int[] {262, 18};
+            default -> new int[] {223, 20};
+        };
+    }
+
+    /** Один удар: залп, серия или стая — с сигналом пуска. */
     private static void attack(ServerLevel level, War.Faction ai, Vec3 at, double err, int r, int delay, @Nullable ServerPlayer prey) {
         double sum = 0;
         double[] wt = new double[ARSENAL.length];
@@ -357,17 +396,27 @@ public final class Survival {
             default -> 1;
         };
         double spread = err * (w == 1 || w == 8 || w == 4 ? 1.6 : 1);
+        double az = R.nextDouble() * Math.PI * 2; // одна батарея — одно направление
+        int[] fl = flight(w);
+        long launch = level.getGameTime() + delay;
+        int gap = w == 1 || w == 8 ? 3 : w == 0 ? 25 : 10;
         for (int i = 0; i < n; i++) {
             Vec3 p = at.add(R.nextGaussian() * spread, 0, R.nextGaussian() * spread);
             int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, Mth.floor(p.x), Mth.floor(p.z));
-            PENDING.add(new Object[] {new Vec3(p.x, y, p.z), w, ai.botId(), level.getGameTime() + delay + i * (w == 1 || w == 8 ? 3 : w == 0 ? 25 : 10),
-                    prey == null ? null : prey.getUUID()});
+            PENDING.add(new Object[] {new Vec3(p.x, y, p.z), w, ai.botId(), launch + fl[0] - fl[1] + (long) i * gap, prey == null ? null : prey.getUUID(), az});
+        }
+        // сигнал пуска: что, откуда, когда прилетит — всем в районе, на экран и на радар
+        Vec3 src = at.add(Math.cos(az) * -600, 0, Math.sin(az) * -600);
+        launchSound(level, w, src);
+        var msg = new Net.SurvivalLaunch(w, n, (int) src.x, (int) src.z, (int) at.x, (int) at.z, fl[0] + delay);
+        for (ServerPlayer p : level.getServer().getPlayerList().getPlayers()) {
+            if (War.of(p.getUUID()) != null) {
+                Net.toPlayer(p, msg);
+            }
         }
     }
 
     /** Дроны-камикадзе: каждую секунду доворачивают на свою жертву (если её видно — точно, иначе туда, где видели). */
-    private static final Map<UUID, UUID> HUNTERS = new HashMap<>();
-
     private static void hunters(ServerLevel level, List<ServerPlayer> alive) {
         HUNTERS.entrySet().removeIf(e -> {
             if (!(level.getEntity(e.getKey()) instanceof Drone d) || !d.isAlive()) {
@@ -387,17 +436,15 @@ public final class Survival {
         });
     }
 
-    private static final List<Object[]> PENDING = new ArrayList<>();
-
-    /** Каждый тик: удары с задержкой внутри залпа. */
+    /** Каждый тик: снаряды появляются на последнем участке полёта. */
     public static void tickShots(ServerLevel level) {
         long now = level.getGameTime();
         PENDING.removeIf(p -> {
             if ((long) p[3] > now) {
                 return false;
             }
-            Entity made = shoot(level, (Vec3) p[0], (int) p[1], (UUID) p[2]);
-            if (made != null && p.length > 4 && p[4] != null) {
+            Entity made = shoot(level, (Vec3) p[0], (int) p[1], (UUID) p[2], p.length > 5 ? (double) p[5] : R.nextDouble() * Math.PI * 2);
+            if (made != null && p[4] != null) {
                 HUNTERS.put(made.getUUID(), (UUID) p[4]);
             }
             return true;
@@ -405,17 +452,20 @@ public final class Survival {
     }
 
     static @Nullable Entity shoot(ServerLevel level, Vec3 t, int w, UUID side) {
-        double az = R.nextDouble() * Math.PI * 2;
+        return shoot(level, t, w, side, R.nextDouble() * Math.PI * 2);
+    }
+
+    static @Nullable Entity shoot(ServerLevel level, Vec3 t, int w, UUID side, double az) {
         Vec3 dir = new Vec3(Math.cos(az), 0, Math.sin(az));
         switch (w) {
             case 0, 1, 3, 4, 6, 8 -> {
-                // мина или ракета прилетает издалека: заводим её на последних 150 блоках настоящей дуги
+                // мина или ракета прилетает издалека: заводим её на последнем участке настоящей дуги
                 double range = w == 0 ? 230 : w == 8 ? 900 : 650, v = w == 0 ? 3.8 : w == 8 ? 6.3 * 1.2 : 6.3, g = Missile.Kind.GRAD.gravity;
                 double s = Math.min(1, range * g / (v * v));
                 double th = Math.PI / 2 - Math.asin(s) / 2; // навесное решение
                 double vx = v * Math.cos(th), vy = v * Math.sin(th);
                 Vec3 src = t.subtract(dir.scale(range));
-                // заводим на нисходящей ветви; если там выше потолка мира — ещё ближе к цели, дугу не ломаем
+                // на нисходящей ветви; если там выше потолка мира — ещё ближе к цели, дугу не ломаем
                 double rest = Math.min(range, 150), t0 = 0;
                 Vec3 pos = src;
                 for (; rest > 30; rest -= 10) {
@@ -436,7 +486,6 @@ public final class Survival {
                     default -> {
                     }
                 }
-                ModSounds.launch(level, src.x, t.y, src.z, (w == 0 ? ModSounds.MORTAR_FIRE : w == 6 ? ModSounds.MISSILE_LAUNCH : ModSounds.ROCKET_LAUNCH).get(), 900, 1f);
                 return m;
             }
             case 7 -> { // камикадзе заходит низко с ближней дистанции
@@ -448,6 +497,78 @@ public final class Survival {
                 Vec3 from = t.subtract(dir.scale(150)).add(0, 45, 0);
                 return Drone.launchShahed(level, from, dir, t, side, k);
             }
+        }
+    }
+
+    // ------------------------------------------------------------------ задачи раунда
+
+    private static void newTask(ServerLevel level, List<ServerPlayer> alive) {
+        taskDone = false;
+        taskHave = 0;
+        Vec3 c = center();
+        double mx = 0, mz = 0;
+        for (ServerPlayer p : alive) {
+            mx += p.getX() / alive.size();
+            mz += p.getZ() / alive.size();
+        }
+        task = 1 + R.nextInt(3);
+        if (task == 3 && !War.botAllowed(War.BOT_RECON)) {
+            task = 1;
+        }
+        for (int i = 0; i < 30; i++) { // точка в районе, не слишком близко к людям
+            double a = R.nextDouble() * Math.PI * 2, d = 60 + R.nextDouble() * 80;
+            taskX = (int) (mx + Math.cos(a) * d);
+            taskZ = (int) (mz + Math.sin(a) * d);
+            if (Math.hypot(taskX - c.x, taskZ - c.z) < radius() - 10) {
+                break;
+            }
+        }
+        taskNeed = task == 2 ? 40 : task == 3 ? 1 + round() / 3 : 1;
+        War.broadcast(Component.translatable("message.harddayz.surv_task_" + task, taskNeed, taskX, taskZ).withStyle(ChatFormatting.AQUA));
+    }
+
+    private static void taskTick(ServerLevel level, List<ServerPlayer> alive) {
+        if (task == 0 || taskDone) {
+            return;
+        }
+        if (task == 1 || task == 2) {
+            int y = level.getHeight(Heightmap.Types.MOTION_BLOCKING, taskX, taskZ);
+            var dust = new DustParticleOptions(new org.joml.Vector3f(0.3f, 1f, 0.5f), 2.5f);
+            for (int i = 0; i < 10; i++) {
+                com.harddayz.Compat.particles(level, dust, taskX + 0.5, y + 1 + i * 2, taskZ + 0.5, 2, 0.2, 0.5, 0.2, 0);
+            }
+            boolean on = false;
+            for (ServerPlayer p : alive) {
+                on |= Math.hypot(p.getX() - taskX - 0.5, p.getZ() - taskZ - 0.5) < (task == 1 ? 4 : 7);
+            }
+            if (on) {
+                taskHave++;
+            }
+        }
+        if (taskHave >= taskNeed) {
+            taskDone = true;
+            done++;
+            War.broadcast(Component.translatable("message.harddayz.surv_task_done").withStyle(ChatFormatting.GREEN, ChatFormatting.BOLD));
+            for (ServerPlayer p : alive) {
+                p.playNotifySound(SoundEvents.PLAYER_LEVELUP, SoundSource.PLAYERS, 1f, 1f);
+                give(p, List.of(new ItemStack(ModItems.MEDKIT.get()), new ItemStack(ModBlocks.BUNKER_CONCRETE_ITEM.get(), 16),
+                        new ItemStack(ModBlocks.CAMO_NET_ITEM.get(), 8), new ItemStack(ModItems.SMOKE_GRENADE.get(), 2)));
+            }
+        }
+    }
+
+    private static void endTask(List<ServerPlayer> alive) {
+        if (task != 0 && !taskDone) {
+            fails++;
+            War.broadcast(Component.translatable("message.harddayz.surv_task_fail").withStyle(ChatFormatting.RED));
+        }
+        task = 0;
+    }
+
+    /** Игрок сбил вражеский дрон. */
+    public static void droneDown(Drone d) {
+        if (War.survival() && task == 3 && !taskDone && !lull()) {
+            taskHave++;
         }
     }
 
@@ -471,6 +592,7 @@ public final class Survival {
         int best = War.survivalBest(t);
         War.broadcast(Component.translatable("message.harddayz.surv_over", round(), t / 60, String.format("%02d", t % 60), best / 60,
                 String.format("%02d", best % 60)).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        War.broadcast(Component.translatable("message.harddayz.surv_tasks", done).withStyle(ChatFormatting.GOLD));
         for (ServerPlayer p : server.getPlayerList().getPlayers()) {
             if (p.isSpectator() && War.survivalDead(p.getUUID())) {
                 p.setGameMode(GameType.SURVIVAL);
@@ -488,5 +610,11 @@ public final class Survival {
     public static @Nullable String status() {
         return War.survival() ? Component.translatable("screen.harddayz.surv_status", round(), War.survivalTime() / 60,
                 String.format("%02d", War.survivalTime() % 60), DRONES.size()).getString() : null;
+    }
+
+    /** Звук пуска сразу в момент сигнала: издалека, с задержкой по расстоянию. */
+    static void launchSound(ServerLevel level, int w, Vec3 src) {
+        ModSounds.launch(level, src.x, src.y + 2, src.z,
+                (w == 0 ? ModSounds.MORTAR_FIRE : w == 6 ? ModSounds.MISSILE_LAUNCH : w == 2 || w == 7 ? ModSounds.LAUNCH_SHAHED : ModSounds.ROCKET_LAUNCH).get(), 1200, 1f);
     }
 }

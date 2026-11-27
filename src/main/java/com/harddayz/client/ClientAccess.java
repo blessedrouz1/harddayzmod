@@ -94,6 +94,10 @@ public final class ClientAccess {
         SurvivalHud.state(p);
     }
 
+    public static void survivalLaunch(com.harddayz.network.Net.SurvivalLaunch p) {
+        RadarPanel.launch(p);
+    }
+
     public static void mapInfo(com.harddayz.network.Net.FrontInfo p) {
         MiniMap.info(p);
     }

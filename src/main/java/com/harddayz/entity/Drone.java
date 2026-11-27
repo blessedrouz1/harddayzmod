@@ -1078,6 +1078,9 @@ public class Drone extends Entity implements Threat {
         }
         health -= damage;
         if (health <= 0) {
+            if (source.getEntity() instanceof Player && kind().autonomous) {
+                com.harddayz.war.Survival.droneDown(this);
+            }
             shotDown(level);
         }
         return true;

@@ -63,6 +63,9 @@ public class Soldier extends PathfinderMob {
     private int cooldown;
     private int moveAt;
     private int stuck;
+    /** Где последний раз видел врага, и когда бросал гранату. */
+    private Vec3 lastSeen;
+    private int nextGrenade;
     private Vec3 stuckAt = Vec3.ZERO;
     private final double offX = (Math.random() - 0.5) * 9;
     private final double offZ = (Math.random() - 0.5) * 9;
@@ -88,6 +91,13 @@ public class Soldier extends PathfinderMob {
         entityData.set(FACTION, Math.max(0, War.factionIndex(side)));
         entityData.set(ROLE, role);
         setItemSlot(EquipmentSlot.MAINHAND, weapon(role, faction() % 2));
+        if (War.difficulty() >= 3) { // тяжёлая сложность: бронежилеты
+            var hp = getAttribute(Attributes.MAX_HEALTH);
+            if (hp != null) {
+                hp.setBaseValue(28);
+                setHealth(28);
+            }
+        }
         setDropChance(EquipmentSlot.MAINHAND, 0);
     }
 
@@ -217,6 +227,7 @@ public class Soldier extends PathfinderMob {
             if (sees(level, enemy)) {
                 lost = 0;
                 seen += 8;
+                lastSeen = enemy.getBoundingBox().getCenter();
             } else if ((lost += 8) > 80) {
                 enemy = null;
                 seen = 0;
@@ -293,10 +304,26 @@ public class Soldier extends PathfinderMob {
                 default -> 24;
             };
             Vec3 to = e.position().subtract(position()).multiply(1, 0, 1).normalize();
-            Vec3 sideways = new Vec3(-to.z, 0, to.x).scale((random.nextBoolean() ? 1 : -1) * (3 + random.nextDouble() * 6));
+            // обход: половина отряда заходит слева, половина справа, на сложности 3 — шире
+            int side = (getId() & 1) == 0 ? 1 : -1;
+            double flank = War.difficulty() >= 3 && role() != MG ? 8 + random.nextDouble() * 8 : 3 + random.nextDouble() * 6;
+            Vec3 sideways = new Vec3(-to.z, 0, to.x).scale((random.nextInt(4) == 0 ? -side : side) * flank);
             double fwd = getHealth() < 8 ? -14 : lost > 0 ? 10 : d > want + 8 ? 9 : d < want - 12 ? -5 : 0;
             Vec3 p = position().add(to.scale(fwd)).add(sideways);
             getNavigation().moveTo(p.x, p.y, p.z, getHealth() < 8 ? 1.2 : 1.0);
+        }
+        if (lost > 0 && cooldown <= 0 && !War.prep() && lastSeen != null) {
+            // враг скрылся: граната за укрытие, иначе огонь на подавление туда, где видели
+            double ld = getEyePosition().distanceTo(lastSeen);
+            if (War.difficulty() >= 2 && ld > 7 && ld < 26 && tickCount >= nextGrenade && role() != SNIPER) {
+                grenade(level, lastSeen);
+                nextGrenade = tickCount + 260 + random.nextInt(200);
+                cooldown = 30;
+            } else if (lost < 70 && (role() == MG || role() == RIFLE) && random.nextInt(3) > 0) {
+                suppress(level, lastSeen);
+                cooldown = role() == MG ? 4 : 12;
+            }
+            return;
         }
         if (lost > 0 || cooldown > 0 || d > sight() * 1.1 || War.prep()) {
             return;
@@ -364,6 +391,41 @@ public class Soldier extends PathfinderMob {
         ModSounds.launch(level, eye.x, eye.y, eye.z, snd.get(), 170, 0.95f + random.nextFloat() * 0.1f);
         Vec3 muzzle = eye.add(dir.scale(0.9)).add(0, -0.2, 0);
         var fx = new Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hit == null && block.getType() != HitResult.Type.MISS);
+        for (ServerPlayer p : level.players()) {
+            if (p.distanceToSqr(this) < 200 * 200) {
+                Net.toPlayer(p, fx);
+            }
+        }
+    }
+
+    /** Граната по навесной: долетает до точки и рвётся по запалу. */
+    private void grenade(ServerLevel level, Vec3 at) {
+        Vec3 eye = getEyePosition();
+        Vec3 flat = at.subtract(eye).multiply(1, 0, 1);
+        double d = flat.length(), g = Missile.Kind.BOMB.gravity;
+        double t = Math.max(12, d / 0.9); // время полёта, тиков
+        Vec3 v = flat.scale(1 / t).add(0, (at.y - eye.y) / t + g * t / 2, 0);
+        Missile.launch(level, Missile.Kind.BOMB, eye.add(flat.normalize().scale(0.6)), v, at, this).owner(side).powerMul(1.1f).fuse((int) t + 12);
+        level.playSound(null, blockPosition(), net.minecraft.sounds.SoundEvents.SNOWBALL_THROW, net.minecraft.sounds.SoundSource.HOSTILE, 1f, 0.6f);
+    }
+
+    /** Очередь в сторону, где враг скрылся: прижимает, а если высунется — может зацепить. */
+    private void suppress(ServerLevel level, Vec3 at) {
+        Vec3 eye = getEyePosition();
+        getLookControl().setLookAt(at.x, at.y, at.z, 40, 40);
+        Vec3 dir = at.subtract(eye).normalize().add(random.nextGaussian() * 0.05, random.nextGaussian() * 0.04, random.nextGaussian() * 0.05).normalize();
+        Vec3 end = eye.add(dir.scale(eye.distanceTo(at) + 20));
+        var block = level.clip(new ClipContext(eye, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this));
+        Vec3 stop = block.getLocation();
+        var hit = Launcher.rayEntity(level, this, eye, stop, x -> x != this && x instanceof LivingEntity && !War.allied(side, sideOf(x)));
+        if (hit != null) {
+            stop = hit.getLocation();
+            hit.getEntity().hurt(level.damageSources().mobAttack(this), 3f);
+        }
+        var snd = role() == MG ? ModSounds.GUN_PKM : faction() % 2 == 0 ? ModSounds.GUN_M4 : ModSounds.GUN_AK;
+        ModSounds.launch(level, eye.x, eye.y, eye.z, snd.get(), 170, 0.95f + random.nextFloat() * 0.1f);
+        Vec3 muzzle = eye.add(dir.scale(0.9)).add(0, -0.2, 0);
+        var fx = new Net.Tracer(muzzle.x, muzzle.y, muzzle.z, stop.x, stop.y, stop.z, hit == null);
         for (ServerPlayer p : level.players()) {
             if (p.distanceToSqr(this) < 200 * 200) {
                 Net.toPlayer(p, fx);

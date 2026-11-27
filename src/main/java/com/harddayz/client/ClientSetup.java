@@ -223,6 +223,7 @@ public final class ClientSetup {
         overlay(event, "flash", ClientBlasts::renderFlash);
         overlay(event, "minimap", MiniMap::render);
         overlay(event, "survival", SurvivalHud::render);
+        overlay(event, "radar_panel", RadarPanel::render);
         overlay(event, "drone_hud", DronePilot::renderHud);
         overlay(event, "vehicle_hp", ClientSetup::renderVehicleHp);
         overlay(event, "gunner", ClientGunner::renderHud);

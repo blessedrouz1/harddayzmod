@@ -183,7 +183,12 @@ public final class Net {
     }
 
     /** Сервер → клиент раз в секунду: таймер выживания. */
-    public record SurvivalState(int round, int time, int left, boolean lull, boolean seen, int drones, int alive) {
+    public record SurvivalState(int round, int time, int left, boolean lull, int heat, int handoff, int drones, int alive, int task, int taskHave, int taskNeed,
+            int taskX, int taskZ, boolean taskDone) {
+    }
+
+    /** Сервер → клиент: сигнал пуска по району (оружие, сколько, откуда, куда, через сколько тиков подлёт). */
+    public record SurvivalLaunch(int weapon, int count, int sx, int sz, int tx, int tz, int eta) {
     }
 
     public record Alert(String text) {
@@ -308,11 +313,29 @@ public final class Net {
                     b.writeVarInt(m.time());
                     b.writeVarInt(m.left());
                     b.writeBoolean(m.lull());
-                    b.writeBoolean(m.seen());
+                    b.writeVarInt(m.heat());
+                    b.writeInt(m.handoff());
                     b.writeVarInt(m.drones());
                     b.writeVarInt(m.alive());
-                }, b -> new SurvivalState(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(), b.readBoolean(), b.readVarInt(), b.readVarInt()),
+                    b.writeVarInt(m.task());
+                    b.writeVarInt(m.taskHave());
+                    b.writeVarInt(m.taskNeed());
+                    b.writeInt(m.taskX());
+                    b.writeInt(m.taskZ());
+                    b.writeBoolean(m.taskDone());
+                }, b -> new SurvivalState(b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readBoolean(), b.readVarInt(), b.readInt(), b.readVarInt(), b.readVarInt(),
+                        b.readVarInt(), b.readVarInt(), b.readVarInt(), b.readInt(), b.readInt(), b.readBoolean()),
                 (p, ctx) -> com.harddayz.client.ClientAccess.survival(p));
+        reg(SurvivalLaunch.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
+                    b.writeVarInt(m.weapon());
+                    b.writeVarInt(m.count());
+                    b.writeInt(m.sx());
+                    b.writeInt(m.sz());
+                    b.writeInt(m.tx());
+                    b.writeInt(m.tz());
+                    b.writeVarInt(m.eta());
+                }, b -> new SurvivalLaunch(b.readVarInt(), b.readVarInt(), b.readInt(), b.readInt(), b.readInt(), b.readInt(), b.readVarInt()),
+                (p, ctx) -> com.harddayz.client.ClientAccess.survivalLaunch(p));
         reg(LaunchSound.class, NetworkDirection.PLAY_TO_CLIENT, (m, b) -> {
                     b.writeResourceLocation(m.sound());
                     b.writeDouble(m.x());
