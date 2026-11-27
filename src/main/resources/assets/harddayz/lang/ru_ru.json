@@ -572,6 +572,6 @@
   "hud.harddayz.surv": "Раунд %s · %s:%s · дронов в небе %s",
   "hud.harddayz.surv_hot": "Раунд %s · %s:%s · ТЕБЯ ВИДЯТ (дронов %s)",
   "screen.harddayz.surv_status": "Раунд %s, %s:%s под обстрелом, дронов в небе %s",
-  "hud.harddayz.surv_line": "Раунд %s  ·  прошло %s  ·  до конца раунда %s  ·  дронов %s  ·  живых %s",
-  "hud.harddayz.surv_line_lull": "Раунд %s пережит  ·  прошло %s  ·  затишье ещё %s  ·  дронов %s  ·  живых %s"
+  "hud.harddayz.surv_line": "Раунд %s · %s · до конца %s · дронов %s · живых %s",
+  "hud.harddayz.surv_line_lull": "Раунд %s пережит · %s · затишье %s · дронов %s · живых %s"
 }

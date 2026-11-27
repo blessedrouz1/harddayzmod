@@ -29,6 +29,7 @@ public final class WarEvents {
     }
 
     public static void init() {
+        GunHits.init();
         var bus = net.minecraftforge.common.MinecraftForge.EVENT_BUS;
         bus.addListener((ServerStartedEvent e) -> {
             War.load(e.getServer());

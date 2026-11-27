@@ -30,10 +30,15 @@ final class SurvivalHud {
         Net.SurvivalState s = state;
         Component line = Component.translatable(s.lull() ? "hud.harddayz.surv_line_lull" : "hud.harddayz.surv_line", s.round(), time(s.time()), time(s.left()),
                 s.drones(), s.alive());
-        int w = mc.font.width(line) + 12;
-        int x = g.guiWidth() / 2 - w / 2, y = g.guiHeight() - 72;
+        float k = 0.7f;
+        int w = mc.font.width(line) + 8;
+        var pose = g.g.pose();
+        pose.pushPose();
+        pose.translate(g.guiWidth() / 2f, g.guiHeight() - 62, 0);
+        pose.scale(k, k, 1);
         boolean hot = s.seen() && (System.currentTimeMillis() / 300) % 2 == 0;
-        g.fill(x, y, x + w, y + 14, hot ? 0xC0801010 : s.lull() ? 0xA0104018 : 0xA0101010);
-        g.text(mc.font, line, x + 6, y + 3, hot || s.seen() ? 0xFFFF6060 : s.lull() ? 0xFF80FF90 : 0xFFE8E8D8, true);
+        g.fill(-w / 2, 0, w / 2, 12, hot ? 0xB0801010 : s.lull() ? 0x90104018 : 0x80101010);
+        g.text(mc.font, line, -w / 2 + 4, 2, hot || s.seen() ? 0xFFFF6060 : s.lull() ? 0xFF80FF90 : 0xFFE0E0D0, true);
+        pose.popPose();
     }
 }
